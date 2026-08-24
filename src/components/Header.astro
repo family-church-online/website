@@ -2,7 +2,6 @@
 import { Icon } from 'astro-icon/components';
 import { tinaField } from "@tinacms/astro/tina-field";
 import type { CmsConfig } from '../lib/data';
-import IconLink from "./IconLink.astro";
 import ThemeToggle from './ThemeToggle.astro';
 
 interface Props {
@@ -12,80 +11,137 @@ interface Props {
 const { config } = Astro.props;
 const seo = config?.seo ?? null;
 const nav = (config?.nav ?? []).filter(item => item !== null);
-const contactLinks = (config?.contactLinks ?? []).filter(item => item !== null);
 ---
 
-<header class="fixed top-0 z-20 w-full border-b bg-background/50 backdrop-blur-xl">
-	<nav class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
-		<a href="/" class="flex items-center gap-2 font-semibold">
-			{seo?.logo && <img src={seo.logo} alt="Logo" width="32" height="32" data-tina-field={tinaField(seo, "logo")} />}
-			<span data-tina-field={seo ? tinaField(seo, "title") : undefined}>{seo?.title}</span>
+<header class="fixed top-0 z-20 w-full transition-all duration-300 border-b border-transparent">
+	<!-- Main bar -->
+	<div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6" style="height:5rem">
+
+		<!-- Brand -->
+		<a href="/" class="nav-brand flex items-center flex-shrink-0 no-underline"
+			data-tina-field={seo ? tinaField(seo, 'title') : undefined}>
+			{seo?.logo
+				? <img src={seo.logo} alt={seo.title ?? 'Logo'} class="h-9 w-auto object-contain"
+						data-tina-field={tinaField(seo, 'logo')} />
+				: <span class="nav-title font-bold text-base">{seo?.title}</span>
+			}
 		</a>
-		<div class="hidden items-center gap-8 text-sm lg:flex">
+
+		<!-- Desktop nav links — hidden below lg (1024px) -->
+		<ul class="hidden lg:flex items-center gap-8 list-none m-0 p-0 flex-1 justify-center">
 			{nav.map((item) => (
-				<a href={item.link} class="text-muted-foreground transition-colors hover:text-foreground" data-tina-field={tinaField(item, "title")}>{item.title}</a>
+				<li>
+					<a href={item.link} class="nav-link" data-tina-field={tinaField(item, 'title')}>
+						{item.title}
+					</a>
+				</li>
 			))}
-		</div>
-		<div class="flex items-center gap-3">
-			<div class="hidden items-center gap-3 lg:flex">
-				{contactLinks.map((link) => (
-					<IconLink title={link.title} link={link.link} icon={link.icon} data-tina-field={tinaField(link, "title")} />
-				))}
-				<ThemeToggle />
-			</div>
+		</ul>
+
+		<!-- Right end -->
+		<div class="flex items-center gap-3 flex-shrink-0">
+			<ThemeToggle />
+			<!-- CTA: visible on sm+ -->
+			<a href="#visit" class="nav-cta hidden sm:inline-block">Plan a Visit</a>
+			<!-- Hamburger: visible below lg -->
 			<button
 				id="mobile-menu-toggle"
 				type="button"
 				aria-label="Toggle navigation menu"
-				aria-controls="mobile-menu-panel"
 				aria-expanded="false"
-				class="inline-flex size-9 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none lg:hidden"
+				class="nav-hamburger lg:hidden flex items-center justify-center rounded-md"
 			>
-				<Icon name="tabler:menu-2" class="icon-open size-5" />
-				<Icon name="tabler:x" class="icon-close size-5" />
+				<Icon name="tabler:menu-2" class="icon-open w-5 h-5" />
+				<Icon name="tabler:x" class="icon-close w-5 h-5" />
 			</button>
 		</div>
-	</nav>
-	<div
-		id="mobile-menu-panel"
-		hidden
-		class="border-t bg-background/95 backdrop-blur-xl lg:hidden"
-	>
-		<div class="mx-auto flex max-w-6xl flex-col px-6 py-4">
+	</div>
+
+	<!-- Mobile / tablet dropdown -->
+	<div id="mobile-menu" class="mobile-menu hidden lg:hidden border-t border-white/10">
+		<div class="mx-auto max-w-6xl px-6 py-3 flex flex-col">
 			{nav.map((item) => (
-				<a
-					href={item.link}
-					class="border-b border-border/50 py-3 text-sm text-muted-foreground transition-colors last:border-b-0 hover:text-foreground"
-					data-tina-field={tinaField(item, "title")}
-				>
+				<a href={item.link} class="mobile-nav-link py-3 border-b border-white/8 last:border-b-0"
+					data-tina-field={tinaField(item, 'title')}>
 					{item.title}
 				</a>
 			))}
-			<div class="mt-4 flex items-center justify-between gap-3 pt-4">
-				<div class="flex items-center gap-2">
-					{contactLinks.map((link) => (
-						<IconLink title={link.title} link={link.link} icon={link.icon} data-tina-field={tinaField(link, "title")} />
-					))}
-				</div>
-				<ThemeToggle />
-			</div>
+			<a href="#visit" class="nav-cta self-start mt-4 mb-2">Plan a Visit</a>
 		</div>
 	</div>
 </header>
+
 <style>
-	#mobile-menu-toggle .icon-close { display: none; }
+	/* All colours — no layout here, Tailwind handles that */
+
+	.nav-brand { text-decoration: none; }
+	.nav-title  { color: rgba(255,255,255,0.9); }
+
+	.nav-link {
+		color: rgba(255,255,255,0.72);
+		text-decoration: none;
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 1.2px;
+		text-transform: uppercase;
+		padding-bottom: 2px;
+		border-bottom: 2px solid transparent;
+		transition: color 0.2s, border-color 0.2s;
+	}
+	.nav-link:hover { color: var(--green); border-color: var(--green); }
+
+	.nav-cta {
+		padding: 0.5rem 1.2rem;
+		background: var(--green);
+		color: var(--ink) !important;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+		text-decoration: none;
+		transition: transform 0.2s, background 0.2s;
+		white-space: nowrap;
+	}
+	.nav-cta:hover { transform: translateY(-1px); background: #a3d63a; }
+
+	.nav-hamburger {
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: rgba(255,255,255,0.8);
+		padding: 0.35rem;
+	}
+	.icon-close { display: none; }
 	#mobile-menu-toggle[aria-expanded="true"] .icon-open { display: none; }
 	#mobile-menu-toggle[aria-expanded="true"] .icon-close { display: block; }
+
+	.mobile-menu {
+		background: rgba(39,63,97,0.98);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+	}
+	.mobile-nav-link {
+		color: rgba(255,255,255,0.72);
+		text-decoration: none;
+		font-size: 13px;
+		font-weight: 600;
+		letter-spacing: 0.8px;
+		text-transform: uppercase;
+		display: block;
+		transition: color 0.2s;
+	}
+	.mobile-nav-link:hover { color: var(--green); }
 </style>
+
 <script is:inline>
 	if (!window.__mobileMenuBound) {
 		window.__mobileMenuBound = true;
 		const setOpen = (open) => {
 			const btn = document.getElementById('mobile-menu-toggle');
-			const panel = document.getElementById('mobile-menu-panel');
-			if (!btn || !panel) return;
+			const menu = document.getElementById('mobile-menu');
+			if (!btn || !menu) return;
 			btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-			panel.hidden = !open;
+			menu.classList.toggle('hidden', !open);
 		};
 		document.addEventListener('click', (e) => {
 			const toggle = e.target.closest('#mobile-menu-toggle');
@@ -94,9 +150,7 @@ const contactLinks = (config?.contactLinks ?? []).filter(item => item !== null);
 				setOpen(!isOpen);
 				return;
 			}
-			if (e.target.closest('#mobile-menu-panel a')) {
-				setOpen(false);
-			}
+			if (e.target.closest('#mobile-menu a')) setOpen(false);
 		});
 		document.addEventListener('keydown', (e) => {
 			if (e.key === 'Escape') setOpen(false);

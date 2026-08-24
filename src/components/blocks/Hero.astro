@@ -1,11 +1,5 @@
 ---
-import { Image } from 'astro:assets';
 import { tinaField } from '@tinacms/astro/tina-field';
-import Section from '../ui/Section.astro';
-import Button from '../ui/Button.astro';
-import Icon from '../ui/Icon.astro';
-import Aurora from '../space/Aurora.astro';
-import Starfield from '../space/Starfield.astro';
 import type { HeroBlock } from '../../lib/data';
 
 interface Props { data: HeroBlock }
@@ -13,28 +7,175 @@ interface Props { data: HeroBlock }
 const { data } = Astro.props;
 const actions = (data.actions ?? []).filter(a => a !== null);
 ---
-<Section class="relative overflow-hidden">
-	<Aurora />
-	{data.starfield !== false && <Starfield count={70} class="text-foreground/20" />}
-	<div class="relative text-center sm:mx-auto lg:mr-auto">
-		<div data-tina-field={tinaField(data, 'image')} class="mx-auto mb-6 size-56 md:size-72">
-			{data.image?.src
-				? <Image src={data.image.src} alt={data.image.alt ?? ''} width={576} height={576} sizes="(min-width: 768px) 288px, 224px" format="webp" quality={80} fetchpriority="high" loading="eager" decoding="async" class="size-full rounded-full object-cover" />
-				: ''}
-		</div>
-		{data.headline && <h1 data-tina-field={tinaField(data, 'headline')} class="mt-8 text-balance text-6xl md:text-7xl xl:text-[5.25rem] font-semibold tracking-tight">{data.headline}</h1>}
-		{data.tagline && <p data-tina-field={tinaField(data, 'tagline')} class="mx-auto mt-8 max-w-2xl text-balance text-lg text-muted-foreground">{data.tagline}</p>}
+<section
+	id="hero"
+	style={{
+		position: 'relative',
+		minHeight: 'calc(100vh + 5rem)',
+		marginTop: '-5rem',
+		display: 'flex',
+		alignItems: 'center',
+		justifyContent: 'center',
+		overflow: 'hidden',
+		background: 'var(--navy)',
+	}}
+>
+	<div
+		data-tina-field={tinaField(data, 'backgroundImage')}
+		style={{
+			position: 'absolute',
+			inset: '0',
+			backgroundImage: data.backgroundImage ? `url('${data.backgroundImage}')` : undefined,
+			backgroundSize: 'cover',
+			backgroundPosition: 'center 35%',
+			backgroundRepeat: 'no-repeat',
+		}}
+	></div>
+
+	<div style={{
+		position: 'absolute',
+		inset: '0',
+		background: 'linear-gradient(180deg, rgba(20,32,47,0.6) 0%, rgba(20,32,47,0.45) 40%, rgba(20,32,47,0.88) 100%)',
+	}}></div>
+
+	<div class="hero-content" style={{ position: 'relative', zIndex: '2', textAlign: 'center', maxWidth: '640px', padding: '2rem 1.5rem', width: '100%', marginTop: '5rem' }}>
+		{data.logo?.src && (
+			<img
+				src={data.logo.src}
+				alt={data.logo.alt ?? 'Family Church'}
+				data-tina-field={tinaField(data, 'logo')}
+				class="hero-logo"
+			/>
+		)}
+
+		{data.tagline && (
+			<p
+				data-tina-field={tinaField(data, 'tagline')}
+				class="hero-sub"
+			>
+				{data.tagline}
+			</p>
+		)}
+
 		{actions.length > 0 && (
-			<div class="mt-12 flex flex-col items-center justify-center gap-2 md:flex-row">
+			<div class="hero-cta" data-tina-field={tinaField(data, 'actions')}>
 				{actions.map((action) => (
-					<div data-tina-field={tinaField(action)} class="">
-						<Button href={action.link} size="lg" variant={action.type === 'link' ? 'outline' : 'default'} class="rounded-xl px-5 text-base">
-							{action.icon && <Icon name={action.icon} class="size-4" />}
-							<span class="text-nowrap">{action.label}</span>
-						</Button>
-					</div>
+					<a
+						href={action.link ?? '#'}
+						data-tina-field={tinaField(action)}
+						class={`btn ${action.style === 'ghost' ? 'btn-ghost' : 'btn-primary'}`}
+					>
+						{action.label}
+					</a>
 				))}
 			</div>
 		)}
 	</div>
-</Section>
+
+	<div class="scroll-cue" aria-hidden="true"></div>
+</section>
+
+<style>
+	.hero-logo {
+		width: min(420px, 78vw);
+		height: auto;
+		margin: 0 auto 1.75rem;
+		filter: drop-shadow(0 6px 28px rgba(0, 0, 0, 0.4));
+	}
+
+	.hero-sub {
+		font-family: var(--font-display);
+		font-weight: 500;
+		font-size: clamp(1.05rem, 2.4vw, 1.4rem);
+		line-height: 1.6;
+		color: rgba(255, 255, 255, 0.92);
+		margin: 0 0 2.25rem;
+		text-wrap: balance;
+	}
+
+	.hero-cta {
+		display: flex;
+		gap: 0.9rem;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+
+	.btn {
+		display: inline-block;
+		padding: 0.85rem 1.9rem;
+		border-radius: 999px;
+		font-family: var(--font-body);
+		font-weight: 600;
+		font-size: 0.92rem;
+		letter-spacing: 0.2px;
+		text-decoration: none;
+		transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+	}
+
+	.btn-primary {
+		background: var(--green);
+		color: var(--ink);
+	}
+	.btn-primary:hover {
+		transform: translateY(-2px);
+		background: #a3d63a;
+	}
+
+	.btn-ghost {
+		color: var(--white);
+		border: 1.5px solid rgba(255, 255, 255, 0.55);
+	}
+	.btn-ghost:hover {
+		transform: translateY(-2px);
+		border-color: var(--white);
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	.scroll-cue {
+		position: absolute;
+		bottom: 1.75rem;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 22px;
+		height: 34px;
+		border: 2px solid rgba(255, 255, 255, 0.5);
+		border-radius: 999px;
+		z-index: 2;
+	}
+	.scroll-cue::before {
+		content: '';
+		position: absolute;
+		top: 6px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 4px;
+		height: 8px;
+		border-radius: 999px;
+		background: rgba(255, 255, 255, 0.8);
+		animation: scrollDot 1.8s ease-in-out infinite;
+	}
+
+	@keyframes scrollDot {
+		0% { opacity: 1; top: 6px; }
+		60% { opacity: 0; top: 16px; }
+		100% { opacity: 0; top: 6px; }
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.scroll-cue::before { animation: none; }
+	}
+
+	@media (max-width: 480px) {
+		.hero-cta { flex-direction: column; align-items: center; }
+		.btn { width: 100%; max-width: 260px; text-align: center; }
+	}
+</style>
+
+<script>
+	import gsap from 'gsap';
+	gsap.timeline({ delay: 0.15 })
+		.from('#hero .hero-logo',  { opacity: 0, y: 20, duration: 0.7, ease: 'power3.out' })
+		.from('#hero .hero-sub',   { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' }, '-=0.3')
+		.from('#hero .hero-cta',   { opacity: 0, y: 20, duration: 0.5, ease: 'power2.out' }, '-=0.25')
+		.from('#hero .scroll-cue', { opacity: 0, duration: 0.4, ease: 'power1.out' }, '-=0.1');
+</script>

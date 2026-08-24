@@ -13,8 +13,8 @@ const config = (await getConfig()).data?.config ?? null;
 ---
 
 <Base
-	title={data.seoTitle || config?.seo?.title || 'TinaCMS + Astro'}
-	description={config?.seo?.description ?? 'Welcome to my website!'}
+	title={data.seoTitle || config?.seo?.title || 'Family Church Online'}
+	description={config?.seo?.description ?? 'A community walking together in faith, in family, in everyday life.'}
 >
 	<TinaIsland name="page" wrapper={islands.page.wrapper} params={{ slug }} primary>
 		<PageBody data={data} />

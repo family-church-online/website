@@ -29,5 +29,25 @@ const config = (await getConfig()).data?.config ?? null;
 		<TinaIsland name="global-footer" wrapper={islands['global-footer'].wrapper}>
 			<Footer config={config} />
 		</TinaIsland>
+		<script>
+			// Nav: transparent at top, frosted when scrolled
+			const header = document.querySelector('header');
+			const onScroll = () => header?.classList.toggle('nav-scrolled', window.scrollY > 60);
+			window.addEventListener('scroll', onScroll, { passive: true });
+			onScroll();
+
+			// Scroll-reveal
+			const observer = new IntersectionObserver((entries) => {
+				entries.forEach(entry => {
+					if (!entry.isIntersecting) return;
+					const el = entry.target as HTMLElement;
+					const delay = parseFloat(el.dataset.revealDelay ?? '0');
+					setTimeout(() => el.classList.add('is-visible'), delay * 1000);
+					observer.unobserve(el);
+				});
+			}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+			document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+		</script>
 	</body>
 </html>

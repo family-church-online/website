@@ -1,4 +1,5 @@
 // @ts-check
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
@@ -51,9 +52,35 @@ function getSiteUrl() {
 	return 'http://localhost:4321';
 }
 
+// When dev:mobile is used, TINA_HOST is set to the LAN IP. The admin index.html
+// TinaCMS generates hardcodes localhost:4001 for its asset scripts — rewrite
+// those to the real IP so mobile browsers can reach the TinaCMS dev server.
+function tinaNetworkRewrite() {
+	const host = process.env.TINA_HOST;
+	if (!host) return { name: 'tina-network-rewrite-noop' };
+	const adminHtml = new URL('./public/admin/index.html', import.meta.url);
+	return {
+		name: 'tina-network-rewrite',
+		apply: 'serve',
+		configureServer(server) {
+			server.middlewares.use((req, res, next) => {
+				if (req.url?.split('?')[0] !== '/admin/index.html') return next();
+				try {
+					const html = readFileSync(adminHtml, 'utf8').replaceAll('localhost:4001', `${host}:4001`);
+					res.setHeader('Content-Type', 'text/html; charset=utf-8');
+					res.end(html);
+				} catch {
+					next();
+				}
+			});
+		},
+	};
+}
+
 // https://astro.build/config
 export default defineConfig({
 	site: getSiteUrl(),
+	server: { host: true },
 	output: 'static',
 	adapter: await getAdapter(),
 	redirects: { '/home': '/' },
@@ -73,7 +100,7 @@ export default defineConfig({
 		remotePatterns: [{ protocol: 'https', hostname: 'assets.tina.io' }],
 	},
 	vite: {
-		plugins: [tailwindcss(), tinaAdminDevRedirect()],
+		plugins: [tailwindcss(), tinaAdminDevRedirect(), tinaNetworkRewrite()],
 		// Bundle @tinacms/astro into the SSR build instead of resolving it
 		// per-module on every cold request — otherwise each
 		// `import TinaMarkdown from '@tinacms/astro/TinaMarkdown.astro'`

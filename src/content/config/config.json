@@ -1,9 +1,8 @@
 {
   "seo": {
-    "title": "TinaCMS + Astro",
-    "description": "Welcome to my website!",
-    "siteOwner": "TinaCMS",
-    "logo": "/orange-llama.svg"
+    "title": "Family Church",
+    "description": "A community walking together in faith, in family, in everyday life.",
+    "siteOwner": "Family Church Online"
   },
   "nav": [
     {
@@ -11,34 +10,13 @@
       "link": "/"
     },
     {
-      "title": "Blog",
-      "link": "/blog"
+      "title": "Sermons",
+      "link": "/sermons"
     },
     {
       "title": "About",
       "link": "/about"
     }
   ],
-  "contactLinks": [
-    {
-      "title": "X",
-      "link": "https://x.com/tinacms",
-      "icon": "tabler:brand-x"
-    },
-    {
-      "title": "Docs",
-      "link": "https://tina.io/docs",
-      "icon": "tabler:book-2"
-    },
-    {
-      "title": "GitHub",
-      "link": "https://github.com/tinacms/tinacms",
-      "icon": "tabler:brand-github"
-    },
-    {
-      "title": "Discord",
-      "link": "https://tina.io/discord",
-      "icon": "tabler:brand-discord"
-    }
-  ]
+  "contactLinks": []
 }

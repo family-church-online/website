@@ -15,7 +15,7 @@ export const PageCollection: Collection = {
 	path: 'src/content/page',
 	format: 'mdx',
 	ui: {
-		router: ({ document }) => `/${document._sys.filename}`,
+		router: ({ document }) => document._sys.filename === 'home' ? '/' : `/${document._sys.filename}`,
 	},
 	fields: [
 		{

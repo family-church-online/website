@@ -9,7 +9,6 @@ import Split from './Split.astro';
 import Stats from './Stats.astro';
 import Testimonial from './Testimonial.astro';
 import Video from './Video.astro';
-import ConstellationDivider from '../space/ConstellationDivider.astro';
 import type { CmsPage } from '../../lib/data';
 
 interface Props {
@@ -19,24 +18,19 @@ interface Props {
 const { data } = Astro.props;
 const blocks = (data?.blocks ?? []).filter(b => b !== null);
 ---
-{blocks.map((block, i) => {
+{blocks.map((block) => {
+	if (block.__typename === 'PageBlocksHero') return <Hero data={block} />;
 	const rendered = (() => {
 		switch (block.__typename) {
 			case 'PageBlocksCallout': return <Callout data={block} />;
 			case 'PageBlocksContent': return <Content data={block} />;
 			case 'PageBlocksCta': return <Cta data={block} />;
 			case 'PageBlocksFeatures': return <Features data={block} />;
-			case 'PageBlocksHero': return <Hero data={block} />;
 			case 'PageBlocksSplit': return <Split data={block} />;
 			case 'PageBlocksStats': return <Stats data={block} />;
 			case 'PageBlocksTestimonial': return <Testimonial data={block} />;
 			case 'PageBlocksVideo': return <Video data={block} />;
 		}
 	})();
-	return (
-		<>
-			<div data-tina-field={tinaField(block)}>{rendered}</div>
-			{i < blocks.length - 1 && <ConstellationDivider class="my-2 opacity-70" />}
-		</>
-	);
+	return <div class="reveal" data-tina-field={tinaField(block)}>{rendered}</div>;
 })}

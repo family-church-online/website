@@ -2,6 +2,41 @@
 @import '@fontsource-variable/inter';
 @plugin '@tailwindcss/typography';
 
+/* Church brand tokens — sampled from the Family Church logo */
+:root {
+	--navy: #273f61;
+	--green: #92c423;
+	--red: #c84029;
+	--olive: #8f926b;
+	--white: #ffffff;
+	--ink: #14202f;
+
+	--font-display: 'Fraunces', Georgia, serif;
+	--font-body: 'Inter Variable', system-ui, sans-serif;
+}
+
+/* Nav: transparent at top, dark navy when scrolled */
+header.nav-scrolled {
+	border-bottom-color: rgba(255, 255, 255, 0.08);
+	background-color: rgba(39, 63, 97, 0.95);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+}
+
+/* Scroll-reveal — add .reveal to any element; JS adds .is-visible on intersect */
+.reveal {
+	opacity: 0;
+	transform: translateY(32px);
+	transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.is-visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+	.reveal { transition: none; opacity: 1; transform: none; }
+}
+
 /* Drive the dark: variant from the .dark class (toggled by ThemeToggle),
    not the prefers-color-scheme media query. */
 @custom-variant dark (&:where(.dark, .dark *));

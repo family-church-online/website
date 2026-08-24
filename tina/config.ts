@@ -1,5 +1,4 @@
 import { defineConfig } from "tinacms";
-import { BlogCollection } from "./collections/blog";
 import { GlobalConfigCollection } from "./collections/global-config";
 import { PageCollection } from "./collections/page";
 
@@ -23,6 +22,11 @@ export default defineConfig({
   build: {
     outputFolder: "admin",
     publicFolder: "public",
+    // When TINA_HOST is set, the admin bundle points to that IP so mobile
+    // devices on the same WiFi can reach the local content API.
+    ...(process.env.TINA_HOST
+      ? { localContentApiUrlOverride: `http://${process.env.TINA_HOST}:4001` }
+      : {}),
   },
   media: {
     tina: {
@@ -33,7 +37,6 @@ export default defineConfig({
   // See docs on content modeling for more info on how to setup new content models: https://tina.io/docs/schema/
   schema: {
     collections: [
-      BlogCollection,
       PageCollection,
       GlobalConfigCollection,
     ],

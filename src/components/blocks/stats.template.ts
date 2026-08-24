@@ -18,9 +18,9 @@ export const statsBlockSchema: Template = {
 	],
 	ui: {
 		defaultItem: {
-			title: 'TinaCMS by the numbers',
-			description: 'An open-source, Git-backed CMS.',
-			stats: [ { stat: '12K', type: 'Stars on GitHub' }, { stat: '11K', type: 'Active Users' }, { stat: '22K', type: 'Powered Apps' } ],
+			title: 'Family Church by the numbers',
+			description: '',
+			stats: [ { stat: '100+', type: 'Members' }, { stat: '10+', type: 'Years together' }, { stat: '1', type: 'Community' } ],
 		},
 	},
 };
