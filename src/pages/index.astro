@@ -10,6 +10,36 @@ const page = await getPage(slug);
 const data = page.data?.page;
 if (!data) return new Response('Not Found', { status: 404 });
 const config = (await getConfig()).data?.config ?? null;
+
+interface SermonFrontmatter {
+  title?: string;
+  date?: string;
+  speaker?: string;
+  series?: string | null;
+  scripture?: string;
+  image?: string | null;
+  review?: boolean;
+}
+
+const sermonModules = import.meta.glob<{ frontmatter: SermonFrontmatter }>(
+  '../content/sermons/*.mdx',
+  { eager: true }
+);
+
+const recentSermons = Object.entries(sermonModules)
+  .map(([path, mod]) => ({
+    slug: path.replace('../content/sermons/', '').replace('.mdx', ''),
+    ...mod.frontmatter,
+  }))
+  .filter(s => !s.review)
+  .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+  .slice(0, 5);
+
+function fmtDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-ZA', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+  });
+}
 ---
 
 <Base
@@ -19,4 +49,133 @@ const config = (await getConfig()).data?.config ?? null;
 	<TinaIsland name="page" wrapper={islands.page.wrapper} params={{ slug }} primary>
 		<PageBody data={data} />
 	</TinaIsland>
+
+	{/* ── RECENT SERMONS ──────────────────────────────────────────────────── */}
+	<section class="bg-[var(--background)] py-12">
+		<div class="max-w-3xl mx-auto px-6">
+			<div class="flex items-baseline justify-between mb-5">
+				<h2 class="font-display text-xl font-semibold text-[var(--navy)]">Recent Sermons</h2>
+				<a href="/sermons" class="text-sm font-medium text-[var(--green)] hover:underline">All sermons →</a>
+			</div>
+		</div>
+
+		{/* Carousel track */}
+		<div class="relative max-w-3xl mx-auto">
+			<ul
+				id="sermon-carousel"
+				class="flex gap-4 overflow-x-auto scroll-snap-x-mandatory px-6 pb-2 scrollbar-hide"
+				style="scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;"
+			>
+				{recentSermons.map(s => (
+					<li class="scroll-snap-start shrink-0 w-[80vw] max-w-[300px] sm:w-[44%]">
+						<a
+							href={`/sermons/${s.slug}`}
+							class="group flex flex-col bg-white rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 overflow-hidden hover:shadow-md transition-shadow h-full"
+						>
+							{/* Thumbnail */}
+							<div class="aspect-video bg-[var(--navy)]/10 overflow-hidden">
+								{s.image ? (
+									<img
+										src={s.image}
+										alt={s.title ?? ''}
+										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+										loading="lazy"
+									/>
+								) : (
+									<div class="w-full h-full flex items-center justify-center">
+										<svg class="w-10 h-10 text-[var(--navy)]/25" viewBox="0 0 24 24" fill="currentColor">
+											<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+										</svg>
+									</div>
+								)}
+							</div>
+
+							{/* Text */}
+							<div class="px-4 py-3 flex-1 flex flex-col justify-between gap-1">
+								<p class="font-semibold text-[var(--navy)] group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-2 text-sm">
+									{s.title}
+								</p>
+								<p class="text-xs text-[var(--ink)]/50">
+									{s.date ? fmtDate(s.date) : ''}
+									{s.series ? ` · ${s.series}` : ''}
+								</p>
+							</div>
+						</a>
+					</li>
+				))}
+			</ul>
+
+			{/* Prev / Next buttons — hidden on touch devices */}
+			<button id="sermon-prev" aria-label="Previous" class="carousel-btn left-1">
+				<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-5 h-5">
+					<path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</button>
+			<button id="sermon-next" aria-label="Next" class="carousel-btn right-1">
+				<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-5 h-5">
+					<path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</button>
+		</div>
+	</section>
+
+	<style>
+		.scrollbar-hide { scrollbar-width: none; }
+		.scrollbar-hide::-webkit-scrollbar { display: none; }
+		.scroll-snap-start { scroll-snap-align: start; }
+
+		.carousel-btn {
+			display: none;
+			position: absolute;
+			top: 50%;
+			transform: translateY(-50%);
+			z-index: 10;
+			background: white;
+			border: 1px solid rgba(20,32,47,0.12);
+			border-radius: 9999px;
+			width: 2.25rem;
+			height: 2.25rem;
+			align-items: center;
+			justify-content: center;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+			color: var(--navy);
+			cursor: pointer;
+			transition: box-shadow 0.15s;
+		}
+		.carousel-btn:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+		.carousel-btn:disabled { opacity: 0.35; pointer-events: none; }
+
+		@media (hover: hover) {
+			.carousel-btn { display: flex; }
+		}
+	</style>
+
+	<script>
+		document.addEventListener('astro:page-load', () => {
+			const track = document.getElementById('sermon-carousel');
+			const prev  = document.getElementById('sermon-prev') as HTMLButtonElement | null;
+			const next  = document.getElementById('sermon-next') as HTMLButtonElement | null;
+			if (!track || !prev || !next) return;
+
+			function cardWidth() {
+				const card = track!.querySelector('li');
+				return card ? card.offsetWidth + 16 : 300; // 16 = gap-4
+			}
+
+			prev.addEventListener('click', () => {
+				track.scrollBy({ left: -cardWidth(), behavior: 'smooth' });
+			});
+			next.addEventListener('click', () => {
+				track.scrollBy({ left: cardWidth(), behavior: 'smooth' });
+			});
+
+			function updateButtons() {
+				prev!.disabled = track!.scrollLeft <= 4;
+				next!.disabled = track!.scrollLeft + track!.offsetWidth >= track!.scrollWidth - 4;
+			}
+
+			track.addEventListener('scroll', updateButtons, { passive: true });
+			updateButtons();
+		});
+	</script>
 </Base>
