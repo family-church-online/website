@@ -26,7 +26,7 @@ export default defineConfig({
     // When TINA_HOST is set, the admin bundle points to that IP so mobile
     // devices on the same WiFi can reach the local content API.
     ...(process.env.TINA_HOST
-      ? { localContentApiUrlOverride: `http://${process.env.TINA_HOST}:4001` }
+      ? { localContentApiUrlOverride: `http://${process.env.TINA_HOST}:4321` }
       : {}),
   },
   media: {

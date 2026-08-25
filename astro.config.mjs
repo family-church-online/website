@@ -86,6 +86,10 @@ export default defineConfig({
 					changeOrigin: true,
 					ws: true,
 				},
+				'/graphql': {
+					target: 'http://localhost:4001',
+					changeOrigin: true,
+				},
 			},
 		},
 		plugins: [tailwindcss()],
