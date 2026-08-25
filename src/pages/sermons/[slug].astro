@@ -1,0 +1,624 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+interface SermonFrontmatter {
+  title?: string;
+  date?: string;
+  speaker?: string;
+  series?: string | null;
+  scripture?: string;
+  primaryTheme?: string | null;
+  additionalScriptures?: Array<{ ref: string; theme: string }> | null;
+  image?: string | null;
+  audioUrl?: string | null;
+  vimeoUrl?: string | null;
+  durationMinutes?: number | null;
+  tagLine?: string | null;
+  shortDescription?: string | null;
+  subtitle?: string | null;
+  hook?: string | null;
+  style?: string | null;
+  level?: string | null;
+  takeaways?: string[] | null;
+  audience?: string[] | null;
+  bigIdea?: string | null;
+  keyScriptureRef?: string | null;
+  keyScriptureText?: string | null;
+  mainPoints?: Array<{ title: string; body: string }> | null;
+  keyIllustration?: string | null;
+  application?: string[] | null;
+  toRemember?: string | null;
+  closingPrayer?: string | null;
+  categories?: string[] | null;
+  tags?: string[] | null;
+  review?: boolean;
+}
+
+export function getStaticPaths() {
+  const mods = import.meta.glob<{ frontmatter: SermonFrontmatter; default: any }>(
+    '../../content/sermons/*.mdx',
+    { eager: true }
+  );
+
+  const all = Object.entries(mods)
+    .map(([path, mod]) => ({
+      slug: path.replace('../../content/sermons/', '').replace('.mdx', ''),
+      frontmatter: mod.frontmatter,
+      Content: mod.default,
+    }))
+    .filter(s => !s.frontmatter.review)
+    .sort((a, b) => (a.frontmatter.date ?? '').localeCompare(b.frontmatter.date ?? ''));
+
+  return all.map((sermon, i) => ({
+    params: { slug: sermon.slug },
+    props: {
+      frontmatter: sermon.frontmatter,
+      Content: sermon.Content,
+      prev: i > 0 ? { slug: all[i - 1].slug, title: all[i - 1].frontmatter.title } : null,
+      next: i < all.length - 1 ? { slug: all[i + 1].slug, title: all[i + 1].frontmatter.title } : null,
+    },
+  }));
+}
+
+const { slug } = Astro.params;
+const { frontmatter: fm, Content, prev, next } = Astro.props as {
+  frontmatter: SermonFrontmatter;
+  Content: any;
+  prev: { slug: string; title?: string } | null;
+  next: { slug: string; title?: string } | null;
+};
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+function fmtDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-ZA', {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+  });
+}
+
+function fmtDuration(mins: number | null | undefined) {
+  if (!mins) return null;
+  const m = Math.floor(mins);
+  const s = Math.round((mins - m) * 60);
+  return s > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${m} min`;
+}
+
+// Strip translation suffix from scripture for display (e.g. "Hab 3:17-19 ESV" → ref only for title)
+const pageTitle = fm.title ?? 'Sermon';
+const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
+---
+
+<Base
+  title={`${pageTitle} · ${siteTitle}`}
+  description={pageDesc}
+  image={fm.image ?? undefined}
+>
+  {/* ── HERO ─────────────────────────────────────────────────────────────── */}
+  <div class="relative bg-[var(--navy)] pt-28 pb-0 overflow-hidden">
+    {fm.image && (
+      <div
+        class="absolute inset-0 bg-cover bg-center opacity-20 scale-110"
+        style={`background-image:url('${fm.image}')`}
+      ></div>
+    )}
+    <div class="absolute inset-0 bg-gradient-to-b from-[var(--navy)]/40 via-[var(--navy)]/70 to-[var(--navy)]"></div>
+
+    <div class="relative max-w-3xl mx-auto px-6 pb-20">
+      {fm.series && (
+        <div class="mb-4">
+          <span class="inline-block text-[var(--green)] text-xs font-bold uppercase tracking-widest border border-[var(--green)]/40 rounded-full px-3 py-1">
+            {fm.series}
+          </span>
+        </div>
+      )}
+
+      <h1 class="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">
+        {fm.title}
+      </h1>
+
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-white/55 text-sm">
+        {fm.scripture && <span class="font-medium text-white/75">{fm.scripture}</span>}
+        {fm.scripture && fm.speaker && <span class="text-white/30">·</span>}
+        {fm.speaker && <span>{fm.speaker}</span>}
+        {fm.date && <span class="text-white/30">·</span>}
+        {fm.date && <time>{fmtDate(fm.date)}</time>}
+        {fm.durationMinutes && <span class="text-white/30">·</span>}
+        {fm.durationMinutes && <span>{fmtDuration(fm.durationMinutes)}</span>}
+      </div>
+
+      {(fm.style || fm.level) && (
+        <div class="flex gap-2 mt-4">
+          {fm.style && (
+            <span class="text-xs bg-white/10 text-white/70 rounded-full px-3 py-1">{fm.style}</span>
+          )}
+          {fm.level && (
+            <span class="text-xs bg-white/10 text-white/70 rounded-full px-3 py-1">{fm.level}</span>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+
+  {/* ── MAIN CONTENT ─────────────────────────────────────────────────────── */}
+  <main class="relative max-w-3xl mx-auto px-6 -mt-14 pb-20">
+
+    {/* ── TAB CARD ─────────────────────────────────────────────────────────── */}
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-8 text-[var(--ink)]">
+
+      {/* Tab bar */}
+      <div class="flex border-b border-[var(--ink)]/10" role="tablist">
+        {['about', 'notes', 'transcript'].map((tab, i) => (
+          <button
+            role="tab"
+            data-tab={tab}
+            aria-selected={i === 0 ? 'true' : 'false'}
+            class="tab-btn flex-1 py-4 text-sm font-semibold tracking-wide transition-colors"
+          >
+            {tab === 'about' ? 'About' : tab === 'notes' ? 'Sermon Notes' : 'Transcript'}
+          </button>
+        ))}
+      </div>
+
+      {/* ── ABOUT PANEL ──────────────────────────────────────────────────── */}
+      <div data-panel="about" class="tab-panel">
+
+        {/* Meta strip */}
+        <div class="flex flex-wrap justify-between items-baseline gap-2 px-6 pt-5 pb-4 border-b border-[var(--ink)]/8 bg-[var(--ink)]/[0.02]">
+          <div class="flex flex-wrap items-baseline gap-2">
+            {fm.scripture && (
+              <span class="text-sm font-bold text-[var(--navy)]">{fm.scripture}</span>
+            )}
+            {fm.primaryTheme && (
+              <span class="text-sm text-[var(--ink)]/65">&mdash; {fm.primaryTheme}</span>
+            )}
+          </div>
+          <div class="text-xs text-[var(--ink)]/65 tabular-nums">
+            {[fm.series, fm.date ? fmtDate(fm.date) : null, fmtDuration(fm.durationMinutes)].filter(Boolean).join(' · ')}
+          </div>
+        </div>
+
+        {/* Subtitle + pills */}
+        {(fm.subtitle || fm.style || fm.level) && (
+          <div class="px-6 py-5 border-b border-[var(--ink)]/8">
+            {fm.subtitle && (
+              <p class="text-[var(--ink)]/80 leading-relaxed mb-3">{fm.subtitle}</p>
+            )}
+            {(fm.style || fm.level) && (
+              <div class="flex gap-2">
+                {fm.style && (
+                  <span class="text-xs bg-[var(--navy)]/8 text-[var(--navy)] font-medium rounded-full px-3 py-1">{fm.style}</span>
+                )}
+                {fm.level && (
+                  <span class="text-xs bg-[var(--navy)]/8 text-[var(--navy)] font-medium rounded-full px-3 py-1">{fm.level}</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 3-col grid */}
+        {(fm.hook || (fm.takeaways?.length ?? 0) > 0 || (fm.audience?.length ?? 0) > 0) && (
+          <div class="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[var(--ink)]/8 border-b border-[var(--ink)]/8">
+
+            {fm.hook && (
+              <div class="px-6 py-5">
+                <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">What this is about</p>
+                <p class="text-sm text-[var(--ink)]/75 leading-relaxed">{fm.hook}</p>
+              </div>
+            )}
+
+            {(fm.takeaways?.length ?? 0) > 0 && (
+              <div class="px-6 py-5">
+                <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">What you'll take away</p>
+                <ul class="space-y-2">
+                  {fm.takeaways!.map(t => (
+                    <li class="flex gap-2 text-sm text-[var(--ink)]/75 leading-snug">
+                      <span class="text-[var(--green)] mt-0.5 shrink-0">›</span>
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {(fm.audience?.length ?? 0) > 0 && (
+              <div class="px-6 py-5">
+                <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">This is for you if</p>
+                <ul class="space-y-2">
+                  {fm.audience!.map(a => (
+                    <li class="flex gap-2 text-sm text-[var(--ink)]/75 leading-snug">
+                      <span class="text-[var(--green)] mt-0.5 shrink-0">›</span>
+                      {a}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* Additional scriptures */}
+        {(fm.additionalScriptures?.length ?? 0) > 0 && (
+          <div class="px-6 py-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/55">Also</span>
+            {fm.additionalScriptures!.map((s, i) => (
+              <Fragment>
+                <div class="flex flex-wrap items-baseline gap-1.5">
+                  <span class="text-xs font-semibold text-[var(--navy)]">{s.ref}</span>
+                  <span class="text-xs text-[var(--ink)]/65">{s.theme}</span>
+                </div>
+                {i < fm.additionalScriptures!.length - 1 && (
+                  <span class="text-[var(--ink)]/35 text-xs">·</span>
+                )}
+              </Fragment>
+            ))}
+          </div>
+        )}
+
+      </div>
+
+      {/* ── NOTES PANEL ──────────────────────────────────────────────────── */}
+      <div data-panel="notes" class="tab-panel hidden">
+
+        {fm.bigIdea && (
+          <div class="px-6 py-5 bg-[var(--navy)] text-white">
+            <p class="text-xs font-bold uppercase tracking-widest text-white/50 mb-2">The Big Idea</p>
+            <p class="font-display text-lg font-semibold leading-snug">{fm.bigIdea}</p>
+          </div>
+        )}
+
+        {(fm.keyScriptureText || fm.keyScriptureRef) && (
+          <div class="px-6 py-5 bg-[var(--ink)]/[0.03] border-b border-[var(--ink)]/8">
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">Key Scripture</p>
+            <blockquote class="border-l-4 border-[var(--green)] pl-5">
+              {fm.keyScriptureText && (
+                <p class="text-[var(--ink)]/80 text-sm leading-relaxed italic mb-2">{fm.keyScriptureText}</p>
+              )}
+              {fm.keyScriptureRef && (
+                <cite class="text-xs font-semibold text-[var(--navy)]/60 not-italic">{fm.keyScriptureRef}</cite>
+              )}
+            </blockquote>
+          </div>
+        )}
+
+        {(fm.mainPoints?.length ?? 0) > 0 && (
+          <div class="px-6 py-5 border-b border-[var(--ink)]/8">
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-4">Main Points</p>
+            <ol class="space-y-4">
+              {fm.mainPoints!.map((pt, i) => (
+                <li class="flex gap-4">
+                  <span class="shrink-0 w-6 h-6 rounded-full bg-[var(--navy)] text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <p class="font-semibold text-[var(--navy)] text-sm mb-1">{pt.title}</p>
+                    <p class="text-sm text-[var(--ink)]/70 leading-relaxed">{pt.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {fm.keyIllustration && (
+          <div class="px-6 py-5 bg-[var(--ink)]/[0.03] border-b border-[var(--ink)]/8">
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">Key Illustration</p>
+            <p class="text-sm text-[var(--ink)]/75 leading-relaxed">{fm.keyIllustration}</p>
+          </div>
+        )}
+
+        {(fm.application?.length ?? 0) > 0 && (
+          <div class="px-6 py-5 border-b border-[var(--ink)]/8">
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">What This Means for Us</p>
+            <ul class="space-y-3">
+              {fm.application!.map(a => (
+                <li class="flex gap-3 text-sm text-[var(--ink)]/75 leading-relaxed">
+                  <span class="text-[var(--green)] font-bold shrink-0 mt-0.5">→</span>
+                  {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {fm.toRemember && (
+          <div class="px-6 py-5 bg-[var(--green)]/8 border-b border-[var(--ink)]/8">
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-2">To Remember</p>
+            <p class="font-display text-lg font-semibold text-[var(--navy)] leading-snug">{fm.toRemember}</p>
+          </div>
+        )}
+
+        {fm.closingPrayer && (
+          <div class="px-6 py-5">
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">Closing Prayer</p>
+            <p class="text-sm text-[var(--ink)]/70 leading-relaxed italic">{fm.closingPrayer}</p>
+          </div>
+        )}
+
+      </div>
+
+      {/* ── TRANSCRIPT PANEL ─────────────────────────────────────────────── */}
+      <div data-panel="transcript" class="tab-panel hidden px-6 py-6">
+        <div class="transcript-body">
+          <Content />
+        </div>
+      </div>
+
+    </div>
+    {/* end tab card */}
+
+    {/* ── AUDIO PLAYER ───────────────────────────────────────────────────── */}
+    {fm.audioUrl && (
+      <div class="bg-[var(--navy)] rounded-2xl p-5 mb-6 shadow-lg" id="sermon-audio">
+        <audio id="audio-el" src={fm.audioUrl} preload="metadata" class="hidden"></audio>
+
+        <div class="flex items-center gap-4 mb-3">
+          {/* Play/pause */}
+          <button
+            id="play-btn"
+            aria-label="Play"
+            class="shrink-0 w-11 h-11 rounded-full bg-[var(--green)] hover:bg-[#a3d63a] transition-colors flex items-center justify-center shadow"
+          >
+            <svg id="icon-play" class="w-5 h-5 text-[var(--ink)] ml-0.5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.84z"/>
+            </svg>
+            <svg id="icon-pause" class="w-5 h-5 text-[var(--ink)] hidden" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.75 3a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-1.5 0V3.75A.75.75 0 0 1 5.75 3zm8.5 0a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-1.5 0V3.75a.75.75 0 0 1 .75-.75z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+
+          {/* Track info */}
+          <div class="flex-1 min-w-0">
+            <p class="text-white text-sm font-semibold truncate leading-tight">{fm.title}</p>
+            {fm.speaker && (
+              <p class="text-white/50 text-xs mt-0.5">{fm.speaker}</p>
+            )}
+          </div>
+
+          {/* Time */}
+          <div class="shrink-0 text-xs tabular-nums text-white/50 text-right">
+            <span id="time-current">0:00</span>
+            <span class="text-white/25"> / </span>
+            <span id="time-total">–:––</span>
+          </div>
+
+          {/* Download */}
+          <a
+            href={fm.audioUrl}
+            download
+            aria-label="Download MP3"
+            class="shrink-0 text-white/40 hover:text-white transition-colors"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M10 3v10m-4-4 4 4 4-4M3 17h14" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+
+        {/* Progress bar */}
+        <input
+          id="progress"
+          type="range"
+          min="0"
+          max="100"
+          value="0"
+          step="0.1"
+          class="sermon-progress w-full"
+          aria-label="Seek"
+        />
+      </div>
+    )}
+
+    {/* ── VIMEO ──────────────────────────────────────────────────────────── */}
+    {fm.vimeoUrl && (
+      <div class="rounded-2xl overflow-hidden shadow-lg mb-8 bg-black">
+        <div class="relative" style="padding-top:56.25%">
+          <iframe
+            src={fm.vimeoUrl}
+            class="absolute inset-0 w-full h-full"
+            frameborder="0"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowfullscreen
+            title={fm.title ?? 'Sermon video'}
+          ></iframe>
+        </div>
+      </div>
+    )}
+
+    {/* ── PREV / NEXT ────────────────────────────────────────────────────── */}
+    {(prev || next) && (
+      <nav class="flex items-stretch gap-3 mt-2 mb-8">
+        {prev ? (
+          <a href={`/sermons/${prev.slug}`} class="group flex-1 flex items-center gap-3 bg-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 px-5 py-4 hover:shadow-md transition-shadow">
+            <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 mb-0.5">Prev</p>
+              <p class="text-sm font-semibold text-[var(--navy)] group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{prev.title}</p>
+            </div>
+          </a>
+        ) : <div class="flex-1" />}
+
+        {next ? (
+          <a href={`/sermons/${next.slug}`} class="group flex-1 flex items-center justify-end gap-3 bg-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 px-5 py-4 hover:shadow-md transition-shadow text-right">
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 mb-0.5">Next</p>
+              <p class="text-sm font-semibold text-[var(--navy)] group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{next.title}</p>
+            </div>
+            <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        ) : <div class="flex-1" />}
+      </nav>
+    )}
+
+  </main>
+</Base>
+
+<style>
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+.tab-btn[aria-selected="true"] {
+  color: var(--navy);
+  border-bottom: 2px solid var(--navy);
+}
+.tab-btn[aria-selected="false"] {
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+.tab-btn[aria-selected="false"]:hover {
+  color: var(--navy);
+}
+
+/* ── Transcript body ─────────────────────────────────────────────────────── */
+/* The MDX body starts with # h1 (duplicate of hero title) — hide it */
+.transcript-body :global(h1) {
+  display: none;
+}
+.transcript-body :global(h3) {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--navy);
+  margin: 2rem 0 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(20, 32, 47, 0.12);
+}
+.transcript-body :global(h3:first-child) {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.transcript-body :global(p) {
+  font-size: 0.875rem;
+  line-height: 1.75;
+  color: rgba(20, 32, 47, 0.82);
+  margin: 0 0 0.5rem;
+}
+/* Timestamp spans injected by JS */
+.transcript-body :global(.ts) {
+  font-size: 0.7em;
+  opacity: 0.4;
+  margin-right: 0.35em;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* ── Audio progress ───────────────────────────────────────────────────────── */
+.sermon-progress {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, white 20%, transparent);
+  cursor: pointer;
+  outline: none;
+}
+.sermon-progress::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--green);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.sermon-progress::-webkit-slider-thumb:hover { transform: scale(1.25); }
+.sermon-progress::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border: none;
+  border-radius: 50%;
+  background: var(--green);
+  cursor: pointer;
+}
+</style>
+
+<script>
+// ── Tab switching ──────────────────────────────────────────────────────────
+const tabBtns   = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
+const tabPanels = document.querySelectorAll<HTMLElement>('.tab-panel');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab!;
+    tabBtns.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
+    tabPanels.forEach(p => {
+      const show = p.dataset.panel === target;
+      p.hidden = !show;
+      p.classList.toggle('hidden', !show);
+    });
+  });
+});
+
+// ── Transcript: style timestamps ───────────────────────────────────────────
+document.querySelectorAll<HTMLParagraphElement>('.transcript-body p').forEach(p => {
+  p.innerHTML = p.innerHTML.replace(
+    /^\[(\d{1,2}:\d{2})\]\s*/,
+    '<span class="ts">[$1]</span> '
+  );
+});
+
+// ── Audio player ───────────────────────────────────────────────────────────
+const audio     = document.getElementById('audio-el') as HTMLAudioElement | null;
+const playBtn   = document.getElementById('play-btn');
+const iconPlay  = document.getElementById('icon-play');
+const iconPause = document.getElementById('icon-pause');
+const progress  = document.getElementById('progress') as HTMLInputElement | null;
+const timeCur   = document.getElementById('time-current');
+const timeTotal = document.getElementById('time-total');
+
+function fmt(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function updateProgress() {
+  if (!audio || !progress) return;
+  const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+  progress.value = String(pct);
+  // Fill track up to thumb position
+  progress.style.background =
+    `linear-gradient(to right, var(--green) ${pct}%, color-mix(in srgb, white 20%, transparent) ${pct}%)`;
+  if (timeCur) timeCur.textContent = fmt(audio.currentTime);
+}
+
+if (audio && playBtn) {
+  audio.addEventListener('loadedmetadata', () => {
+    if (timeTotal) timeTotal.textContent = fmt(audio.duration);
+  });
+
+  audio.addEventListener('timeupdate', updateProgress);
+
+  audio.addEventListener('ended', () => {
+    iconPlay?.classList.remove('hidden');
+    iconPause?.classList.add('hidden');
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (audio.paused) {
+      audio.play();
+      iconPlay?.classList.add('hidden');
+      iconPause?.classList.remove('hidden');
+    } else {
+      audio.pause();
+      iconPlay?.classList.remove('hidden');
+      iconPause?.classList.add('hidden');
+    }
+  });
+
+  progress?.addEventListener('input', () => {
+    if (audio.duration) {
+      audio.currentTime = (Number(progress.value) / 100) * audio.duration;
+    }
+  });
+}
+</script>

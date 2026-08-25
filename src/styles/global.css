@@ -15,12 +15,19 @@
 	--font-body: 'Inter Variable', system-ui, sans-serif;
 }
 
-/* Nav: transparent at top, dark navy when scrolled */
+/* Nav: transparent at top in dark mode (dark hero provides contrast),
+   always navy in light mode (light body bg would make white text invisible) */
 header.nav-scrolled {
 	border-bottom-color: rgba(255, 255, 255, 0.08);
 	background-color: rgba(39, 63, 97, 0.95);
 	backdrop-filter: blur(16px);
 	-webkit-backdrop-filter: blur(16px);
+}
+html:not(.dark) header {
+	background-color: rgba(39, 63, 97, 0.97);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+	border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Scroll-reveal — add .reveal to any element; JS adds .is-visible on intersect */

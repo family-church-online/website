@@ -8,11 +8,12 @@ interface Props {
 	title: string;
 	description: string;
 	image?: string;
+	noindex?: boolean;
 }
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
-const { title, description, image = '/images/hero.jpg' } = Astro.props;
+const { title, description, image = '/images/hero.jpg', noindex = false } = Astro.props;
 ---
 
 <script is:inline>
@@ -52,6 +53,7 @@ const { title, description, image = '/images/hero.jpg' } = Astro.props;
 
 <!-- Canonical URL -->
 <link rel="canonical" href={canonicalURL} />
+{noindex && <meta name="robots" content="noindex,follow" />}
 
 <!-- Primary Meta Tags -->
 <title>{title}</title>

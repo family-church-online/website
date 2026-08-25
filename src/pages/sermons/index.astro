@@ -1,0 +1,402 @@
+---
+export const prerender = false;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+const SITE_URL    = 'https://familychurch.online';
+const FEED_URL    = `${SITE_URL}/sermons?format=rss`;
+const PODCAST_IMG = `${SITE_URL}/images/podcast-cover.jpg`;
+
+interface SermonFrontmatter {
+  title?: string;
+  date?: string;
+  speaker?: string;
+  series?: string | null;
+  scripture?: string;
+  shortDescription?: string | null;
+  audioUrl?: string | null;
+  audioSizeBytes?: number | null;
+  durationMinutes?: number | null;
+  image?: string | null;
+  categories?: string[] | null;
+  guid?: string | null;
+  review?: boolean;
+}
+
+const modules = import.meta.glob<{ frontmatter: SermonFrontmatter }>(
+  '../../content/sermons/*.mdx',
+  { eager: true }
+);
+
+const sermons = Object.entries(modules)
+  .map(([path, mod]) => {
+    const slug = path.replace('../../content/sermons/', '').replace('.mdx', '');
+    return { slug, ...mod.frontmatter };
+  })
+  .filter(s => !s.review)
+  .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+
+// ── RSS ────────────────────────────────────────────────────────────────────────
+
+function fmtDuration(minutes: number | null | undefined): string {
+  if (!minutes) return '00:00';
+  const total = Math.round(minutes * 60);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const mm = String(m).padStart(2, '0');
+  const ss = String(s).padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
+
+function rssDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const localNoon = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0);
+  return localNoon.toUTCString();
+}
+
+function xmlEscape(s: string | null | undefined): string {
+  if (!s) return '';
+  return s
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+if (Astro.url.searchParams.get('format') === 'rss') {
+  const podcastSermons = sermons.filter(s => s.audioUrl);
+
+  const items = podcastSermons.map(s => {
+    const pageUrl     = `${SITE_URL}/sermons/${s.slug}`;
+    const encLength   = s.audioSizeBytes ? ` length="${s.audioSizeBytes}"` : '';
+    const imgTag      = s.image?.startsWith('http') ? `\n      <itunes:image href="${xmlEscape(s.image)}"/>` : '';
+    const guid        = s.guid ?? pageUrl;
+    const isPermaLink = s.guid ? 'false' : 'true';
+    return `
+    <item>
+      <title>${xmlEscape(s.title)}</title>
+      <link>${pageUrl}</link>
+      <guid isPermaLink="${isPermaLink}">${xmlEscape(guid)}</guid>
+      <pubDate>${rssDate(s.date ?? '')}</pubDate>
+      <description><![CDATA[${s.shortDescription ?? s.title ?? ''}]]></description>
+      <enclosure url="${xmlEscape(s.audioUrl)}"${encLength} type="audio/mpeg"/>
+      <itunes:title>${xmlEscape(s.title)}</itunes:title>
+      <itunes:author>${xmlEscape(s.speaker ?? 'Family Church')}</itunes:author>
+      <itunes:summary><![CDATA[${s.shortDescription ?? s.title ?? ''}]]></itunes:summary>
+      <itunes:subtitle>${xmlEscape(s.scripture ?? '')}</itunes:subtitle>${imgTag}
+      <itunes:duration>${fmtDuration(s.durationMinutes)}</itunes:duration>
+      <itunes:explicit>false</itunes:explicit>
+      <itunes:episodeType>full</itunes:episodeType>
+    </item>`;
+  }).join('\n');
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+  xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+  xmlns:podcast="https://podcastindex.org/namespace/1.0"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:atom="http://www.w3.org/2005/Atom">
+
+  <channel>
+    <title>Family Church Sermons</title>
+    <link>${SITE_URL}</link>
+    <atom:link href="${FEED_URL}" rel="self" type="application/rss+xml"/>
+    <description>Sunday sermons from Family Church, Fourways.</description>
+    <language>en</language>
+    <copyright>Family Church</copyright>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <itunes:author>Family Church</itunes:author>
+    <itunes:owner>
+      <itunes:name>Family Church</itunes:name>
+      <itunes:email>fourwaysfamilychurch@gmail.com</itunes:email>
+    </itunes:owner>
+    <itunes:category text="Religion &amp; Spirituality">
+      <itunes:category text="Christianity"/>
+    </itunes:category>
+    <itunes:image href="${PODCAST_IMG}"/>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:type>episodic</itunes:type>
+${items}
+  </channel>
+</rss>`;
+
+  return new Response(xml, {
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600',
+    },
+  });
+}
+
+// ── HTML listing ───────────────────────────────────────────────────────────────
+
+// Cache the HTML page at the Cloudflare edge for 1 hour — Worker only invoked
+// on cache miss, so cost is negligible for a low-traffic church site.
+Astro.response.headers.set('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+
+const allSeries = [...new Set(
+  sermons.map(s => s.series).filter((s): s is string => !!s)
+)].sort((a, b) => a.localeCompare(b));
+
+const allCategories = [...new Set(
+  sermons.flatMap(s => s.categories ?? []).filter(Boolean)
+)].sort((a, b) => a.localeCompare(b));
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+function fmtDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-ZA', {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+  });
+}
+
+function fmtMins(mins: number | null | undefined) {
+  if (!mins) return null;
+  return `${Math.round(mins)} min`;
+}
+---
+
+<Base
+  title={`Sermons · ${siteTitle}`}
+  description="Sunday messages from Family Church, Fourways."
+  noindex={true}
+>
+
+  {/* ── HERO ───────────────────────────────────────────────────────────────── */}
+  <div class="bg-[var(--navy)] pt-28 pb-14 px-6">
+    <div class="max-w-3xl mx-auto">
+      <h1 class="font-display text-4xl md:text-5xl font-bold text-white mb-3">Sermons</h1>
+      <p class="text-white/60 text-lg">Sunday messages from Family Church, Fourways.</p>
+    </div>
+  </div>
+
+  {/* ── FILTER BAR ─────────────────────────────────────────────────────────── */}
+  <div class="bg-[var(--background)] border-b border-[var(--ink)]/10 sticky top-20 z-20">
+    <div class="max-w-3xl mx-auto px-6 py-3 flex flex-wrap gap-3 items-center">
+
+      <div class="filter-wrap">
+        <select id="filter-series" class="filter-select">
+          <option value="">All series</option>
+          {allSeries.map(s => <option value={s}>{s}</option>)}
+        </select>
+      </div>
+
+      <div class="filter-wrap">
+        <select id="filter-category" class="filter-select">
+          <option value="">All categories</option>
+          {allCategories.map(c => <option value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      <span id="result-count" class="text-sm text-[var(--ink)]/55 ml-auto tabular-nums"></span>
+    </div>
+  </div>
+
+  {/* ── SERMON LIST ────────────────────────────────────────────────────────── */}
+  <main class="max-w-3xl mx-auto px-6 py-10" id="sermons-top">
+
+    <ul id="sermon-list" class="space-y-3">
+      {sermons.map(s => (
+        <li
+          data-sermon
+          data-series={s.series ?? ''}
+          data-cats={(s.categories ?? []).join('|')}
+        >
+          <a
+            href={`/sermons/${s.slug}`}
+            class="group flex gap-5 p-5 items-start text-[var(--ink)] bg-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 overflow-hidden hover:shadow-md transition-shadow"
+          >
+            {/* Thumbnail — hidden on mobile, shown sm+ */}
+            <div class="hidden sm:block shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-[var(--navy)]/10">
+              {s.image ? (
+                <img
+                  src={s.image}
+                  alt={s.title ?? ''}
+                  class="w-full h-full object-cover scale-[1.08] group-hover:scale-[1.14] transition-transform duration-300"
+                  loading="lazy"
+                />
+              ) : (
+                <div class="w-full h-full flex items-center justify-center">
+                  <svg class="w-8 h-8 text-[var(--navy)]/30" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+
+            {/* Content */}
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1.5">
+                {s.date && (
+                  <time class="text-xs text-[var(--ink)]/55 tabular-nums">{fmtDate(s.date)}</time>
+                )}
+                {s.series && (
+                  <span class="text-xs font-semibold uppercase tracking-widest text-[var(--green)]">{s.series}</span>
+                )}
+                {fmtMins(s.durationMinutes) && (
+                  <span class="text-xs text-[var(--ink)]/50">{fmtMins(s.durationMinutes)}</span>
+                )}
+              </div>
+
+              <h2 class="font-display text-lg md:text-xl font-semibold text-[var(--navy)] group-hover:text-[var(--green)] transition-colors leading-snug mb-1">
+                {s.title}
+              </h2>
+
+              {s.scripture && (
+                <p class="text-xs font-medium text-[var(--ink)]/60 mb-1.5 tracking-wide">{s.scripture}</p>
+              )}
+
+              {s.shortDescription && (
+                <p class="text-sm text-[var(--ink)]/75 line-clamp-[7] sm:line-clamp-2 leading-relaxed">{s.shortDescription}</p>
+              )}
+            </div>
+
+            {/* Arrow */}
+            <div class="shrink-0 self-center text-[var(--navy)]/30 group-hover:text-[var(--green)] transition-colors">
+              <svg class="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    {/* Empty state */}
+    <div id="empty-state" class="py-20 text-center text-[var(--ink)]/50 hidden">
+      No sermons match those filters.
+    </div>
+
+    {/* Pagination — white cards to stay legible in dark mode */}
+    <div id="pagination" class="flex items-center justify-between gap-4 mt-8">
+      <button
+        id="page-prev"
+        class="group flex items-center gap-2 bg-white text-[var(--ink)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/10 px-5 py-3 text-sm font-semibold hover:shadow-md transition-shadow disabled:opacity-40 disabled:pointer-events-none"
+      >
+        <svg class="w-4 h-4 text-[var(--navy)]/50 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Prev
+      </button>
+
+      <span id="page-info" class="text-sm text-[var(--ink)]/55 tabular-nums"></span>
+
+      <button
+        id="page-next"
+        class="group flex items-center gap-2 bg-white text-[var(--ink)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/10 px-5 py-3 text-sm font-semibold hover:shadow-md transition-shadow disabled:opacity-40 disabled:pointer-events-none"
+      >
+        Next
+        <svg class="w-4 h-4 text-[var(--navy)]/50 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <p class="mt-10 text-center text-xs text-[var(--ink)]/45">
+      <a href="?format=rss" class="hover:text-[var(--green)] transition-colors">RSS / Podcast feed</a>
+    </p>
+
+  </main>
+</Base>
+
+<style>
+.filter-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.filter-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0.6rem;
+  pointer-events: none;
+  width: 1rem;
+  height: 1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23273f61' stroke-width='1.5'%3E%3Cpath d='M5 8l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+.filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: white;
+  border: 1px solid rgba(20, 32, 47, 0.18);
+  border-radius: 0.5rem;
+  padding: 0.375rem 2rem 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--navy);
+  cursor: pointer;
+  min-width: 10rem;
+  max-width: 16rem;
+}
+.filter-select:focus {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+:global(.dark) .filter-select {
+  background: var(--card);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--foreground);
+}
+:global(.dark) .filter-wrap::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23ffffff' stroke-width='1.5'%3E%3Cpath d='M5 8l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+</style>
+
+<script>
+const PAGE_SIZE = 20;
+let page = 1;
+
+const seriesEl   = document.getElementById('filter-series')   as HTMLSelectElement;
+const catEl      = document.getElementById('filter-category') as HTMLSelectElement;
+const countEl    = document.getElementById('result-count')!;
+const prevBtn    = document.getElementById('page-prev')       as HTMLButtonElement;
+const nextBtn    = document.getElementById('page-next')       as HTMLButtonElement;
+const pageInfo   = document.getElementById('page-info')!;
+const emptyState = document.getElementById('empty-state')!;
+const pagination = document.getElementById('pagination')!;
+const allItems   = Array.from(document.querySelectorAll<HTMLLIElement>('[data-sermon]'));
+
+function getFiltered() {
+  const series = seriesEl.value;
+  const cat    = catEl.value;
+  return allItems.filter(el => {
+    if (series && el.dataset.series !== series) return false;
+    if (cat    && !(el.dataset.cats ?? '').split('|').includes(cat)) return false;
+    return true;
+  });
+}
+
+function render() {
+  const items   = getFiltered();
+  const total   = items.length;
+  const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  page = Math.min(page, maxPage);
+  const start = (page - 1) * PAGE_SIZE;
+  const end   = Math.min(start + PAGE_SIZE, total);
+
+  allItems.forEach(el => (el.hidden = true));
+  items.slice(start, end).forEach(el => (el.hidden = false));
+
+  emptyState.classList.toggle('hidden', total > 0);
+  pagination.classList.toggle('hidden', total <= PAGE_SIZE);
+
+  countEl.textContent  = total === 0 ? '' : `${start + 1}–${end} of ${total}`;
+  pageInfo.textContent = `Page ${page} of ${maxPage}`;
+  prevBtn.disabled = page <= 1;
+  nextBtn.disabled = page >= maxPage;
+}
+
+function scrollToTop() {
+  document.getElementById('sermons-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+seriesEl.addEventListener('change', () => { page = 1; render(); });
+catEl.addEventListener('change',    () => { page = 1; render(); });
+prevBtn.addEventListener('click',   () => { page--; render(); scrollToTop(); });
+nextBtn.addEventListener('click',   () => { page++; render(); scrollToTop(); });
+
+render();
+</script>

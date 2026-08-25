@@ -9,7 +9,7 @@ export async function getStaticPaths() {
 	const pages = await listPages();
 	return pages
 		.map((node) => node._sys.filename)
-		.filter((slug) => slug !== 'home')
+		.filter((slug) => slug !== 'home' && slug !== 'sermons')
 		.map((slug) => ({ params: { slug } }));
 }
 

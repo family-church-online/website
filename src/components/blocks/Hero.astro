@@ -72,7 +72,23 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 		)}
 	</div>
 
-	<div class="scroll-cue" aria-hidden="true"></div>
+	<div class="service-strip" aria-label="Service times">
+		<div class="service-strip-inner">
+			<span class="service-item">
+				<svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+					<circle cx="10" cy="10" r="8"/><path d="M10 6v4l2.5 2.5" stroke-linecap="round"/>
+				</svg>
+				<span><strong>Sundays</strong> · 09:30</span>
+			</span>
+			<span class="strip-dot" aria-hidden="true">·</span>
+			<span class="service-item">
+				<svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+					<path d="M10 2a6 6 0 0 1 6 6c0 4-6 10-6 10S4 12 4 8a6 6 0 0 1 6-6z"/><circle cx="10" cy="8" r="2"/>
+				</svg>
+				<span>Dainfern College, Johannesburg</span>
+			</span>
+		</div>
+	</div>
 </section>
 
 <style>
@@ -131,38 +147,41 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 		background: rgba(255, 255, 255, 0.08);
 	}
 
-	.scroll-cue {
+	.service-strip {
 		position: absolute;
-		bottom: 1.75rem;
-		left: 50%;
-		transform: translateX(-50%);
-		width: 22px;
-		height: 34px;
-		border: 2px solid rgba(255, 255, 255, 0.5);
-		border-radius: 999px;
-		z-index: 2;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 3;
+		background: rgba(20, 32, 47, 0.65);
+		backdrop-filter: blur(14px);
+		-webkit-backdrop-filter: blur(14px);
+		border-top: 1px solid rgba(255, 255, 255, 0.1);
 	}
-	.scroll-cue::before {
-		content: '';
-		position: absolute;
-		top: 6px;
-		left: 50%;
-		transform: translateX(-50%);
-		width: 4px;
-		height: 8px;
-		border-radius: 999px;
-		background: rgba(255, 255, 255, 0.8);
-		animation: scrollDot 1.8s ease-in-out infinite;
+	.service-strip-inner {
+		max-width: 640px;
+		margin: 0 auto;
+		padding: 0.8rem 1.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 1.25rem;
+		color: rgba(255, 255, 255, 0.82);
+		font-size: 0.875rem;
+		letter-spacing: 0.01em;
 	}
-
-	@keyframes scrollDot {
-		0% { opacity: 1; top: 6px; }
-		60% { opacity: 0; top: 16px; }
-		100% { opacity: 0; top: 6px; }
+	.service-item {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
 	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.scroll-cue::before { animation: none; }
+	.service-item strong {
+		color: rgba(255, 255, 255, 0.95);
+		font-weight: 600;
+	}
+	.strip-dot {
+		opacity: 0.35;
+		font-size: 1.1rem;
 	}
 
 	@media (max-width: 480px) {
@@ -177,5 +196,5 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 		.from('#hero .hero-logo',  { opacity: 0, y: 20, duration: 0.7, ease: 'power3.out' })
 		.from('#hero .hero-sub',   { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' }, '-=0.3')
 		.from('#hero .hero-cta',   { opacity: 0, y: 20, duration: 0.5, ease: 'power2.out' }, '-=0.25')
-		.from('#hero .scroll-cue', { opacity: 0, duration: 0.4, ease: 'power1.out' }, '-=0.1');
+		.from('#hero .service-strip', { opacity: 0, duration: 0.5, ease: 'power1.out' }, '-=0.1');
 </script>

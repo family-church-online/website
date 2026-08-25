@@ -12,7 +12,16 @@
     "build:local": "tinacms build --local --skip-cloud-checks -c \"astro build\"",
     "build:search": "tinacms search-index",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "sermons:download": "node scripts/download-sermons.mjs",
+    "sermons:download:check": "node scripts/download-sermons.mjs --check",
+    "sermons:images": "node scripts/download-images.mjs",
+    "sermons:images:check": "node scripts/download-images.mjs --check",
+    "sermons:audio": "node scripts/upload-audio.mjs",
+    "sermons:audio:check": "node scripts/upload-audio.mjs --check",
+    "sermons:check": "node scripts/import-sermons.mjs --check",
+    "sermons:latest": "node scripts/import-sermons.mjs --latest",
+    "sermons:import": "node scripts/import-sermons.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.7.0",
@@ -38,8 +47,10 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@aws-sdk/client-s3": "^3.1117.0",
     "@tinacms/cli": "^2.5.3",
     "@types/node": "^25.9.1",
+    "googleapis": "^176.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tinacms": "^3.10.0",

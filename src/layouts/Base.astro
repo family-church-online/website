@@ -10,16 +10,17 @@ interface Props {
 	title: string;
 	description: string;
 	image?: string;
+	noindex?: boolean;
 }
 
-const { title, description, image } = Astro.props;
+const { title, description, image, noindex } = Astro.props;
 const config = (await getConfig()).data?.config ?? null;
 ---
 
 <!doctype html>
 <html lang="en">
 	<head>
-		<BaseHead title={title} description={description} image={image} />
+		<BaseHead title={title} description={description} image={image} noindex={noindex} />
 	</head>
 	<body>
 		<TinaIsland name="global" wrapper={islands.global.wrapper}>

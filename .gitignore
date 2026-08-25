@@ -7,6 +7,14 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
+# Sermon pipeline cache and credentials
+scripts/drive/comp-tax/
+scripts/drive/enriched/
+scripts/drive/sermon-blocks/
+scripts/audio/
+scripts/.google-credentials.json
+scripts/.google-token.json
+
 # Tooling / agent output
 .playwright-mcp
 .impeccable
