@@ -244,56 +244,63 @@ function fmtMins(mins: number | null | undefined) {
 
 <script>
 const PAGE_SIZE = 20;
-let page = 1;
 
-const seriesEl   = document.getElementById('filter-series')   as HTMLSelectElement;
-const catEl      = document.getElementById('filter-category') as HTMLSelectElement;
-const countEl    = document.getElementById('result-count')!;
-const prevBtn    = document.getElementById('page-prev')       as HTMLButtonElement;
-const nextBtn    = document.getElementById('page-next')       as HTMLButtonElement;
-const pageInfo   = document.getElementById('page-info')!;
-const emptyState = document.getElementById('empty-state')!;
-const pagination = document.getElementById('pagination')!;
-const allItems   = Array.from(document.querySelectorAll<HTMLLIElement>('[data-sermon]'));
+function init() {
+  let page = 1;
 
-function getFiltered() {
-  const series = seriesEl.value;
-  const cat    = catEl.value;
-  return allItems.filter(el => {
-    if (series && el.dataset.series !== series) return false;
-    if (cat    && !(el.dataset.cats ?? '').split('|').includes(cat)) return false;
-    return true;
-  });
+  const seriesEl   = document.getElementById('filter-series')   as HTMLSelectElement | null;
+  const catEl      = document.getElementById('filter-category') as HTMLSelectElement | null;
+  if (!seriesEl || !catEl) return;
+
+  const countEl    = document.getElementById('result-count')!;
+  const prevBtn    = document.getElementById('page-prev')       as HTMLButtonElement;
+  const nextBtn    = document.getElementById('page-next')       as HTMLButtonElement;
+  const pageInfo   = document.getElementById('page-info')!;
+  const emptyState = document.getElementById('empty-state')!;
+  const pagination = document.getElementById('pagination')!;
+  const allItems   = Array.from(document.querySelectorAll<HTMLLIElement>('[data-sermon]'));
+
+  function getFiltered() {
+    const series = seriesEl!.value;
+    const cat    = catEl!.value;
+    return allItems.filter(el => {
+      if (series && el.dataset.series !== series) return false;
+      if (cat    && !(el.dataset.cats ?? '').split('|').includes(cat)) return false;
+      return true;
+    });
+  }
+
+  function render() {
+    const items   = getFiltered();
+    const total   = items.length;
+    const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    page = Math.min(page, maxPage);
+    const start = (page - 1) * PAGE_SIZE;
+    const end   = Math.min(start + PAGE_SIZE, total);
+
+    allItems.forEach(el => (el.hidden = true));
+    items.slice(start, end).forEach(el => (el.hidden = false));
+
+    emptyState.classList.toggle('hidden', total > 0);
+    pagination.classList.toggle('hidden', total <= PAGE_SIZE);
+
+    countEl.textContent  = total === 0 ? '' : `${start + 1}–${end} of ${total}`;
+    pageInfo.textContent = `Page ${page} of ${maxPage}`;
+    prevBtn.disabled = page <= 1;
+    nextBtn.disabled = page >= maxPage;
+  }
+
+  function scrollToTop() {
+    document.getElementById('sermons-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  seriesEl.addEventListener('change', () => { page = 1; render(); });
+  catEl.addEventListener('change',    () => { page = 1; render(); });
+  prevBtn.addEventListener('click',   () => { page--; render(); scrollToTop(); });
+  nextBtn.addEventListener('click',   () => { page++; render(); scrollToTop(); });
+
+  render();
 }
 
-function render() {
-  const items   = getFiltered();
-  const total   = items.length;
-  const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  page = Math.min(page, maxPage);
-  const start = (page - 1) * PAGE_SIZE;
-  const end   = Math.min(start + PAGE_SIZE, total);
-
-  allItems.forEach(el => (el.hidden = true));
-  items.slice(start, end).forEach(el => (el.hidden = false));
-
-  emptyState.classList.toggle('hidden', total > 0);
-  pagination.classList.toggle('hidden', total <= PAGE_SIZE);
-
-  countEl.textContent  = total === 0 ? '' : `${start + 1}–${end} of ${total}`;
-  pageInfo.textContent = `Page ${page} of ${maxPage}`;
-  prevBtn.disabled = page <= 1;
-  nextBtn.disabled = page >= maxPage;
-}
-
-function scrollToTop() {
-  document.getElementById('sermons-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-seriesEl.addEventListener('change', () => { page = 1; render(); });
-catEl.addEventListener('change',    () => { page = 1; render(); });
-prevBtn.addEventListener('click',   () => { page--; render(); scrollToTop(); });
-nextBtn.addEventListener('click',   () => { page++; render(); scrollToTop(); });
-
-render();
+document.addEventListener('astro:page-load', init);
 </script>
