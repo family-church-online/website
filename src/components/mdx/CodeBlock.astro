@@ -1,11 +1,26 @@
 ---
-import { Code } from 'astro:components';
-
 interface Props {
-  value?: string;
-  lang?: string;
+	value?: string;
+	lang?: string;
 }
 
 const { value = '', lang } = Astro.props;
 ---
-<Code code={value} lang={(lang as any) || 'plaintext'} />
+
+<pre class={lang ? `language-${lang}` : undefined}><code>{value}</code></pre>
+
+<style>
+	pre {
+		background: #1e1e1e;
+		color: #d4d4d4;
+		padding: 1rem;
+		border-radius: 0.5rem;
+		overflow-x: auto;
+		font-family: 'Courier New', Courier, monospace;
+		font-size: 0.875rem;
+		line-height: 1.5;
+	}
+	code {
+		font-family: inherit;
+	}
+</style>

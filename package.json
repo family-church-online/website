@@ -51,6 +51,7 @@
     "@tinacms/cli": "^2.5.3",
     "@types/node": "^25.9.1",
     "googleapis": "^176.0.0",
+    "patch-package": "^8.0.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tinacms": "^3.10.0",

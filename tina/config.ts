@@ -10,7 +10,7 @@ const branch =
   process.env.WORKERS_CI_BRANCH || // Cloudflare Workers Builds
   process.env.CF_PAGES_BRANCH || // Cloudflare Pages
   process.env.HEAD || // Netlify
-  "main";
+  "master";
 
 export default defineConfig({
   branch,

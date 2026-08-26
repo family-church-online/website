@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import { fileURLToPath } from 'node:url';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import icon from 'astro-icon';
@@ -70,6 +71,9 @@ export default defineConfig({
 		icon(),
 		tina(),
 	],
+	markdown: {
+		syntaxHighlight: false,
+	},
 	build: {
 		// Inline the (~10 KiB) bundled CSS into a <style> in <head> instead of a
 		// separate render-blocking <link>. Astro's default ('auto') only inlines
@@ -104,6 +108,18 @@ export default defineConfig({
 			},
 		},
 		plugins: [tailwindcss()],
+		resolve: {
+			alias: [
+				{
+					// Replace all shiki imports with a stub — this site has no code blocks,
+					// so syntax highlighting is unused. Without this, Shiki's full language
+					// grammar bundle (~17 MB) gets dragged into the SSR worker.
+					// See https://github.com/withastro/astro/issues/15094
+					find: /^shiki(\/.*)?$/,
+					replacement: fileURLToPath(new URL('./src/shiki-stub.js', import.meta.url)),
+				},
+			],
+		},
 		// Bundle @tinacms/astro into the SSR build instead of resolving it
 		// per-module on every cold request — otherwise each
 		// `import TinaMarkdown from '@tinacms/astro/TinaMarkdown.astro'`
