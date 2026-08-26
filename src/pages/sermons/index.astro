@@ -39,6 +39,10 @@ const allCategories = [...new Set(
   sermons.flatMap(s => s.categories ?? []).filter(Boolean)
 )].sort((a, b) => a.localeCompare(b));
 
+const allYears = [...new Set(
+  sermons.map(s => s.date?.slice(0, 4)).filter((y): y is string => !!y)
+)].sort((a, b) => b.localeCompare(a));
+
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
 
@@ -61,8 +65,10 @@ function fmtMins(mins: number | null | undefined) {
 >
 
   {/* ── HERO ───────────────────────────────────────────────────────────────── */}
-  <div class="bg-[var(--navy)] pt-28 pb-14 px-4 sm:px-6">
-    <div class="max-w-4xl mx-auto text-center">
+  <div class="relative bg-[var(--navy)] pt-28 pb-14 px-4 sm:px-6 overflow-hidden">
+    <div class="absolute inset-0 bg-cover bg-center opacity-20 scale-110" style="background-image:url('/images/sermons-hero.jpg')"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-[var(--navy)]/40 via-[var(--navy)]/70 to-[var(--navy)]"></div>
+    <div class="relative max-w-4xl mx-auto text-center">
       <h1 class="font-display text-4xl md:text-5xl font-bold text-white mb-3">Sermons</h1>
       <p class="text-white/60 text-lg">Sunday messages from Family Church, Fourways.</p>
     </div>
@@ -86,7 +92,18 @@ function fmtMins(mins: number | null | undefined) {
         </select>
       </div>
 
-      <span id="result-count" class="text-sm text-[var(--ink)]/55 ml-auto tabular-nums"></span>
+      <div class="filter-wrap">
+        <select id="filter-year" class="filter-select">
+          <option value="">All years</option>
+          {allYears.map(y => <option value={y}>{y}</option>)}
+        </select>
+      </div>
+
+      <button id="filter-clear" style="display:none" class="text-sm font-medium text-[var(--navy)] dark:text-white/80 bg-white dark:bg-[var(--card)] border border-[var(--ink)]/18 dark:border-white/12 rounded-lg px-3 py-1.5 hover:border-[var(--green)] hover:text-[var(--green)] transition-colors cursor-pointer">
+        Clear filters
+      </button>
+
+      <span id="result-count" class="text-sm text-[var(--ink)]/55 dark:text-white/55 ml-auto tabular-nums"></span>
     </div>
   </div>
 
@@ -99,6 +116,7 @@ function fmtMins(mins: number | null | undefined) {
           data-sermon
           data-series={s.series ?? ''}
           data-cats={(s.categories ?? []).join('|')}
+          data-year={s.date?.slice(0, 4) ?? ''}
         >
           <a
             href={`/sermons/${s.slug}`}
@@ -255,7 +273,9 @@ function init() {
 
   const seriesEl   = document.getElementById('filter-series')   as HTMLSelectElement | null;
   const catEl      = document.getElementById('filter-category') as HTMLSelectElement | null;
-  if (!seriesEl || !catEl) return;
+  const yearEl     = document.getElementById('filter-year')     as HTMLSelectElement | null;
+  const clearBtn   = document.getElementById('filter-clear')    as HTMLButtonElement | null;
+  if (!seriesEl || !catEl || !yearEl) return;
 
   const countEl    = document.getElementById('result-count')!;
   const prevBtn    = document.getElementById('page-prev')       as HTMLButtonElement;
@@ -268,9 +288,11 @@ function init() {
   function getFiltered() {
     const series = seriesEl!.value;
     const cat    = catEl!.value;
+    const year   = yearEl!.value;
     return allItems.filter(el => {
       if (series && el.dataset.series !== series) return false;
       if (cat    && !(el.dataset.cats ?? '').split('|').includes(cat)) return false;
+      if (year   && el.dataset.year !== year) return false;
       return true;
     });
   }
@@ -293,6 +315,9 @@ function init() {
     pageInfo.textContent = `Page ${page} of ${maxPage}`;
     prevBtn.disabled = page <= 1;
     nextBtn.disabled = page >= maxPage;
+
+    const anyActive = !!(seriesEl!.value || catEl!.value || yearEl!.value);
+    if (clearBtn) clearBtn.style.display = anyActive ? '' : 'none';
   }
 
   function scrollToTop() {
@@ -301,6 +326,14 @@ function init() {
 
   seriesEl.addEventListener('change', () => { page = 1; render(); });
   catEl.addEventListener('change',    () => { page = 1; render(); });
+  yearEl.addEventListener('change',   () => { page = 1; render(); });
+  clearBtn?.addEventListener('click', () => {
+    seriesEl!.value = '';
+    catEl!.value    = '';
+    yearEl!.value   = '';
+    page = 1;
+    render();
+  });
   prevBtn.addEventListener('click',   () => { page--; render(); scrollToTop(); });
   nextBtn.addEventListener('click',   () => { page++; render(); scrollToTop(); });
 
