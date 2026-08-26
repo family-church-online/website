@@ -107,7 +107,7 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
     )}
     <div class="absolute inset-0 bg-gradient-to-b from-[var(--navy)]/40 via-[var(--navy)]/70 to-[var(--navy)]"></div>
 
-    <div class="relative max-w-3xl mx-auto px-6 pb-20">
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 pb-20">
       {fm.series && (
         <div class="mb-4">
           <span class="inline-block text-[var(--green)] text-xs font-bold uppercase tracking-widest border border-[var(--green)]/40 rounded-full px-3 py-1">
@@ -127,7 +127,14 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
         {fm.date && <span class="text-white/30">·</span>}
         {fm.date && <time>{fmtDate(fm.date)}</time>}
         {fm.durationMinutes && <span class="text-white/30">·</span>}
-        {fm.durationMinutes && <span>{fmtDuration(fm.durationMinutes)}</span>}
+        {fm.durationMinutes && (
+          <span class="flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <circle cx="10" cy="10" r="8"/><path d="M10 6v4l2.5 2.5" stroke-linecap="round"/>
+            </svg>
+            {fmtDuration(fm.durationMinutes)}
+          </span>
+        )}
       </div>
 
       {(fm.style || fm.level) && (
@@ -144,7 +151,7 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
   </div>
 
   {/* ── MAIN CONTENT ─────────────────────────────────────────────────────── */}
-  <main class="relative max-w-3xl mx-auto px-6 -mt-14 pb-20">
+  <main class="relative max-w-4xl mx-auto px-4 sm:px-6 -mt-14 pb-20">
 
     {/* ── TAB CARD ─────────────────────────────────────────────────────────── */}
     <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-8 text-[var(--ink)]">
@@ -158,7 +165,7 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
             aria-selected={i === 0 ? 'true' : 'false'}
             class="tab-btn flex-1 py-4 text-sm font-semibold tracking-wide transition-colors"
           >
-            {tab === 'about' ? 'About' : tab === 'notes' ? 'Sermon Notes' : 'Transcript'}
+            {tab === 'about' ? 'About' : tab === 'notes' ? 'Notes' : 'Transcript'}
           </button>
         ))}
       </div>
@@ -206,14 +213,14 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
 
             {fm.hook && (
               <div class="px-6 py-5">
-                <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">What this is about</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What this is about</p>
                 <p class="text-sm text-[var(--ink)]/75 leading-relaxed">{fm.hook}</p>
               </div>
             )}
 
             {(fm.takeaways?.length ?? 0) > 0 && (
               <div class="px-6 py-5">
-                <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">What you'll take away</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What you'll take away</p>
                 <ul class="space-y-2">
                   {fm.takeaways!.map(t => (
                     <li class="flex gap-2 text-sm text-[var(--ink)]/75 leading-snug">
@@ -227,7 +234,7 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
 
             {(fm.audience?.length ?? 0) > 0 && (
               <div class="px-6 py-5">
-                <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">This is for you if</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">This is for you if</p>
                 <ul class="space-y-2">
                   {fm.audience!.map(a => (
                     <li class="flex gap-2 text-sm text-[var(--ink)]/75 leading-snug">
@@ -274,7 +281,7 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
 
         {(fm.keyScriptureText || fm.keyScriptureRef) && (
           <div class="px-6 py-5 bg-[var(--ink)]/[0.03] border-b border-[var(--ink)]/8">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">Key Scripture</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Key Scripture</p>
             <blockquote class="border-l-4 border-[var(--green)] pl-5">
               {fm.keyScriptureText && (
                 <p class="text-[var(--ink)]/80 text-sm leading-relaxed italic mb-2">{fm.keyScriptureText}</p>
@@ -288,7 +295,7 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
 
         {(fm.mainPoints?.length ?? 0) > 0 && (
           <div class="px-6 py-5 border-b border-[var(--ink)]/8">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-4">Main Points</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Main Points</p>
             <ol class="space-y-4">
               {fm.mainPoints!.map((pt, i) => (
                 <li class="flex gap-4">
@@ -307,14 +314,14 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
 
         {fm.keyIllustration && (
           <div class="px-6 py-5 bg-[var(--ink)]/[0.03] border-b border-[var(--ink)]/8">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">Key Illustration</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Key Illustration</p>
             <p class="text-sm text-[var(--ink)]/75 leading-relaxed">{fm.keyIllustration}</p>
           </div>
         )}
 
         {(fm.application?.length ?? 0) > 0 && (
           <div class="px-6 py-5 border-b border-[var(--ink)]/8">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">What This Means for Us</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What This Means for Us</p>
             <ul class="space-y-3">
               {fm.application!.map(a => (
                 <li class="flex gap-3 text-sm text-[var(--ink)]/75 leading-relaxed">
@@ -328,14 +335,14 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
 
         {fm.toRemember && (
           <div class="px-6 py-5 bg-[var(--green)]/8 border-b border-[var(--ink)]/8">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-2">To Remember</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">To Remember</p>
             <p class="font-display text-lg font-semibold text-[var(--navy)] leading-snug">{fm.toRemember}</p>
           </div>
         )}
 
         {fm.closingPrayer && (
           <div class="px-6 py-5">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--navy)]/70 mb-3">Closing Prayer</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Closing Prayer</p>
             <p class="text-sm text-[var(--ink)]/70 leading-relaxed italic">{fm.closingPrayer}</p>
           </div>
         )}
@@ -466,7 +473,7 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
 /* ── Tabs ─────────────────────────────────────────────────────────────────── */
 .tab-btn[aria-selected="true"] {
   color: var(--navy);
-  border-bottom: 2px solid var(--navy);
+  border-bottom: 2px solid var(--green);
 }
 .tab-btn[aria-selected="false"] {
   color: color-mix(in srgb, var(--ink) 55%, transparent);
@@ -485,7 +492,7 @@ const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--navy);
+  color: var(--olive);
   margin: 2rem 0 0.75rem;
   padding-top: 1.5rem;
   border-top: 1px solid rgba(20, 32, 47, 0.12);
