@@ -87,16 +87,62 @@ function fmtDuration(mins: number | null | undefined) {
   return s > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${m} min`;
 }
 
-// Strip translation suffix from scripture for display (e.g. "Hab 3:17-19 ESV" → ref only for title)
 const pageTitle = fm.title ?? 'Sermon';
 const pageDesc  = fm.shortDescription ?? fm.subtitle ?? fm.tagLine ?? '';
+const pageUrl   = new URL(Astro.url.pathname, Astro.site).toString();
+const siteUrl   = new URL('/', Astro.site).toString().replace(/\/$/, '');
+
+function isoDuration(mins: number | null | undefined): string | null {
+  if (!mins) return null;
+  const m = Math.floor(mins);
+  const s = Math.round((mins - m) * 60);
+  return s > 0 ? `PT${m}M${s}S` : `PT${m}M`;
+}
+
+const ldJson = {
+  '@context': 'https://schema.org',
+  '@type': 'PodcastEpisode',
+  url: pageUrl,
+  name: fm.title,
+  ...(fm.date && { datePublished: fm.date }),
+  ...(pageDesc && { description: pageDesc }),
+  ...(fm.image && { image: fm.image }),
+  ...(fm.speaker && { author: { '@type': 'Person', name: fm.speaker } }),
+  publisher: { '@type': 'Organization', name: siteTitle, url: siteUrl },
+  ...(fm.audioUrl && {
+    audio: {
+      '@type': 'AudioObject',
+      contentUrl: fm.audioUrl,
+      encodingFormat: 'audio/mpeg',
+      ...(isoDuration(fm.durationMinutes) && { duration: isoDuration(fm.durationMinutes) }),
+    },
+  }),
+  ...(fm.series && { partOfSeries: { '@type': 'PodcastSeries', name: fm.series } }),
+};
+
+const vimeoId = fm.vimeoUrl?.match(/\/video\/(\d+)/)?.[1] ?? null;
+const ldJsonVideo = vimeoId ? {
+  '@context': 'https://schema.org',
+  '@type': 'VideoObject',
+  name: fm.title,
+  ...(pageDesc && { description: pageDesc }),
+  ...(fm.image && { thumbnailUrl: fm.image }),
+  ...(fm.date && { uploadDate: fm.date }),
+  ...(isoDuration(fm.durationMinutes) && { duration: isoDuration(fm.durationMinutes) }),
+  embedUrl: fm.vimeoUrl,
+  url: `https://vimeo.com/${vimeoId}`,
+  publisher: { '@type': 'Organization', name: siteTitle, url: siteUrl },
+} : null;
 ---
 
 <Base
   title={`${pageTitle} · ${siteTitle}`}
   description={pageDesc}
   image={fm.image ?? undefined}
+  ogType="article"
 >
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(ldJson)} />
+  {ldJsonVideo && <script slot="head" type="application/ld+json" set:html={JSON.stringify(ldJsonVideo)} />}
   {/* ── HERO ─────────────────────────────────────────────────────────────── */}
   <div class="relative bg-[var(--navy)] pt-28 pb-0 overflow-hidden">
     {fm.image && (

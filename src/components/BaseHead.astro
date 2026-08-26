@@ -8,12 +8,24 @@ interface Props {
 	title: string;
 	description: string;
 	image?: string;
+	imageWidth?: number;
+	imageHeight?: number;
 	noindex?: boolean;
+	ogType?: string;
 }
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
-const { title, description, image = '/images/hero.jpg', noindex = false } = Astro.props;
+const {
+	title, description,
+	image = '/images/hero.jpg',
+	imageWidth, imageHeight,
+	noindex = false, ogType = 'website',
+} = Astro.props;
+
+// Known dimensions for the default hero fallback
+const resolvedWidth  = imageWidth  ?? (image === '/images/hero.jpg' ? 1000 : undefined);
+const resolvedHeight = imageHeight ?? (image === '/images/hero.jpg' ? 667  : undefined);
 ---
 
 <script is:inline>
@@ -53,6 +65,9 @@ const { title, description, image = '/images/hero.jpg', noindex = false } = Astr
 
 <!-- Canonical URL -->
 <link rel="canonical" href={canonicalURL} />
+
+<!-- RSS autodiscovery -->
+<link rel="alternate" type="application/rss+xml" title="Family Church Sermons" href="/sermons/feed.xml" />
 {noindex && <meta name="robots" content="noindex,follow" />}
 
 <!-- Primary Meta Tags -->
@@ -61,11 +76,15 @@ const { title, description, image = '/images/hero.jpg', noindex = false } = Astr
 <meta name="description" content={description} />
 
 <!-- Open Graph / Facebook -->
-<meta property="og:type" content="website" />
+<meta property="og:type" content={ogType} />
+<meta property="og:site_name" content="Family Church" />
+<meta property="og:locale" content="en_ZA" />
 <meta property="og:url" content={Astro.url} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
 <meta property="og:image" content={new URL(image, Astro.url)} />
+{resolvedWidth  && <meta property="og:image:width"  content={String(resolvedWidth)} />}
+{resolvedHeight && <meta property="og:image:height" content={String(resolvedHeight)} />}
 
 <!-- Twitter -->
 <meta property="twitter:card" content="summary_large_image" />

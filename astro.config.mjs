@@ -58,7 +58,18 @@ export default defineConfig({
 	output: 'static',
 	adapter: await getAdapter(),
 	redirects: { '/home': '/' },
-	integrations: [mdx(), sitemap(), icon(), tina()],
+	integrations: [
+		mdx(),
+		sitemap({
+			filter: (page) =>
+				!page.includes('/sermons/feed.xml') &&
+				!page.match(/\/sermons\/?$/) &&
+				!page.includes('/404') &&
+				!page.includes('/tina-island'),
+		}),
+		icon(),
+		tina(),
+	],
 	build: {
 		// Inline the (~10 KiB) bundled CSS into a <style> in <head> instead of a
 		// separate render-blocking <link>. Astro's default ('auto') only inlines

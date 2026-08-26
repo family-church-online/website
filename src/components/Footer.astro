@@ -18,15 +18,11 @@ const year = new Date().getFullYear();
 
 <footer>
 	<div class="footer-inner">
-		{seo?.logo
-			? <img
-					src={seo.logo}
-					alt={seo.title ?? 'Family Church'}
-					class="footer-logo"
-					data-tina-field={tinaField(seo, 'logo')}
-				/>
-			: <p class="footer-name" data-tina-field={seo ? tinaField(seo, 'title') : undefined}>{seo?.title}</p>
-		}
+		<img
+		src="/images/logo-stone.png"
+		alt={seo?.title ?? 'Family Church'}
+		class="footer-logo-stone"
+	/>
 
 		{seo?.description && (
 			<p class="footer-tagline" data-tina-field={tinaField(seo, 'description')}>
@@ -88,6 +84,13 @@ const year = new Date().getFullYear();
 		width: auto;
 		object-fit: contain;
 		filter: brightness(0) invert(1) opacity(0.85);
+	}
+
+	.footer-logo-stone {
+		height: 3.25rem;
+		width: auto;
+		object-fit: contain;
+		filter: brightness(1.4) opacity(0.9);
 	}
 
 	.footer-name {

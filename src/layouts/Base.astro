@@ -11,16 +11,32 @@ interface Props {
 	description: string;
 	image?: string;
 	noindex?: boolean;
+	ogType?: string;
 }
 
-const { title, description, image, noindex } = Astro.props;
-const config = (await getConfig()).data?.config ?? null;
+const { title, description, image, noindex, ogType } = Astro.props;
+const config  = (await getConfig()).data?.config ?? null;
+const siteUrl = new URL('/', Astro.site).toString().replace(/\/$/, '');
+
+const orgLd = {
+	'@context': 'https://schema.org',
+	'@type': 'Church',
+	name: config?.seo?.title ?? 'Family Church',
+	url: siteUrl,
+	...(config?.seo?.description && { description: config.seo.description }),
+	logo: `${siteUrl}/images/logo-stone.png`,
+	sameAs: (config?.contactLinks ?? [])
+		.filter((l): l is NonNullable<typeof l> => !!l?.link)
+		.map(l => l.link),
+};
 ---
 
 <!doctype html>
 <html lang="en">
 	<head>
-		<BaseHead title={title} description={description} image={image} noindex={noindex} />
+		<BaseHead title={title} description={description} image={image} noindex={noindex} ogType={ogType} />
+		<script type="application/ld+json" set:html={JSON.stringify(orgLd)} />
+		<slot name="head" />
 	</head>
 	<body>
 		<TinaIsland name="global" wrapper={islands.global.wrapper}>
