@@ -29,21 +29,38 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 
 		<!-- Desktop nav links — hidden below lg (1024px) -->
 		<ul class="hidden lg:flex items-center gap-8 list-none m-0 p-0 flex-1 justify-center">
-			{nav.map((item) => (
-				<li>
-					<a href={item.link} class="nav-link" data-tina-field={tinaField(item, 'title')}>
-						{item.title}
-					</a>
-				</li>
-			))}
+			{nav.map((item) => {
+				const children = ((item as any).children ?? []).filter(Boolean);
+				return children.length > 0 ? (
+					<li class="nav-has-dropdown">
+						<button class="nav-link nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false" data-tina-field={tinaField(item, 'title')}>
+							{item.title}
+							<svg class="nav-chevron" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+								<path d="M2 4l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</button>
+						<div class="nav-dropdown" role="menu">
+							{children.map((child: any) => (
+								<a href={child.link} class="nav-dropdown-item" role="menuitem" data-tina-field={tinaField(child, 'title')}>
+									{child.title}
+								</a>
+							))}
+						</div>
+					</li>
+				) : (
+					<li>
+						<a href={item.link} class="nav-link" data-tina-field={tinaField(item, 'title')}>
+							{item.title}
+						</a>
+					</li>
+				);
+			})}
 		</ul>
 
 		<!-- Right end -->
 		<div class="flex items-center gap-3 flex-shrink-0">
 			<ThemeToggle />
-			<!-- CTA: visible on sm+ -->
 			<a href="#visit" class="nav-cta hidden sm:inline-block">Plan a Visit</a>
-			<!-- Hamburger: visible below lg -->
 			<button
 				id="mobile-menu-toggle"
 				type="button"
@@ -60,20 +77,37 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 	<!-- Mobile / tablet dropdown -->
 	<div id="mobile-menu" class="mobile-menu hidden lg:hidden border-t border-white/10">
 		<div class="mx-auto max-w-6xl px-6 py-3 flex flex-col">
-			{nav.map((item) => (
-				<a href={item.link} class="mobile-nav-link py-3 border-b border-white/8 last:border-b-0"
-					data-tina-field={tinaField(item, 'title')}>
-					{item.title}
-				</a>
-			))}
+			{nav.map((item) => {
+				const children = ((item as any).children ?? []).filter(Boolean);
+				return children.length > 0 ? (
+					<div class="mobile-submenu-wrap border-b border-white/8 last:border-b-0">
+						<button class="mobile-submenu-toggle py-3 w-full flex items-center justify-between" data-tina-field={tinaField(item, 'title')}>
+							<span class="mobile-nav-link">{item.title}</span>
+							<svg class="mobile-chevron w-4 h-4" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+								<path d="M2 4l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</button>
+						<div class="mobile-submenu hidden pl-4 pb-2 flex-col gap-0">
+							{children.map((child: any) => (
+								<a href={child.link} class="mobile-nav-link mobile-sublink py-2 block" data-tina-field={tinaField(child, 'title')}>
+									{child.title}
+								</a>
+							))}
+						</div>
+					</div>
+				) : (
+					<a href={item.link} class="mobile-nav-link py-3 border-b border-white/8 last:border-b-0"
+						data-tina-field={tinaField(item, 'title')}>
+						{item.title}
+					</a>
+				);
+			})}
 			<a href="#visit" class="nav-cta self-start mt-4 mb-2">Plan a Visit</a>
 		</div>
 	</div>
 </header>
 
 <style>
-	/* All colours — no layout here, Tailwind handles that */
-
 	.nav-brand { text-decoration: none; }
 	.nav-title  { color: rgba(255,255,255,0.9); }
 
@@ -89,6 +123,86 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 		transition: color 0.2s, border-color 0.2s;
 	}
 	.nav-link:hover { color: var(--green); border-color: var(--green); }
+
+	/* Desktop dropdown trigger — reset button styles, keep nav-link look */
+	.nav-dropdown-trigger {
+		background: none;
+		border: none;
+		border-bottom: 2px solid transparent;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0 0 2px;
+	}
+	.nav-dropdown-trigger:hover { color: var(--green); border-color: var(--green); }
+
+	.nav-chevron {
+		transition: transform 0.2s ease;
+		color: rgba(255,255,255,0.5);
+	}
+
+	/* Desktop dropdown panel */
+	.nav-has-dropdown {
+		position: relative;
+	}
+	/* Invisible bridge that extends the li's hover zone across the gap */
+	.nav-has-dropdown::after {
+		content: '';
+		position: absolute;
+		top: 100%;
+		left: 0;
+		right: 0;
+		height: 0.85rem;
+	}
+
+	.nav-dropdown {
+		position: absolute;
+		top: calc(100% + 0.85rem);
+		left: 50%;
+		transform: translateX(-50%) translateY(-6px);
+		background: rgba(39, 63, 97, 0.97);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: 0.75rem;
+		padding: 0.4rem;
+		min-width: 12rem;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.15s ease, transform 0.15s ease;
+		z-index: 50;
+	}
+
+	.nav-has-dropdown:hover .nav-dropdown,
+	.nav-has-dropdown:focus-within .nav-dropdown {
+		opacity: 1;
+		pointer-events: auto;
+		transform: translateX(-50%) translateY(0);
+	}
+
+	.nav-has-dropdown:hover .nav-chevron,
+	.nav-has-dropdown:focus-within .nav-chevron {
+		transform: rotate(180deg);
+	}
+
+	.nav-dropdown-item {
+		display: block;
+		padding: 0.55rem 0.9rem;
+		border-radius: 0.5rem;
+		color: rgba(255, 255, 255, 0.72);
+		text-decoration: none;
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 1px;
+		text-transform: uppercase;
+		white-space: nowrap;
+		transition: color 0.15s, background 0.15s;
+	}
+	.nav-dropdown-item:hover {
+		color: var(--green);
+		background: rgba(255, 255, 255, 0.06);
+	}
 
 	.nav-cta {
 		padding: 0.5rem 1.2rem;
@@ -131,11 +245,31 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 		transition: color 0.2s;
 	}
 	.mobile-nav-link:hover { color: var(--green); }
+	.mobile-sublink { font-size: 12px; opacity: 0.8; }
+
+	.mobile-submenu-toggle {
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: rgba(255,255,255,0.72);
+		padding: 0;
+	}
+	.mobile-submenu-toggle:hover .mobile-nav-link { color: var(--green); }
+
+	.mobile-chevron {
+		color: rgba(255,255,255,0.4);
+		transition: transform 0.2s ease;
+		flex-shrink: 0;
+	}
+	.mobile-submenu-toggle[aria-expanded="true"] .mobile-chevron {
+		transform: rotate(180deg);
+	}
 </style>
 
 <script is:inline>
 	if (!window.__mobileMenuBound) {
 		window.__mobileMenuBound = true;
+
 		const setOpen = (open) => {
 			const btn = document.getElementById('mobile-menu-toggle');
 			const menu = document.getElementById('mobile-menu');
@@ -143,6 +277,7 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 			btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 			menu.classList.toggle('hidden', !open);
 		};
+
 		document.addEventListener('click', (e) => {
 			const toggle = e.target.closest('#mobile-menu-toggle');
 			if (toggle) {
@@ -151,7 +286,17 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 				return;
 			}
 			if (e.target.closest('#mobile-menu a')) setOpen(false);
+
+			// Mobile submenu toggles
+			const subToggle = e.target.closest('.mobile-submenu-toggle');
+			if (subToggle) {
+				const isExpanded = subToggle.getAttribute('aria-expanded') === 'true';
+				const submenu = subToggle.nextElementSibling;
+				subToggle.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+				submenu?.classList.toggle('hidden', isExpanded);
+			}
 		});
+
 		document.addEventListener('keydown', (e) => {
 			if (e.key === 'Escape') setOpen(false);
 		});

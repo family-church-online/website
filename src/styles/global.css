@@ -146,7 +146,7 @@ html:not(.dark) header {
 		color: var(--foreground);
 		font-family: var(--font-sans);
 		margin: 0;
-		padding-top: 5rem;
+		padding-top: calc(5rem + var(--banner-h, 0rem));
 	}
 	.bg-default {
 		background-color: var(--background);
@@ -175,6 +175,9 @@ html:not(.dark) header {
 	--tw-prose-th-borders: var(--border);
 	--tw-prose-td-borders: var(--border);
 }
+
+/* Shift nav below banner when --banner-h is set. Unlayered so it wins over Tailwind's top-0 utility. */
+header { top: var(--banner-h, 0rem); }
 
 @keyframes twinkle {
 	0%, 100% { opacity: 0.25; }

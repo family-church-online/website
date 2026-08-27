@@ -1,0 +1,51 @@
+---
+interface Props {
+	text: string;
+	link?: string | null;
+}
+const { text, link } = Astro.props;
+---
+<div class="announcement-banner">
+	<svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" class="banner-icon">
+		<rect x="3" y="4" width="14" height="14" rx="2"/>
+		<path d="M3 8h14" stroke-linecap="round"/>
+		<path d="M7 2v4M13 2v4" stroke-linecap="round"/>
+	</svg>
+	{link
+		? <a href={link} class="banner-inner">{text}</a>
+		: <span class="banner-inner">{text}</span>
+	}
+</div>
+
+<style>
+	.announcement-banner {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 30;
+		height: var(--banner-h);
+		background: rgba(39, 63, 97, 0.3);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.banner-inner {
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: rgba(255, 255, 255, 0.88);
+		text-decoration: none;
+		letter-spacing: 0.02em;
+		text-align: center;
+		padding: 0 1rem;
+	}
+	a.banner-inner:hover { color: var(--green); }
+	.banner-icon {
+		color: rgba(255, 255, 255, 0.6);
+		flex-shrink: 0;
+		margin-right: 0.5rem;
+	}
+</style>

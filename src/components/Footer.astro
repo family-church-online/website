@@ -24,13 +24,7 @@ const year = new Date().getFullYear();
 		class="footer-logo-stone"
 	/>
 
-		{seo?.description && (
-			<p class="footer-tagline" data-tina-field={tinaField(seo, 'description')}>
-				{seo.description}
-			</p>
-		)}
-
-		{nav.length > 0 && (
+{nav.length > 0 && (
 			<nav class="footer-links" aria-label="Footer navigation">
 				{nav.map((item) => (
 					<a href={item.link} data-tina-field={tinaField(item, 'title')}>{item.title}</a>
@@ -48,12 +42,22 @@ const year = new Date().getFullYear();
 						target="_blank"
 						rel="noopener noreferrer"
 					>
-						{link.icon && <Icon name={link.icon} />}
+						{link.icon && (
+							link.icon.includes(':')
+								? <Icon name={link.icon} />
+								: <span aria-hidden="true">{link.icon}</span>
+						)}
 						<span class="sr-only">{link.title}</span>
 					</a>
 				))}
 			</div>
 		)}
+
+		<div class="footer-banking">
+			<p class="footer-banking-label">Banking Details</p>
+			<p>Standard Bank · Fourways Crossing Branch</p>
+			<p>Account: 10130327822</p>
+		</div>
 
 		<p class="footer-copy">
 			&copy; {year}
@@ -150,6 +154,24 @@ const year = new Date().getFullYear();
 	.footer-social svg {
 		width: 1.1rem;
 		height: 1.1rem;
+	}
+
+	.footer-banking {
+		border-top: 1px solid rgba(255, 255, 255, 0.08);
+		padding-top: 1.25rem;
+		color: rgba(255, 255, 255, 0.35);
+		font-size: 0.78rem;
+		line-height: 1.7;
+		text-align: center;
+	}
+	.footer-banking p { margin: 0; }
+	.footer-banking-label {
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		font-size: 10px;
+		font-weight: 600;
+		color: rgba(255, 255, 255, 0.2);
+		margin-bottom: 0.25rem !important;
 	}
 
 	.footer-copy {

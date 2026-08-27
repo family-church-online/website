@@ -2,6 +2,7 @@
 import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import AnnouncementBanner from '../components/AnnouncementBanner.astro';
 import TinaIsland from '@tinacms/astro/TinaIsland.astro';
 import { getConfig } from '../lib/data';
 import { islands } from '../lib/islands';
@@ -16,6 +17,8 @@ interface Props {
 
 const { title, description, image, noindex, ogType } = Astro.props;
 const config  = (await getConfig()).data?.config ?? null;
+const banner  = config?.banner;
+const bannerActive = !!(banner?.enabled && banner.text);
 const siteUrl = new URL('/', Astro.site).toString().replace(/\/$/, '');
 
 const orgLd = {
@@ -32,13 +35,14 @@ const orgLd = {
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" style={bannerActive ? '--banner-h:2.25rem' : undefined}>
 	<head>
 		<BaseHead title={title} description={description} image={image} noindex={noindex} ogType={ogType} />
 		<script type="application/ld+json" set:html={JSON.stringify(orgLd)} />
 		<slot name="head" />
 	</head>
 	<body>
+		{bannerActive && <AnnouncementBanner text={banner!.text!} link={banner!.link} />}
 		<TinaIsland name="global" wrapper={islands.global.wrapper}>
 			<Header config={config} />
 		</TinaIsland>

@@ -76,11 +76,33 @@ export const GlobalConfigCollection: Collection = {
         {
           name: "link",
           label: "Link URL",
-          description: "Where this nav item points (e.g. /about or https://example.com).",
+          description: "Where this nav item points (e.g. /about or https://example.com). Leave empty if this item only opens a submenu.",
           type: "string",
-          required: true
-
-        }
+        },
+        {
+          name: "children",
+          label: "Submenu Items",
+          description: "Optional. Add items here to create a dropdown under this nav link.",
+          type: "object",
+          list: true,
+          ui: {
+            itemProps: (item) => ({ label: item.title }),
+          },
+          fields: [
+            {
+              name: "title",
+              label: "Label",
+              type: "string",
+              required: true,
+            },
+            {
+              name: "link",
+              label: "URL",
+              type: "string",
+              required: true,
+            },
+          ],
+        },
       ]
     },
     {
@@ -112,6 +134,30 @@ export const GlobalConfigCollection: Collection = {
           description: "Any Tabler icon name, e.g. tabler:brand-x, tabler:book-2, tabler:brand-github. Browse at https://icones.js.org/collection/tabler",
           type: "string"
         }
+      ],
+    },
+    {
+      name: "banner",
+      label: "Announcement Banner",
+      description: "A thin strip shown at the very top of every page. Toggle it on/off without losing the text.",
+      type: "object",
+      fields: [
+        {
+          name: "enabled",
+          label: "Show Banner",
+          type: "boolean",
+        },
+        {
+          name: "text",
+          label: "Banner Text",
+          type: "string",
+        },
+        {
+          name: "link",
+          label: "Link URL",
+          description: "Optional. The banner text becomes a clickable link.",
+          type: "string",
+        },
       ],
     },
     // Add other config fields here...

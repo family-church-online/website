@@ -14,9 +14,30 @@
       "link": "/sermons"
     },
     {
-      "title": "About",
-      "link": "/about"
+      "title": "Live",
+      "link": "/video",
+      "children": [
+        {
+          "title": "Video",
+          "link": "/video"
+        },
+        {
+          "title": "Audio",
+          "link": "/video"
+        }
+      ]
     }
   ],
-  "contactLinks": []
+  "contactLinks": [
+    {
+      "title": "Connect",
+      "link": "mailto:connect@familychurch.online",
+      "icon": "✉"
+    }
+  ],
+  "banner": {
+    "enabled": true,
+    "text": "Today's Devotion and Reading Plan",
+    "link": "/today"
+  }
 }
