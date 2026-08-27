@@ -303,7 +303,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
               <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 mb-0.5">Previous</p>
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Prev</p>
               <p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{prev.title}</p>
             </div>
           </a>
@@ -312,7 +312,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
         {next ? (
           <a href={next.href} class="group flex-1 flex items-center justify-end gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow text-right">
             <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 mb-0.5">Next</p>
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Next</p>
               <p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{next.title}</p>
             </div>
             <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -322,7 +322,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
         ) : isLatest ? (
           <a href="/today" class="group flex-1 flex items-center justify-end gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow text-right">
             <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 mb-0.5">Today</p>
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Today</p>
               <p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">Today's devotion →</p>
             </div>
             <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
