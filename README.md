@@ -1,62 +1,76 @@
-This is a [TinaCMS](https://tina.io/) starter project.
+# Family Church Fourways — Website
 
-Edit your site visually in the browser, ship it as fast static HTML.
+The public website for [Family Church, Fourways](https://familychurch.online). Built with [Astro](https://astro.build) and [TinaCMS](https://tina.io), deployed on Cloudflare.
+
+## Stack
+
+- **Astro 6** — static site generation with view transitions
+- **TinaCMS** — visual CMS with Git-backed content
+- **Tailwind CSS v4** — utility styling with CSS custom property brand tokens
+- **Cloudflare Pages/Workers** — hosting + edge function for `/today`
 
 ## Getting started
 
-Create the project:
-
-```sh
-pnpm dlx create-tina-app@latest --template tina-astro-starter
-```
-
-Install dependencies:
-
-> [!NOTE]
-> **[Which package manager is best for Node.js?](https://www.ssw.com.au/rules/best-package-manager-for-node)** The right one makes a real difference to your workflow. We recommend pnpm for its speed and efficient dependency handling — this SSW rule explains why.
+Requires Node ≥ 22 and [pnpm](https://pnpm.io).
 
 ```sh
 pnpm install
+cp .env.example .env   # fill in TinaCloud credentials
+pnpm dev               # http://localhost:4321 · admin at /admin/
 ```
 
-Start the dev server, then edit visually at `localhost:4321/admin/`:
+### Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `PUBLIC_TINA_CLIENT_ID` | TinaCloud project ID — from [app.tina.io](https://app.tina.io) |
+| `TINA_TOKEN` | TinaCloud read token |
+| `SITE_URL` | Production canonical URL (required on Cloudflare Workers) |
+| `DEPLOY_ADAPTER` | Force `vercel \| cloudflare \| netlify \| node`; normally auto-detected |
+
+## Development
 
 ```sh
-pnpm dev
+pnpm dev          # TinaCMS + Astro dev server
+pnpm build        # Production build (needs TinaCloud credentials)
+pnpm build:local  # Local build without TinaCloud auth
+pnpm preview      # Preview production build
+pnpm astro check  # TypeScript type-check
 ```
 
-![homepage](./public/home-page.png)
+## Content
 
-**Figure: Homepage UI**
+Content is edited visually at `/admin/` or by editing MDX files directly in `src/content/`.
 
-## Features 
+| Section | Path | Notes |
+|---------|------|-------|
+| Pages | `src/content/page/` | Block-builder pages (Hero, CTA, Features…) |
+| Sermons | `src/content/sermons/` | One MDX file per sermon, named `YYYY-MM-DD-title.mdx` |
+| Devotions | `src/content/devotion/` | One MDX file per day, named `YYYY-MM-DD.mdx` |
+| Global config | `src/content/config/config.json` | Nav, SEO, contact links |
 
-- Visual editing via [`@tinacms/astro`](https://www.npmjs.com/package/@tinacms/astro) — a vanilla-JS bridge, with no React in the page tree
-- Tailwind CSS v4 block builder: Hero, CTA, Features, Stats, Testimonial, Callout, Content, Split, and Video
-- Light/dark theme toggle with a Tina-ember space theme
-- Markdown and MDX with `<TinaMarkdown>` rich-text rendering
-- Collections for Pages, Blog, and global Config
-- Astro view transitions, SEO meta, OpenGraph, sitemap, and RSS
-- Icons via [`astro-icon`](https://github.com/natemoo-re/astro-icon) and the Tabler set
+### Sermon import pipeline
 
-## Deploying
+Sermons are sourced from Google Drive and imported via a set of scripts. Run them in order:
 
-The starter is host-neutral — it isn't tied to any one platform. Every content page is prerendered to static HTML; the only on-demand route is the `/tina-island` endpoint that powers live visual editing.
+```sh
+pnpm sermons:download   # Pull raw sermon data from Drive into scripts/drive/
+pnpm sermons:images     # Download sermon images
+pnpm sermons:audio      # Upload audio to Cloudflare R2
+pnpm sermons:import     # Write MDX files into src/content/sermons/
 
-`astro.config.mjs` picks the right adapter automatically from the platform's build environment — [Vercel](https://docs.astro.build/en/guides/integrations-guide/vercel/), [Cloudflare](https://docs.astro.build/en/guides/integrations-guide/cloudflare/) (Pages or Workers) and [Netlify](https://docs.astro.build/en/guides/integrations-guide/netlify/) are detected and configured with no changes, and anywhere else falls back to a portable [Node](https://docs.astro.build/en/guides/integrations-guide/node/) server you can run with `node ./dist/server/entry.mjs`. The bundled `wrangler.jsonc` targets Cloudflare Workers and enables `nodejs_compat`, which the editing route's `node:async_hooks` needs.
+pnpm sermons:latest     # Import only the most recent sermon
+pnpm sermons:check      # Report what's missing without writing anything
+```
 
-Set `SITE_URL` to your production URL — it feeds the sitemap, RSS, and OpenGraph tags; see `.env.example`. Most platforms inject their own deploy URL as a fallback, but Cloudflare Workers exposes none, so set `SITE_URL` there to avoid `localhost` canonicals.
+Sermons with `review: true` in their frontmatter are hidden from the listing page until the flag is removed.
 
-### Before your first deploy: TinaCloud credentials
+## Deployment
 
-The default `pnpm build` compiles the CMS against TinaCloud, so it needs your project credentials. Without them it fails fast with `ERR_MISSING_CLOUD_CREDS`. Create a project at [app.tina.io](https://app.tina.io), then set `PUBLIC_TINA_CLIENT_ID` and `TINA_TOKEN` (see `.env.example`) in your host's environment variables.
+The site is host-neutral — the right Astro adapter is selected automatically from the build environment (Vercel, Cloudflare Pages/Workers, Netlify, or Node standalone). The bundled `wrangler.jsonc` targets Cloudflare Workers.
 
-To build without TinaCloud — a purely local/offline build with no auth — run `pnpm build:local` instead, which skips the cloud checks.
+Before your first deploy, create a project at [app.tina.io](https://app.tina.io) and set `PUBLIC_TINA_CLIENT_ID` and `TINA_TOKEN` in your host's environment variables. To build without TinaCloud, use `pnpm build:local`.
 
-## A note on React
+### `/today` edge function
 
-`react` and `react-dom` are both pinned to the same version (`^19.2.7`) in `devDependencies` for the TinaCMS admin UI build only — the site itself ships zero React. The pin keeps the two packages locked in lockstep; without it, pnpm's peer auto-install can pair mismatched `react` / `react-dom` versions and the admin crashes on init (`Cannot read properties of undefined (reading 'ReactCurrentDispatcher')`). This is tracked in [tinacms#6985](https://github.com/tinacms/tinacms/issues/6985); remove the pin once Tina declares `react` / `react-dom` as direct dependencies.
-
-## Want to learn more?
-
-Read the [TinaCMS documentation](https://tina.io/docs) and the [Astro documentation](https://docs.astro.build), or come and say hello in the [TinaCMS Discord server](https://discord.gg/cG2UNREu).
+`functions/today.ts` is a Cloudflare Pages Function that intercepts `/today`, looks up the current South African date (UTC+2), serves the pre-built static `/devotion/YYYY-MM-DD` page, and caches it until midnight SA time. In local dev this function does not run — `today.astro` handles the request instead.
