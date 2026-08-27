@@ -8,6 +8,7 @@ import Hero from './Hero.astro';
 import Split from './Split.astro';
 import Stats from './Stats.astro';
 import Testimonial from './Testimonial.astro';
+import Timeline from './Timeline.astro';
 import Video from './Video.astro';
 import type { CmsPage } from '../../lib/data';
 
@@ -29,6 +30,7 @@ const blocks = (data?.blocks ?? []).filter(b => b !== null);
 			case 'PageBlocksSplit': return <Split data={block} />;
 			case 'PageBlocksStats': return <Stats data={block} />;
 			case 'PageBlocksTestimonial': return <Testimonial data={block} />;
+			case 'PageBlocksTimeline': return <Timeline data={block} />;
 			case 'PageBlocksVideo': return <Video data={block} />;
 		}
 	})();

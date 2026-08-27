@@ -95,6 +95,7 @@ export default defineConfig({
 		// of the stale public/admin/index.html build artifact (with absolute URLs
 		// and an onerror that fires on startup timing issues).
 		server: {
+			allowedHosts: ['tina.familychurch.online'],
 			proxy: {
 				'/admin': {
 					target: 'http://localhost:4001',
