@@ -1,0 +1,337 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+interface ReadingLink { ref?: string; url?: string; }
+
+interface DevotionFrontmatter {
+  title?: string;
+  date?: string;
+  image?: string | null;
+  sermonUrl?: string | null;
+  keyScripture?: { ref?: string; text?: string } | null;
+  reflection?: string | null;
+  supportingScriptures?: Array<{ ref?: string; text?: string }> | null;
+  lifeApplication?: string | null;
+  prayer?: string | null;
+  readingPlans?: {
+    connected?: { ot?: ReadingLink[]; nt?: ReadingLink[]; wisdom?: ReadingLink[] } | null;
+    chronological?: ReadingLink[] | null;
+    literary?: {
+      wisdom?: ReadingLink[];
+      narrative?: ReadingLink[];
+      historyProphecy?: ReadingLink[];
+      nt?: ReadingLink[];
+    } | null;
+  } | null;
+}
+
+export function getStaticPaths() {
+  const mods = import.meta.glob<{ frontmatter: DevotionFrontmatter }>(
+    '../../content/devotion/*.mdx',
+    { eager: true }
+  );
+
+  const all = Object.entries(mods)
+    .map(([path, mod]) => ({
+      date: path.replace('../../content/devotion/', '').replace('.mdx', ''),
+      frontmatter: mod.frontmatter,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const today = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  return all.map((entry, i) => {
+    const isLast = i === all.length - 1;
+    const prevEntry = i > 0 ? all[i - 1] : null;
+    const nextEntry = !isLast ? all[i + 1] : null;
+
+    return {
+      params: { date: entry.date },
+      props: {
+        frontmatter: entry.frontmatter,
+        prev: prevEntry ? { date: prevEntry.date, title: prevEntry.frontmatter.title } : null,
+        // If the next entry is today's date the canonical link is /today
+        next: nextEntry
+          ? {
+              date: nextEntry.date,
+              title: nextEntry.frontmatter.title,
+              href: nextEntry.date === today ? '/today' : `/devotion/${nextEntry.date}`,
+            }
+          : null,
+        isLatest: isLast,
+      },
+    };
+  });
+}
+
+const { date } = Astro.params;
+const { frontmatter: fm, prev, next, isLatest } = Astro.props as {
+  frontmatter: DevotionFrontmatter;
+  prev: { date: string; title?: string } | null;
+  next: { date: string; title?: string; href: string } | null;
+  isLatest: boolean;
+};
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+function fmtDate(dateStr: string) {
+  return new Date(dateStr + 'T00:00:00Z').toLocaleDateString('en-ZA', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+  });
+}
+
+function paras(text: string | null | undefined): string[] {
+  if (!text) return [];
+  return text.split(/\n\n+/).map(p => p.replace(/\n/g, ' ').trim()).filter(Boolean);
+}
+
+function prayerLines(text: string | null | undefined): string[] {
+  if (!text) return [];
+  return text.split(/\n/).map(l => l.trim()).filter(Boolean);
+}
+
+const pageTitle = `${fm.title ?? 'Daily Devotion'} · ${siteTitle}`;
+const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '…' : 'A daily devotion from Family Church.';
+---
+
+<Base title={pageTitle} description={pageDesc} image={fm.image ?? undefined}>
+
+  {/* ── HERO ───────────────────────────────────────────────────────────────── */}
+  <div class="relative bg-[var(--navy)] pt-28 pb-14 px-4 sm:px-6 overflow-hidden">
+    {fm.image && (
+      <div
+        class="absolute inset-0 bg-cover bg-center opacity-20 scale-110"
+        style={`background-image:url('${fm.image}')`}
+      />
+    )}
+    <div class="absolute inset-0 bg-gradient-to-b from-[var(--navy)]/40 via-[var(--navy)]/70 to-[var(--navy)]" />
+    <div class="relative max-w-4xl mx-auto text-center">
+      <p class="text-[var(--green)] text-xs font-bold uppercase tracking-widest mb-3">Daily Devotion</p>
+      <h1 class="font-display text-3xl md:text-4xl font-bold text-white mb-3 leading-snug">
+        {fm.title ?? 'Devotion'}
+      </h1>
+      <time class="text-white/50 text-sm" datetime={date}>{fmtDate(date)}</time>
+      {fm.sermonUrl && (
+        <div class="mt-4">
+          <a
+            href={fm.sermonUrl}
+            class="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-[var(--green)] transition-colors"
+          >
+            <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M10 3v10m0 0l-3-3m3 3l3-3M3 17h14" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            View full sermon
+          </a>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+
+    {/* ── KEY SCRIPTURE ──────────────────────────────────────────────────────── */}
+    {fm.keyScripture?.text && (
+      <div class="bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 p-6">
+        {fm.keyScripture.ref && (
+          <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">
+            {fm.keyScripture.ref}
+          </p>
+        )}
+        <blockquote class="border-l-4 border-[var(--green)] pl-4 text-[var(--ink)]/80 dark:text-white/80 italic leading-relaxed">
+          {fm.keyScripture.text}
+        </blockquote>
+      </div>
+    )}
+
+    {/* ── REFLECTION ─────────────────────────────────────────────────────────── */}
+    {fm.reflection && (
+      <section>
+        <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Reflection</h2>
+        <div class="space-y-4">
+          {paras(fm.reflection).map(p => (
+            <p class="text-[var(--ink)]/80 dark:text-white/75 leading-relaxed">{p}</p>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {/* ── SUPPORTING SCRIPTURES ─────────────────────────────────────────────── */}
+    {fm.supportingScriptures && fm.supportingScriptures.length > 0 && (
+      <section>
+        <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Supporting Scriptures</h2>
+        <div class="space-y-3">
+          {fm.supportingScriptures.map(s => (
+            <div class="bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 p-5">
+              {s.ref && (
+                <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">{s.ref}</p>
+              )}
+              {s.text && (
+                <blockquote class="border-l-4 border-[var(--navy)]/20 dark:border-white/20 pl-3 text-[var(--ink)]/75 dark:text-white/70 italic leading-relaxed text-sm">
+                  {s.text}
+                </blockquote>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {/* ── LIFE APPLICATION ───────────────────────────────────────────────────── */}
+    {fm.lifeApplication && (
+      <section class="bg-[var(--navy)]/4 dark:bg-white/4 rounded-xl p-6">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Life Application</h2>
+        <div class="space-y-4">
+          {paras(fm.lifeApplication).map(p => (
+            <p class="text-[var(--ink)]/80 dark:text-white/75 leading-relaxed">{p}</p>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {/* ── PRAYER ─────────────────────────────────────────────────────────────── */}
+    {fm.prayer && (
+      <section class="bg-[var(--navy)] rounded-xl p-6 text-center">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--green)] mb-4">Prayer</h2>
+        <div class="space-y-1">
+          {prayerLines(fm.prayer).map(line => (
+            <p class="text-white/80 italic leading-relaxed text-sm">{line}</p>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {/* ── DAILY READINGS ─────────────────────────────────────────────────────── */}
+    {fm.readingPlans && (
+      <section id="readings">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Daily Readings</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          {/* Connected Reading */}
+          {fm.readingPlans.connected && (
+            <div class="bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 p-5">
+              <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--navy)] dark:text-white mb-3">Connected Reading</h3>
+              {fm.readingPlans.connected.ot && fm.readingPlans.connected.ot.length > 0 && (
+                <div class="mb-3">
+                  <p class="text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--ink)]/40 dark:text-white/40 mb-1">Old Testament</p>
+                  {fm.readingPlans.connected.ot.map(r => (
+                    <a href={r.url} target="_blank" rel="noopener" class="block text-sm text-[var(--navy)] dark:text-[var(--green)] hover:text-[var(--green)] dark:hover:text-white transition-colors leading-relaxed">{r.ref}</a>
+                  ))}
+                </div>
+              )}
+              {fm.readingPlans.connected.nt && fm.readingPlans.connected.nt.length > 0 && (
+                <div class="mb-3">
+                  <p class="text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--ink)]/40 dark:text-white/40 mb-1">New Testament</p>
+                  {fm.readingPlans.connected.nt.map(r => (
+                    <a href={r.url} target="_blank" rel="noopener" class="block text-sm text-[var(--navy)] dark:text-[var(--green)] hover:text-[var(--green)] dark:hover:text-white transition-colors leading-relaxed">{r.ref}</a>
+                  ))}
+                </div>
+              )}
+              {fm.readingPlans.connected.wisdom && fm.readingPlans.connected.wisdom.length > 0 && (
+                <div>
+                  <p class="text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--ink)]/40 dark:text-white/40 mb-1">Wisdom</p>
+                  {fm.readingPlans.connected.wisdom.map(r => (
+                    <a href={r.url} target="_blank" rel="noopener" class="block text-sm text-[var(--navy)] dark:text-[var(--green)] hover:text-[var(--green)] dark:hover:text-white transition-colors leading-relaxed">{r.ref}</a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Chronological Reading */}
+          {fm.readingPlans.chronological && fm.readingPlans.chronological.length > 0 && (
+            <div class="bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 p-5">
+              <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--navy)] dark:text-white mb-3">Chronological</h3>
+              {fm.readingPlans.chronological.map(r => (
+                <a href={r.url} target="_blank" rel="noopener" class="block text-sm text-[var(--navy)] dark:text-[var(--green)] hover:text-[var(--green)] dark:hover:text-white transition-colors leading-relaxed">{r.ref}</a>
+              ))}
+            </div>
+          )}
+
+          {/* ESV Literary Study Bible */}
+          {fm.readingPlans.literary && (
+            <div class="bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 p-5">
+              <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--navy)] dark:text-white mb-3">ESV Literary</h3>
+              {fm.readingPlans.literary.wisdom && fm.readingPlans.literary.wisdom.length > 0 && (
+                <div class="mb-3">
+                  <p class="text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--ink)]/40 dark:text-white/40 mb-1">Wisdom</p>
+                  {fm.readingPlans.literary.wisdom.map(r => (
+                    <a href={r.url} target="_blank" rel="noopener" class="block text-sm text-[var(--navy)] dark:text-[var(--green)] hover:text-[var(--green)] dark:hover:text-white transition-colors leading-relaxed">{r.ref}</a>
+                  ))}
+                </div>
+              )}
+              {fm.readingPlans.literary.narrative && fm.readingPlans.literary.narrative.length > 0 && (
+                <div class="mb-3">
+                  <p class="text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--ink)]/40 dark:text-white/40 mb-1">Narrative</p>
+                  {fm.readingPlans.literary.narrative.map(r => (
+                    <a href={r.url} target="_blank" rel="noopener" class="block text-sm text-[var(--navy)] dark:text-[var(--green)] hover:text-[var(--green)] dark:hover:text-white transition-colors leading-relaxed">{r.ref}</a>
+                  ))}
+                </div>
+              )}
+              {fm.readingPlans.literary.historyProphecy && fm.readingPlans.literary.historyProphecy.length > 0 && (
+                <div class="mb-3">
+                  <p class="text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--ink)]/40 dark:text-white/40 mb-1">History & Prophecy</p>
+                  {fm.readingPlans.literary.historyProphecy.map(r => (
+                    <a href={r.url} target="_blank" rel="noopener" class="block text-sm text-[var(--navy)] dark:text-[var(--green)] hover:text-[var(--green)] dark:hover:text-white transition-colors leading-relaxed">{r.ref}</a>
+                  ))}
+                </div>
+              )}
+              {fm.readingPlans.literary.nt && fm.readingPlans.literary.nt.length > 0 && (
+                <div>
+                  <p class="text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--ink)]/40 dark:text-white/40 mb-1">New Testament</p>
+                  {fm.readingPlans.literary.nt.map(r => (
+                    <a href={r.url} target="_blank" rel="noopener" class="block text-sm text-[var(--navy)] dark:text-[var(--green)] hover:text-[var(--green)] dark:hover:text-white transition-colors leading-relaxed">{r.ref}</a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+      </section>
+    )}
+
+    {/* ── PREV / NEXT ─────────────────────────────────────────────────────────── */}
+    {(prev || next || isLatest) && (
+      <nav class="flex items-stretch gap-3 mt-2 mb-8">
+        {prev ? (
+          <a href={`/devotion/${prev.date}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow">
+            <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 mb-0.5">Previous</p>
+              <p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{prev.title}</p>
+            </div>
+          </a>
+        ) : <div class="flex-1" />}
+
+        {next ? (
+          <a href={next.href} class="group flex-1 flex items-center justify-end gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow text-right">
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 mb-0.5">Next</p>
+              <p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{next.title}</p>
+            </div>
+            <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        ) : isLatest ? (
+          <a href="/today" class="group flex-1 flex items-center justify-end gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow text-right">
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 mb-0.5">Today</p>
+              <p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">Today's devotion →</p>
+            </div>
+            <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        ) : <div class="flex-1" />}
+      </nav>
+    )}
+
+  </main>
+</Base>
