@@ -85,7 +85,6 @@ function fmtDate(dateStr: string) {
     {/* ── VIDEO SECTION ── */}
     {video?.embedUrl && (
       <section id="video" class="scroll-mt-24 max-w-4xl mx-auto px-4 sm:px-6">
-        {video.heading && <h2 class="section-label">{video.heading}</h2>}
         <div class="relative w-full rounded-2xl overflow-hidden shadow-lg ring-1 ring-[var(--navy)]/10" style="padding-top: 56.25%;">
           <iframe
             src={video.embedUrl}
@@ -102,7 +101,6 @@ function fmtDate(dateStr: string) {
     {/* ── AUDIO SECTION ── */}
     {audio?.streamUrl && (
       <section id="audio" class="scroll-mt-24 max-w-4xl mx-auto px-4 sm:px-6">
-        {audio.heading && <h2 class="section-label">{audio.heading}</h2>}
         <div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 p-6 sm:p-8 space-y-5">
 
           <audio controls preload="none" class="w-full" style="color-scheme: light dark;">
