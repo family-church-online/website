@@ -73,12 +73,7 @@ function fmtDate(dateStr: string) {
           {/* Stream status */}
           <div class="info-card px-6 py-3 flex items-center gap-2 text-sm text-[var(--ink)]/80 dark:text-white/75">
             <span id="stream-dot" class="shrink-0 w-2 h-2 rounded-full bg-[var(--ink)]/20 dark:bg-white/20"></span>
-            <span id="stream-status-text">
-              Live Audio Only Broadcast:&nbsp;
-              <strong><span class="cc_streaminfo" data-type="source" data-username="familychurchon"></span></strong>
-              &nbsp;·&nbsp;
-              <span class="cc_streaminfo" data-type="listeners" data-username="familychurchon"></span> listening
-            </span>
+            <span id="stream-label">Checking stream…</span>
           </div>
 
           {audio.description && (
@@ -217,46 +212,30 @@ function fmtDate(dateStr: string) {
 }
 </style>
 
-<script src="https://janus.shoutca.st:2199/system/streaminfo.js"></script>
-
 <script>
-  function setDot(isLive: boolean) {
-    const dot = document.getElementById('stream-dot');
-    if (!dot) return;
-    dot.classList.toggle('bg-[var(--red)]',    isLive);
-    dot.classList.toggle('animate-pulse',       isLive);
-    dot.classList.toggle('bg-[var(--ink)]/20', !isLive);
-    dot.classList.toggle('dark:bg-white/20',   !isLive);
-  }
+  async function checkStream() {
+    const dot   = document.getElementById('stream-dot');
+    const label = document.getElementById('stream-label');
+    if (!dot || !label) return;
 
-  function checkSource() {
-    const source = document.querySelector<HTMLElement>('.cc_streaminfo[data-type="source"]');
-    const text   = source?.textContent?.trim() ?? '';
-    console.log('[stream-status] source span content:', JSON.stringify(text));
-    const isLive = text.length > 0
-      && !text.toLowerCase().includes('offline')
-      && !text.toLowerCase().includes('stream offline');
-    setDot(isLive);
-    return isLive;
+    try {
+      const res  = await fetch('/api/stream-status');
+      const data = await res.json() as { live: boolean };
+
+      dot.classList.toggle('bg-[var(--red)]',    data.live);
+      dot.classList.toggle('animate-pulse',       data.live);
+      dot.classList.toggle('bg-[var(--ink)]/20', !data.live);
+      dot.classList.toggle('dark:bg-white/20',   !data.live);
+      label.textContent = data.live ? 'Live Audio Broadcast — on air now' : 'Live Audio Broadcast — off air';
+    } catch {
+      label.textContent = 'Live Audio Broadcast';
+    }
   }
 
   document.addEventListener('astro:page-load', () => {
-    // Watch for the streaminfo.js script injecting content into the span
-    const source = document.querySelector('.cc_streaminfo[data-type="source"]');
-    if (source) {
-      const observer = new MutationObserver(() => {
-        console.log('[stream-status] MutationObserver fired');
-        checkSource();
-      });
-      observer.observe(source, { childList: true, subtree: true, characterData: true });
-    }
-
-    // Also poll for 30 seconds as a fallback
-    let attempts = 0;
-    const interval = setInterval(() => {
-      checkSource();
-      if (++attempts >= 30) clearInterval(interval);
-    }, 1000);
+    checkStream();
+    // Re-check every 60 seconds in case the stream comes online while the page is open
+    setInterval(checkStream, 60_000);
   });
 </script>
 
