@@ -1,0 +1,250 @@
+---
+import Base from '../layouts/Base.astro';
+import { getConfig } from '../lib/data';
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+const articles = [
+  {
+    number: 1,
+    title: 'Scripture',
+    summary: 'We believe the 66 books of the Scriptures are the divinely inspired, inerrant, and complete Word of God, serving as the sufficient and final authority for all matters of belief and practice.',
+    statement: 'We believe (1) that the Holy Scriptures consist of the 66 books of the Old and New Testaments in their original writing; (2) that the Spirit of God so influenced the authors that these writings are the Word of God; (3) that because of the divine origin and inspiration of its words, the Scriptures are true in all that they affirm and are trustworthy and without error; (4) that these Scriptures are the complete and only written revelation of God to people; (5) that every translation that is faithful to the originals and responsibly interpreted clearly reveals those truths necessary for our salvation, godly living, and maturity in Christ; and (6) that Scripture alone is our sufficient and final authority in all matters of belief and practice.',
+    scriptures: [
+      'Romans 3:2; Matthew 5:18; Luke 24:27; Revelation 22:18-19; Deuteronomy 4:1-2; Proverbs 30:5-6',
+      '2 Peter 1:19-21; Luke 1:70; Acts 1:16; Acts 3:18; Ephesians 6:17; Hebrews 3:7',
+      'John 10:35; John 17:17; 2 Timothy 3:16-17; John 14:26',
+      'Matthew 24:35; Romans 3:2; Acts 7:38; 1 Corinthians 9:8-10; 1 Corinthians 4:6; Deuteronomy 4:1-2; Proverbs 30:5-6; Revelation 22:18-19',
+      '2 Timothy 2:15; 2 Peter 3:16; Acts 17:11; 2 Peter 1:3-4; Psalms 19:7-14',
+      'Jude 1:3; Luke 16:29-31; Matthew 4:1-4; Mark 7:9-13; Romans 15:4',
+    ],
+  },
+  {
+    number: 2,
+    title: 'God',
+    summary: 'We believe in the one sovereign, triune God who eternally exists in three co-equal persons and who created all things, purposefully directing all of history for salvation through His Son, Jesus Christ, ultimately for His own glory.',
+    statement: 'We believe (1) in one God who eternally exists in three co-equal persons — the Father, the Son, and the Holy Spirit; (2) that though each divine person is fully and equally God, They differ in relationship towards each other and Their work in the world; (3) that this triune God is perfect and infinite in His being and attributes — an all-holy, all-loving, and all-wise Sovereign; (4) that from before creation, God determined to save sinners through the sacrifice of His Son, to govern all history according to His sovereign plan and to finally bring all things under one head, even Christ; and (5) that all things exist from Him, through Him, and for Him, and are created to display the glory of His wonderful Name.',
+    scriptures: [
+      'Deuteronomy 6:4; Isaiah 46:9; 1 Corinthians 8:6; 1 Timothy 2:5; Matthew 3:16-17; Matthew 28:19; Matthew 14:16-17; 1 Peter 1:1-2; Revelation 1:4-6',
+      'John 1:1-3; John 3:16; 1 Corinthians 8:6; 1 Corinthians 12:4-5; Galatians 4:4-6; Ephesians 1:3-14; 1 Peter 1:1-2',
+      '1 Timothy 6:15-16; Isaiah 6:3; 1 Peter 1:15; Deuteronomy 7:9; Psalms 86:15; Psalms 89:14; Psalms 117; Romans 8:37-39; 1 John 4:16; Romans 11:33-36; 1 Timothy 1:17; Isaiah 55:9; Romans 16:27',
+      'John 3:16; Ephesians 1:4-5, 11, 13; 1 Timothy 1:15; 2 Timothy 1:9; Revelation 13:8; Genesis 50:20; Isaiah 9:7; Isaiah 46:8-11; Daniel 4:35; Acts 17:26; Ephesians 1:10',
+      'Isaiah 48:11; Romans 11:36; Ephesians 1:5, 6, 14; Ephesians 2:7; Revelation 5:13',
+    ],
+  },
+  {
+    number: 3,
+    title: 'Creation',
+    summary: 'We believe that God sovereignly created all things, including humanity, male and female, in His image with equal worth and sacred life, but that the first man\'s sin brought death and an inherited sinful nature upon all people.',
+    statement: 'We believe (1) that in the beginning God sovereignly created all things visible and invisible and took delight in it all; (2) that He created humankind male and female as His image bearers, endowing each with a dignity of equal worth and calling to govern and care for His creation; (3) that human life is sacred to God and begins at conception; (4) that God created marriage to be an exclusive and lifelong union between a natural man and a natural woman, giving the man the responsibility of self-sacrificial and loving leadership and the woman the responsibility of compatible support; and (5) that the first man, Adam, sinned and thereby incurred the penalty of death, physical and spiritual, for all people, and as a consequence of his sin, all humans inherit a sinful nature, which results in actual transgression and personal guilt.',
+    scriptures: [
+      'Colossians 1:16; Revelation 4:11; Genesis 1:1, 31',
+      'Genesis 1:26-31; Mark 10:6; James 3:9',
+      'Genesis 9:6; Psalms 119:73; Psalms 139:13-16; Jeremiah 1:5; Isaiah 42:5; Zechariah 12:1; Luke 1:41',
+      'Genesis 2:24; Malachi 2:15; Matthew 19:5-6; Ephesians 5:22-24; Ephesians 5:25-31; Hebrews 13:4; Leviticus 18:22; Leviticus 20:13; Romans 1:26-27; 1 Corinthians 6:9-11',
+      'Genesis 3:6-8, 16-19; Genesis 6:5; Romans 3:10-19, 23; Romans 5:12, 17; Romans 7:9; 1 Corinthians 15:22; Ephesians 2:3',
+    ],
+  },
+  {
+    number: 4,
+    title: 'The Son of God',
+    summary: 'We believe that Jesus Christ, the eternal Son of God, became fully man yet without sin while remaining fully God, and is therefore the one perfect mediator between God and humanity.',
+    statement: 'We believe (1) that when the time was right, the eternal Son of God took on human nature, and was made like us in every way, yet without sin; (2) that, after being conceived by the Holy Spirit, He was born of the virgin Mary, was named Jesus (meaning "God saves"), and from conception was and always will be fully God and fully man in one person; and (3) that He is, therefore, the perfect and only mediator between God and people.',
+    scriptures: [
+      'John 1:14; Galatians 4:4; Philippians 2:5-8; Hebrews 2:14; Hebrews 4:15',
+      'Luke 1:31, 35; Matthew 1:20-21; Romans 1:3-4; 1 Corinthians 15:47-48; Colossians 1:19; Colossians 2:9',
+      'Ephesians 2:18; 1 Timothy 2:5; Hebrews 9:15; Hebrews 12:24; 1 John 2:1',
+    ],
+  },
+  {
+    number: 5,
+    title: 'The Life and Death of Jesus Christ',
+    summary: 'We believe that the Lord Jesus Christ, through His perfect life and substitutionary death on the cross, absorbed the full penalty of God\'s wrath against our sin, thereby triumphing over evil and establishing His shed blood as the sole basis of salvation for the people He purchased as His own.',
+    statement: 'We believe (1) that the Lord Jesus Christ lived a sinless life, was perfectly obedient to His Father in every way, and ushered in the promised Kingdom of God in all His words and deeds; (2) that, for the joy set before Him, He offered up Himself as the perfect substitutionary and atoning sacrifice for sinners; (3) triumphing over sin, death, and all the forces of evil, and purchasing for Himself a people out of every tribe, language, and nation; (4) that on the cross the Son of God received in His person the due penalty of God\'s wrath against our sin; and (5) that His shed blood is the sole basis for our salvation and the greatest revelation of the glory of the grace of our God.',
+    scriptures: [
+      'Isaiah 53:7-9; 2 Corinthians 5:21; 1 Peter 2:22; Hebrews 4:15; 1 John 3:5',
+      'Isaiah 53:5-12; Romans 3:23-25; 2 Corinthians 5:21; Hebrews 9:14; Hebrews 12:2; 1 Peter 3:18; 1 John 2:2',
+      'John 12:31; 1 Corinthians 15:54-57; Hebrews 2:14; Hebrews 9:26; Ephesians 1:11-14; Colossians 2:14; 2 Timothy 1:10; 1 John 3:8; Revelation 5:9; Revelation 7:9',
+      'Isaiah 53:5-6; Matthew 27:45-46; 2 Corinthians 5:21; Galatians 3:13; Romans 5:9; Hebrews 9:14, 22; 1 John 4:10',
+      'Romans 8:32; Ephesians 1:5-7; Colossians 1:14, 20; Hebrews 9:22; Revelation 5:9',
+    ],
+  },
+  {
+    number: 6,
+    title: 'The Resurrection and Return of Jesus Christ',
+    summary: 'We believe that the Lord Jesus, after His death by crucifixion, physical bodily resurrection and ascension, now reigns in heaven and intercedes for His people until He returns visibly and gloriously to judge the living and the dead.',
+    statement: 'We believe (1) that the Lord Jesus was crucified, buried, and on the third day was resurrected bodily from the dead and glorified as the first-fruits of God\'s new creation; (2) that He ascended into heaven, where He is seated at the right hand of the Father as ruler over all things; (3) that He presently intercedes as High Priest and Advocate for all who draw near to God through Him; and (4) that He will return personally, visibly, and gloriously to judge the living and the dead.',
+    scriptures: [
+      'Acts 2:32; Luke 24:39; John 20:27; 1 Corinthians 15:17, 23',
+      '1 Corinthians 15:20; Acts 1:9-11; Ephesians 1:20-22; 1 Timothy 3:16; 1 Peter 3:22',
+      'John 14:16; 1 John 2:1; Romans 8:34; Hebrews 7:25',
+      'Matthew 24:29-30; Luke 17:24; Acts 1:10-11; 1 Thessalonians 4:16; 1 John 2:28; 2 Timothy 4:1; 1 Peter 4:5; Revelation 1:7',
+    ],
+  },
+  {
+    number: 7,
+    title: 'The Holy Spirit',
+    summary: 'We believe the Holy Spirit is the life-giving Lord who was given to the Church to glorify Christ by convicting people of sin, uniting them to Jesus, empowering them for witness and service, and sealing them for the day of redemption.',
+    statement: 'We believe (1) that the Holy Spirit is the Lord, the giver of life, who formed the world and who speaks in the Holy Scriptures; (2) that God anointed Jesus Christ with the Spirit for His ministry and that the Spirit was given to the Church at Pentecost to indwell, lead, empower and unite believers, gifting each of them for various works of service; (3) that the Holy Spirit glorifies Christ, gives understanding of the Word, convicts people of their sin, unites believers to Jesus, and forms the character of Christ within them; and (4) that the Spirit pours the love of God into our hearts, enables prayer and witness, and seals the believer for the day of the redemption of their bodies.',
+    scriptures: [
+      'Romans 8:2; 2 Corinthians 3:6, 17-18; John 6:63; Genesis 1:2; Job 33:4; Psalms 33:6; Exodus 35:30-31; Numbers 24:2; 1 Samuel 10:10; 2 Samuel 23:2; Acts 1:16; Hebrews 3:7; 2 Timothy 3:16',
+      'Isaiah 61:1; Matthew 3:16; Luke 4:18; Acts 10:38; Acts 1:8; Acts 2:4; Romans 8:11, 14; Ephesians 4:3-4, 11, 12; Romans 12:4-7; 1 Corinthians 12:7-11',
+      'John 16:8, 13-14; 1 Corinthians 2:9-16; Ephesians 1:17-18; 2 Corinthians 3:18; Galatians 4:19; Galatians 5:2-23',
+      'Romans 5:5; Romans 8:26-27; Ephesians 6:18; Acts 1:8; 2 Corinthians 1:22; Ephesians 1:13; Ephesians 4:30',
+    ],
+  },
+  {
+    number: 8,
+    title: 'Salvation',
+    summary: 'We believe that all who respond to the Gospel with repentance and faith in Christ are born again by the Holy Spirit, justified on the basis of Christ\'s death, adopted as God\'s children, and eternally secured by Him.',
+    statement: 'We believe (1) that through the call of God in the Gospel message, all who receive Christ Jesus as Saviour and Lord are born again by the Holy Spirit, becoming a new creation in Christ; (2) that through faith in Him, sinners have the forgiveness of sins and are declared righteous on the grounds of His shed blood; (3) that repentance is a condition of this salvation and the first sign of that holiness without which no one will see the Lord; (4) that by virtue of their union with Christ, believers share in all the benefits of grace that are in Him, including the adoption as children of God and the gift of the Holy Spirit; and (5) that all who turn from their sin, trusting Christ, may have the assurance that they will be kept and accepted by Him.',
+    scriptures: [
+      'John 1:12-13; John 3:3, 18; 2 Corinthians 5:17; James 1:18; 1 Peter 1:23-25',
+      'Luke 18:14; Romans 3:26; Romans 4:5; Romans 5:1-2; Ephesians 2:13; Philippians 3:8',
+      'Luke 19:8-10; Acts 2:38; Mark 1:15; Acts 17:30; 2 Corinthians 7:10-11; 1 John 1:8-9; Hebrews 12:14',
+      'John 1:16; Ephesians 1:3, 5; Romans 8:14-17; Galatians 4:4-6; Philippians 1:19',
+      'John 10:27-29; Philippians 1:6; 2 Thessalonians 3:3',
+    ],
+  },
+  {
+    number: 9,
+    title: 'The Church',
+    summary: 'We believe the Church is the universal body of all people redeemed by Christ, which is expressed in local communities governed by elders under Christ\'s headship to preach the Word, observe the ordinances, and equip all members for ministry while upholding male headship.',
+    statement: 'We believe (1) that the Church is the whole company of those who have been redeemed by Jesus Christ, regenerated by the Holy Spirit, reconciled to the Father, and thereby to each other; (2) that this Church is the people of God, the body of Christ and the temple of the Holy Spirit, through whom God\'s purpose in history is made known; (3) that the local church, as a manifestation of the universal Church, is a community of believers in a particular place where God\'s Word is preached and practiced, the two ordinances are observed, and church discipline is exercised; (4) that in the local church both men and women are called to serve equally, and male headship should be evidenced; and (5) that each local church is ruled by Jesus Christ, governed by a plurality of elders who equip the congregation for the works of ministry, and served by its deacons.',
+    scriptures: [
+      'Matthew 16:18; Ephesians 1:22-23; Ephesians 5:23; Colossians 1:18; Hebrews 12:23',
+      '1 Corinthians 3:16; Ephesians 1:23; Ephesians 3:9-10; 1 Peter 2:9-10',
+      'Acts 20:28; 1 Corinthians 1:2; Ephesians 2:18-21; 1 Timothy 3:15; 2 Timothy 4:1-5; 1 Peter 2:5, 9-10; Matthew 28:19-20; 1 Corinthians 11:23-32; Romans 6:1-4; Matthew 18:15-20; Galatians 6:1-5; Titus 3:10',
+      'Acts 2:17-18; 1 Corinthians 11:5; 1 Corinthians 14:34; 1 Timothy 2:8-15; 1 Peter 3:7; 1 Peter 4:10-11',
+      'Acts 6:1-7; Acts 14:23; Acts 15:3-4, 22-28; Acts 20:28; Matthew 18:17; Ephesians 5:23; Philippians 1:1; Colossians 1:18; 1 Corinthians 5:1-13; Titus 1:5-9; 1 Timothy 3:1-13; 1 Peter 5:1-3',
+    ],
+  },
+  {
+    number: 10,
+    title: 'Baptism and the Lord\'s Supper',
+    summary: 'We believe that Jesus Christ appointed two ordinances as acts of obedience and witness: Baptism, a believer\'s immersion in water to signify identification with Christ\'s death and resurrection, and the Lord\'s Supper, a meal of bread and wine to remember and declare His sacrifice until He returns.',
+    statement: 'We believe (1) that the Lord Jesus Christ appointed two ordinances — Baptism and the Lord\'s Supper — to be observed as acts of obedience and as witnesses to the primary facts of the Christian faith; (2) that Baptism is the immersion of a professing believer in water as a confession of identification with Christ in His death, burial, and resurrection; and (3) that the Lord\'s Supper is the partaking of the bread and the cup, signifying our participation in the Saviour\'s body and shed blood in remembrance of His death until He comes.',
+    scriptures: [
+      'Matthew 28:19-20; Matthew 3:16; Romans 6:1-4; Galatians 3:27; Luke 22:14-20; Acts 2:41-42; 1 Corinthians 10:16; 1 Corinthians 11:23-32',
+      'Acts 2:38; Romans 6:3-5; Colossians 2:12; Galatians 3:27',
+      'Mark 14:22-28; 1 Corinthians 10:16; 1 Corinthians 11:23-26',
+    ],
+  },
+  {
+    number: 11,
+    title: 'The Mission of the Church',
+    summary: 'We believe the Church\'s mission, for the glory of God, is to make disciples of all nations by proclaiming the Gospel and loving our neighbours, all of which is to be done according to the Scriptures and in the power of Christ\'s death and resurrection.',
+    statement: 'We believe (1) that the mission of the Church is to make disciples of all people groups in all places through the truth of the Gospel of Jesus Christ, and to plant and establish local churches to obey all that Jesus taught the Apostles; (2) that in loving our neighbour as ourselves, compassionately, practically and wisely, we image the love of God to all; and (3) that we should do all this according to the Scriptures, under the shadow of the Cross and in the power of the resurrection to the Glory of God.',
+    scriptures: [
+      'Psalms 22:27; Psalms 67:1-7; Matthew 16:18; Matthew 28:18-20; Acts 1:8; Acts 14:22; Ephesians 4:11-16; Titus 1:5',
+      'Leviticus 19:18; Luke 10:25-27; John 13:35; 2 Corinthians 5:14; Galatians 6:9-10',
+      'Mark 8:34-35; Romans 1:4; 1 Corinthians 1:18-23; Ephesians 1:19-20; Philippians 3:10; James 2:8; Isaiah 43:7',
+    ],
+  },
+  {
+    number: 12,
+    title: 'The Last Things',
+    summary: 'We believe that God will faithfully fulfill His promises to bring about the return of Christ, the bodily resurrection and judgment of all humanity, and the final separation of the righteous into eternal life in a new creation and the unrighteous into eternal condemnation.',
+    statement: 'We believe that God is faithful to fulfil all of his promises including (1) that Jesus Christ has gone to prepare a place for the righteous, and that He will return to take the righteous to be with Him where He is; (2) that God will restore the kingdom to Israel; (3) that He will effect the bodily resurrection of both the righteous and the unrighteous; (4) that all people will appear before God\'s judgement seat to receive their due for the things done while in the body, but that the righteous will never experience the wrath of God; (5) that those whose names are written in the Lamb\'s book of life will enter into eternal life, but the unrighteous into eternal condemnation; and (6) that according to God\'s promise we look forward to a new heaven and a new earth in which righteousness dwells, when we will forever be with the Lord, and He with us: Come Lord Jesus, come! Amen.',
+    scriptures: [
+      'John 14:2-3; John 14:28; Hebrews 6:20',
+      'Acts 1:6-7; Micah 4:8; Matthew 17:11',
+      'Job 19:25-27; Psalms 16:10; Isaiah 26:19; Daniel 12:2; John 5:28-29; Acts 24:15; Romans 6:5; 1 Thessalonians 4:16-17',
+      'John 5:22, 27-29; Matthew 16:27; Romans 2:6; 2 Corinthians 5:10; Hebrews 9:27',
+      'Matthew 7:21-23; Matthew 13:49-50; Mark 9:45-49; Matthew 25:31-46; Revelation 13:8; Revelation 20:11-15; Revelation 21:27',
+      '1 Thessalonians 4:17; 2 Peter 3:13; Revelation 21:1; Revelation 22:20',
+    ],
+  },
+];
+---
+
+<Base
+  title={`Statement of Faith · ${siteTitle}`}
+  description="What we believe — twelve articles covering Scripture, God, Creation, Christ, salvation, the Church, and the last things."
+>
+
+  {/* ── PAGE HEADER ────────────────────────────────────────────────────────── */}
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+    <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Family Church</p>
+    <h1 class="text-4xl font-semibold lg:text-5xl text-balance mb-4">Statement of Faith</h1>
+    <p class="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+      Twelve articles summarising what we believe. Tap any article to read the full statement and Scripture references.
+    </p>
+  </div>
+
+  {/* ── ARTICLES ───────────────────────────────────────────────────────────── */}
+  <main class="max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-24">
+    <ol class="space-y-4 list-none p-0">
+      {articles.map((a, i) => (
+        <li class="reveal" data-reveal-delay={String((i % 5) * 0.05)}>
+          <details class="group space-y-3">
+
+            {/* Summary — its own card */}
+            <summary class="flex items-start gap-4 px-6 py-5 bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 hover:shadow-md transition-shadow cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden">
+              {/* Number badge */}
+              <span class="shrink-0 mt-0.5 w-8 h-8 rounded-full bg-[var(--navy)] group-open:bg-[var(--green)] flex items-center justify-center text-xs font-bold text-white tabular-nums transition-colors">
+                {a.number}
+              </span>
+
+              {/* Title + summary */}
+              <div class="flex-1 min-w-0">
+                <h2 class="text-base font-semibold text-[var(--navy)] dark:text-white mb-2 group-open:text-[var(--green)] transition-colors">
+                  {a.title}
+                </h2>
+                <p class="text-sm text-[var(--ink)]/75 dark:text-white/80 leading-relaxed">
+                  {a.summary}
+                </p>
+              </div>
+
+              {/* Chevron */}
+              <svg
+                class="shrink-0 mt-1.5 w-4 h-4 text-[var(--navy)]/30 dark:text-white/30 transition-transform duration-200 group-open:rotate-180 group-open:text-[var(--green)]"
+                viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+                aria-hidden="true"
+              >
+                <path d="M5 8l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </summary>
+
+            {/* Full statement — separate card */}
+            <div class="statement-card rounded-2xl px-6 py-5">
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Full Statement</p>
+              <p class="text-sm text-[var(--ink)]/80 dark:text-white/75 leading-relaxed">{a.statement}</p>
+            </div>
+
+            {/* Scripture references — separate card */}
+            <div class="scripture-card rounded-2xl px-6 py-5">
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Scripture Sources</p>
+              <ol class="space-y-2 list-none p-0">
+                {a.scriptures.map((group, i) => (
+                  <li class="flex gap-2 text-xs text-[var(--ink)]/60 dark:text-white/55 leading-relaxed">
+                    <span class="shrink-0 font-semibold text-[var(--olive)] tabular-nums">{i + 1}.</span>
+                    <span>{group}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+          </details>
+        </li>
+      ))}
+    </ol>
+  </main>
+
+</Base>
+
+<style>
+.statement-card {
+  background-color: #e6ecf4;
+}
+.scripture-card {
+  background-color: #edf5d6;
+}
+:global(.dark) .statement-card {
+  background-color: rgba(39, 63, 97, 0.45);
+}
+:global(.dark) .scripture-card {
+  background-color: rgba(146, 196, 35, 0.20);
+}
+</style>

@@ -145,7 +145,7 @@ const ldJsonVideo = vimeoId ? {
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(ldJson)} />
   {ldJsonVideo && <script slot="head" type="application/ld+json" set:html={JSON.stringify(ldJsonVideo)} />}
   {/* ── PAGE HEADER ─────────────────────────────────────────────────────── */}
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+  <div class="reveal max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
     {fm.series && (
       <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">{fm.series}</p>
     )}
@@ -174,7 +174,7 @@ const ldJsonVideo = vimeoId ? {
   <main class="relative max-w-4xl mx-auto px-4 sm:px-6 pb-20">
 
     {/* ── TAB CARD ─────────────────────────────────────────────────────────── */}
-    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-8 text-[var(--ink)]">
+    <div class="reveal bg-white rounded-2xl shadow-xl overflow-hidden mb-8 text-[var(--ink)]" data-reveal-delay="0.1">
 
       {/* Tab bar */}
       {(() => {
@@ -398,7 +398,7 @@ const ldJsonVideo = vimeoId ? {
 
     {/* ── AUDIO PLAYER ───────────────────────────────────────────────────── */}
     {fm.audioUrl && (
-      <div class="bg-[var(--navy)] rounded-2xl p-5 mb-6 shadow-lg" id="sermon-audio">
+      <div class="reveal bg-[var(--navy)] rounded-2xl p-5 mb-6 shadow-lg" id="sermon-audio" data-reveal-delay="0.18">
         <audio id="audio-el" src={fm.audioUrl} preload="metadata" class="hidden"></audio>
 
         <div class="flex items-center gap-4 mb-3">
@@ -460,7 +460,7 @@ const ldJsonVideo = vimeoId ? {
 
     {/* ── VIMEO ──────────────────────────────────────────────────────────── */}
     {fm.vimeoUrl && (
-      <div class="rounded-2xl overflow-hidden shadow-lg mb-8 bg-black">
+      <div class="reveal rounded-2xl overflow-hidden shadow-lg mb-8 bg-black" data-reveal-delay="0.24">
         <div class="relative" style="padding-top:56.25%">
           <iframe
             src={fm.vimeoUrl}
@@ -476,7 +476,7 @@ const ldJsonVideo = vimeoId ? {
 
     {/* ── PREV / NEXT ────────────────────────────────────────────────────── */}
     {(prev || next) && (
-      <nav class="flex items-stretch gap-3 mt-2 mb-8">
+      <nav class="reveal flex items-stretch gap-3 mt-2 mb-8">
         {prev ? (
           <a href={`/sermons/${prev.slug}`} class="group flex-1 flex items-center gap-3 bg-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 px-5 py-4 hover:shadow-md transition-shadow">
             <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -586,83 +586,86 @@ const ldJsonVideo = vimeoId ? {
 </style>
 
 <script>
-// ── Tab switching ──────────────────────────────────────────────────────────
-const tabBtns   = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
-const tabPanels = document.querySelectorAll<HTMLElement>('.tab-panel');
+function initSermonPage() {
+  // ── Tab switching ────────────────────────────────────────────────────────
+  const tabBtns   = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
+  const tabPanels = document.querySelectorAll<HTMLElement>('.tab-panel');
 
-tabBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const target = btn.dataset.tab!;
-    tabBtns.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
-    tabPanels.forEach(p => {
-      const show = p.dataset.panel === target;
-      p.hidden = !show;
-      p.classList.toggle('hidden', !show);
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab!;
+      tabBtns.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
+      tabPanels.forEach(p => {
+        const show = p.dataset.panel === target;
+        p.hidden = !show;
+        p.classList.toggle('hidden', !show);
+      });
     });
   });
-});
 
-// ── Transcript: style timestamps ───────────────────────────────────────────
-document.querySelectorAll<HTMLParagraphElement>('.transcript-body p').forEach(p => {
-  p.innerHTML = p.innerHTML.replace(
-    /^\[(\d{1,2}:\d{2})\]\s*/,
-    '<span class="ts">[$1]</span> '
-  );
-});
-
-// ── Audio player ───────────────────────────────────────────────────────────
-const audio     = document.getElementById('audio-el') as HTMLAudioElement | null;
-const playBtn   = document.getElementById('play-btn');
-const iconPlay  = document.getElementById('icon-play');
-const iconPause = document.getElementById('icon-pause');
-const progress  = document.getElementById('progress') as HTMLInputElement | null;
-const timeCur   = document.getElementById('time-current');
-const timeTotal = document.getElementById('time-total');
-
-function fmt(s: number) {
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${m}:${String(sec).padStart(2, '0')}`;
-}
-
-function updateProgress() {
-  if (!audio || !progress) return;
-  const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
-  progress.value = String(pct);
-  // Fill track up to thumb position
-  progress.style.background =
-    `linear-gradient(to right, var(--green) ${pct}%, color-mix(in srgb, white 20%, transparent) ${pct}%)`;
-  if (timeCur) timeCur.textContent = fmt(audio.currentTime);
-}
-
-if (audio && playBtn) {
-  audio.addEventListener('loadedmetadata', () => {
-    if (timeTotal) timeTotal.textContent = fmt(audio.duration);
+  // ── Transcript: style timestamps ─────────────────────────────────────────
+  document.querySelectorAll<HTMLParagraphElement>('.transcript-body p').forEach(p => {
+    p.innerHTML = p.innerHTML.replace(
+      /^\[(\d{1,2}:\d{2})\]\s*/,
+      '<span class="ts">[$1]</span> '
+    );
   });
 
-  audio.addEventListener('timeupdate', updateProgress);
+  // ── Audio player ─────────────────────────────────────────────────────────
+  const audio     = document.getElementById('audio-el') as HTMLAudioElement | null;
+  const playBtn   = document.getElementById('play-btn');
+  const iconPlay  = document.getElementById('icon-play');
+  const iconPause = document.getElementById('icon-pause');
+  const progress  = document.getElementById('progress') as HTMLInputElement | null;
+  const timeCur   = document.getElementById('time-current');
+  const timeTotal = document.getElementById('time-total');
 
-  audio.addEventListener('ended', () => {
-    iconPlay?.classList.remove('hidden');
-    iconPause?.classList.add('hidden');
-  });
+  function fmt(s: number) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, '0')}`;
+  }
 
-  playBtn.addEventListener('click', () => {
-    if (audio.paused) {
-      audio.play();
-      iconPlay?.classList.add('hidden');
-      iconPause?.classList.remove('hidden');
-    } else {
-      audio.pause();
+  function updateProgress() {
+    if (!audio || !progress) return;
+    const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+    progress.value = String(pct);
+    progress.style.background =
+      `linear-gradient(to right, var(--green) ${pct}%, color-mix(in srgb, white 20%, transparent) ${pct}%)`;
+    if (timeCur) timeCur.textContent = fmt(audio.currentTime);
+  }
+
+  if (audio && playBtn) {
+    audio.addEventListener('loadedmetadata', () => {
+      if (timeTotal) timeTotal.textContent = fmt(audio.duration);
+    });
+
+    audio.addEventListener('timeupdate', updateProgress);
+
+    audio.addEventListener('ended', () => {
       iconPlay?.classList.remove('hidden');
       iconPause?.classList.add('hidden');
-    }
-  });
+    });
 
-  progress?.addEventListener('input', () => {
-    if (audio.duration) {
-      audio.currentTime = (Number(progress.value) / 100) * audio.duration;
-    }
-  });
+    playBtn.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.play();
+        iconPlay?.classList.add('hidden');
+        iconPause?.classList.remove('hidden');
+      } else {
+        audio.pause();
+        iconPlay?.classList.remove('hidden');
+        iconPause?.classList.add('hidden');
+      }
+    });
+
+    progress?.addEventListener('input', () => {
+      if (audio.duration) {
+        audio.currentTime = (Number(progress.value) / 100) * audio.duration;
+      }
+    });
+  }
 }
+
+document.addEventListener('astro:page-load', initSermonPage);
 </script>

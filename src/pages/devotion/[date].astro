@@ -101,7 +101,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
 <Base title={pageTitle} description={pageDesc} image={fm.image ?? undefined}>
 
   {/* ── PAGE HEADER ────────────────────────────────────────────────────────── */}
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+  <div class="reveal max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
     <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Daily Devotion</p>
     <h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-3">{fm.title ?? 'Devotion'}</h1>
     <time class="text-sm text-muted-foreground" datetime={date}>{fmtDate(date)}</time>
@@ -121,7 +121,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
 
     {/* ── KEY SCRIPTURE ──────────────────────────────────────────────────────── */}
     {(fm.image || fm.keyScripture?.text) && (
-      <div class="bg-white dark:bg-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 p-6 flex gap-5 items-start">
+      <div class="reveal bg-white dark:bg-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 p-6 flex gap-5 items-start" data-reveal-delay="0.1">
         {fm.image && (
           <img
             src={fm.image}
@@ -146,7 +146,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
 
     {/* ── REFLECTION ─────────────────────────────────────────────────────────── */}
     {fm.reflection && (
-      <section>
+      <section class="reveal">
         <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Reflection</h2>
         <div class="space-y-4">
           {paras(fm.reflection).map(p => (
@@ -158,7 +158,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
 
     {/* ── SUPPORTING SCRIPTURES ─────────────────────────────────────────────── */}
     {fm.supportingScriptures && fm.supportingScriptures.length > 0 && (
-      <section>
+      <section class="reveal">
         <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Supporting Scriptures</h2>
         <div class="space-y-3">
           {fm.supportingScriptures.map(s => (
@@ -179,7 +179,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
 
     {/* ── LIFE APPLICATION ───────────────────────────────────────────────────── */}
     {fm.lifeApplication && (
-      <section class="bg-[var(--navy)]/4 dark:bg-white/4 rounded-xl p-6">
+      <section class="reveal bg-[var(--navy)]/4 dark:bg-white/4 rounded-xl p-6">
         <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Life Application</h2>
         <div class="space-y-4">
           {paras(fm.lifeApplication).map(p => (
@@ -191,7 +191,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
 
     {/* ── PRAYER ─────────────────────────────────────────────────────────────── */}
     {fm.prayer && (
-      <section class="bg-[var(--navy)] rounded-xl p-6 text-center">
+      <section class="reveal bg-[var(--navy)] rounded-xl p-6 text-center">
         <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--green)] mb-4">Prayer</h2>
         <div class="space-y-1">
           {prayerLines(fm.prayer).map(line => (
@@ -203,7 +203,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
 
     {/* ── DAILY READINGS ─────────────────────────────────────────────────────── */}
     {fm.readingPlans && (
-      <section id="readings">
+      <section class="reveal" id="readings">
         <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Daily Readings</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
@@ -293,7 +293,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
 
     {/* ── PREV / NEXT ─────────────────────────────────────────────────────────── */}
     {(prev || next || isLatest) && (
-      <nav class="flex items-stretch gap-3 mt-2 mb-8">
+      <nav class="reveal flex items-stretch gap-3 mt-2 mb-8">
         {prev ? (
           <a href={`/devotion/${prev.date}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow">
             <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
