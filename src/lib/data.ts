@@ -18,6 +18,9 @@ import client from '../../tina/__generated__/client';
 export const getConfig = () =>
 	requestWithMetadata(client.queries.config({ relativePath: 'config.json' }));
 
+export const getStatementOfFaith = () =>
+	requestWithMetadata(client.queries.statementOfFaith({ relativePath: 'index.json' }));
+
 export const getPage = (slug: string) =>
 	requestWithMetadata(client.queries.page({ relativePath: `${slug}.mdx` }), { priority: 'primary' });
 
