@@ -19,14 +19,11 @@ export const GET: APIRoute = async () => {
 
 		res.body?.cancel();
 
-		return new Response(JSON.stringify({
-			live: isLive,
-			debug: { status: res.status, contentType },
-		}), {
+		return new Response(JSON.stringify({ live: isLive }), {
 			headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
 		});
-	} catch (err) {
-		return new Response(JSON.stringify({ live: false, debug: { error: String(err) } }), {
+	} catch {
+		return new Response(JSON.stringify({ live: false }), {
 			headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
 		});
 	}
