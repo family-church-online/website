@@ -1,5 +1,12 @@
 {
-  "heading": "Watch Live",
-  "subheading": "Join us for our live Sunday service. If the stream hasn't started yet, check back closer to the service time.",
-  "embedUrl": "https://vimeo.com/event/255155/embed"
+  "pageHeading": "Watch & Listen Live",
+  "video": {
+    "heading": "Live Video",
+    "embedUrl": "https://vimeo.com/event/255155/embed"
+  },
+  "audio": {
+    "heading": "Live Audio",
+    "streamUrl": "https://familychurchon.radioca.st/live",
+    "description": "The weekly live service is broadcast every Sunday at 09h30 CAT (07h30 GMT). Listen to the live service here using a minimal amount of data (±50MB). Please join us wherever you are."
+  }
 }
