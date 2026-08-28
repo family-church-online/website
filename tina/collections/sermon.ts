@@ -278,5 +278,14 @@ export const SermonCollection: Collection = {
 			type: 'number',
 			description: 'Auto-populated by the import script — do not edit manually.',
 		},
+
+		// ── TRANSCRIPT ────────────────────────────────────────────────────────
+		{
+			name: 'body',
+			label: 'Transcript',
+			type: 'string',
+			isBody: true,
+			ui: { component: 'textarea' },
+		},
 	],
 };

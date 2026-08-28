@@ -35,6 +35,7 @@ interface SermonFrontmatter {
   categories?: string[] | null;
   tags?: string[] | null;
   review?: boolean;
+  wordCount?: number | null;
 }
 
 export function getStaticPaths() {
@@ -176,18 +177,24 @@ const ldJsonVideo = vimeoId ? {
     <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-8 text-[var(--ink)]">
 
       {/* Tab bar */}
-      <div class="flex border-b border-[var(--ink)]/10" role="tablist">
-        {['about', 'notes', 'transcript'].map((tab, i) => (
-          <button
-            role="tab"
-            data-tab={tab}
-            aria-selected={i === 0 ? 'true' : 'false'}
-            class="tab-btn flex-1 py-4 text-sm font-semibold tracking-wide transition-colors"
-          >
-            {tab === 'about' ? 'About' : tab === 'notes' ? 'Notes' : 'Transcript'}
-          </button>
-        ))}
-      </div>
+      {(() => {
+        const hasTranscript = (fm.wordCount ?? 0) > 0;
+        const tabs = hasTranscript ? ['about', 'notes', 'transcript'] : ['about', 'notes'];
+        return (
+          <div class="flex border-b border-[var(--ink)]/10" role="tablist">
+            {tabs.map((tab, i) => (
+              <button
+                role="tab"
+                data-tab={tab}
+                aria-selected={i === 0 ? 'true' : 'false'}
+                class="tab-btn flex-1 py-4 text-sm font-semibold tracking-wide transition-colors"
+              >
+                {tab === 'about' ? 'About' : tab === 'notes' ? 'Notes' : 'Transcript'}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* ── ABOUT PANEL ──────────────────────────────────────────────────── */}
       <div data-panel="about" class="tab-panel">
@@ -378,11 +385,13 @@ const ldJsonVideo = vimeoId ? {
       </div>
 
       {/* ── TRANSCRIPT PANEL ─────────────────────────────────────────────── */}
-      <div data-panel="transcript" class="tab-panel hidden px-6 py-6">
-        <div class="transcript-body">
-          <Content />
+      {(fm.wordCount ?? 0) > 0 && (
+        <div data-panel="transcript" class="tab-panel hidden px-6 py-6">
+          <div class="transcript-body">
+            <Content />
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
     {/* end tab card */}
