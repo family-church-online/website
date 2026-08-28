@@ -228,7 +228,7 @@ function fmtDate(dateStr: string) {
     const text    = source.textContent?.trim() ?? '';
     const isLive  = text.length > 0 && text.toLowerCase() !== 'stream offline' && text.toLowerCase() !== 'offline';
 
-    dot.classList.toggle('bg-[var(--green)]', isLive);
+    dot.classList.toggle('bg-[var(--red)]', isLive);
     dot.classList.toggle('animate-pulse',     isLive);
     dot.classList.toggle('bg-[var(--ink)]/20',  !isLive);
     dot.classList.toggle('dark:bg-white/20',    !isLive);
