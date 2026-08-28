@@ -71,16 +71,29 @@ function fmtDate(dateStr: string) {
             </audio>
           </div>
 
+          {/* Stream status */}
+          <div class="info-card px-6 py-3 flex items-center gap-2 text-sm text-[var(--ink)]/80 dark:text-white/75">
+            <span class="shrink-0 w-2 h-2 rounded-full bg-[var(--green)] animate-pulse"></span>
+            <span>
+              Live Audio Only Broadcast:&nbsp;
+              <strong><span class="cc_streaminfo" data-type="source" data-username="familychurchon"></span></strong>
+              &nbsp;·&nbsp;
+              <span class="cc_streaminfo" data-type="listeners" data-username="familychurchon"></span> listening
+            </span>
+          </div>
+
           {audio.description && (
-            <div class="info-card px-6 py-4">
-              <p class="text-sm text-[var(--ink)]/80 dark:text-white/75 leading-relaxed">
+            <div class="px-6 py-4">
+              <p class="text-sm text-[var(--ink)]/70 dark:text-white/65 leading-relaxed">
                 {audio.description}
               </p>
             </div>
           )}
 
+        </div>
+      </div>
+    )}
 
-</div>
       </div>
     )}
 
@@ -208,6 +221,8 @@ function fmtDate(dateStr: string) {
   .carousel-btn { display: flex; }
 }
 </style>
+
+<script src="https://janus.shoutca.st:2199/system/streaminfo.js"></script>
 
 <script>
 document.addEventListener('astro:page-load', () => {
