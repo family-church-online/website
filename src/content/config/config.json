@@ -10,8 +10,14 @@
       "link": "/"
     },
     {
-      "title": "Sermons",
-      "link": "/sermons"
+      "title": "About",
+      "link": "",
+      "children": [
+        {
+          "title": "What we believe",
+          "link": "/statement-of-faith"
+        }
+      ]
     },
     {
       "title": "Live",
@@ -26,6 +32,10 @@
           "link": "/video"
         }
       ]
+    },
+    {
+      "title": "Sermons",
+      "link": "/sermons"
     }
   ],
   "contactLinks": [
