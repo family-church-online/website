@@ -21,6 +21,9 @@ export const getConfig = () =>
 export const getStatementOfFaith = () =>
 	requestWithMetadata(client.queries.statementOfFaith({ relativePath: 'index.json' }));
 
+export const getLiveVideo = () =>
+	requestWithMetadata(client.queries.liveVideo({ relativePath: 'index.json' }));
+
 export const getPage = (slug: string) =>
 	requestWithMetadata(client.queries.page({ relativePath: `${slug}.mdx` }), { priority: 'primary' });
 

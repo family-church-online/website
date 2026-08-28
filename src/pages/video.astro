@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+import { getConfig, getLiveVideo } from '../lib/data';
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+const lv        = (await getLiveVideo()).data?.liveVideo;
+const heading   = lv?.heading   ?? 'Watch Live';
+const subheading = lv?.subheading ?? '';
+const embedUrl  = lv?.embedUrl  ?? '';
+---
+
+<Base
+  title={`${heading} · ${siteTitle}`}
+  description={subheading || 'Watch the live Sunday service stream.'}
+>
+
+  {/* ── PAGE HEADER ── */}
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+    <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Family Church</p>
+    <h1 class="text-4xl font-semibold lg:text-5xl text-balance mb-4">{heading}</h1>
+    {subheading && (
+      <p class="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">{subheading}</p>
+    )}
+  </div>
+
+  {/* ── EMBED ── */}
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 pb-24">
+    {embedUrl ? (
+      <div class="relative w-full rounded-2xl overflow-hidden shadow-lg ring-1 ring-[var(--navy)]/10" style="padding-top: 56.25%;">
+        <iframe
+          src={embedUrl}
+          frameborder="0"
+          allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+          class="absolute inset-0 w-full h-full"
+        ></iframe>
+      </div>
+    ) : (
+      <p class="text-center text-muted-foreground py-16">No stream configured.</p>
+    )}
+  </main>
+
+</Base>
