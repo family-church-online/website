@@ -81,9 +81,9 @@ Sermon filenames follow the pattern `YYYY-MM-DD-slugified-title.mdx` (enforced b
 - `src/pages/today.astro` — Static fallback; in production intercepted by `functions/today.ts`
 - `src/pages/tina-island/[name].ts` — Dynamic on-demand route powering TinaCMS visual editing
 
-### `/today` and the Cloudflare Pages Function
+### `/today` — server-rendered redirect
 
-`functions/today.ts` is a Cloudflare Pages Function that intercepts `/today` at the edge. It computes the current South African date (UTC+2), fetches the pre-built static `/devotion/YYYY-MM-DD` page, caches it until midnight SA time, and returns it. In local dev (`pnpm dev`), `functions/` is not executed — `today.astro` runs instead and resolves today's date at build time.
+`src/pages/today.astro` is an on-demand route (`prerender = false`) that runs in the Cloudflare Worker at request time. It computes the current South African date (UTC+2) and returns a `302` redirect to `/devotion/YYYY-MM-DD`. The response carries `Cache-Control: s-maxage=<seconds-until-midnight-SA>` so Cloudflare's CDN caches the redirect at the edge — the Worker only runs once per edge location per day. No rebuild or redeploy is needed for the daily rollover; as long as the MDX file for a date exists in the repo before that day arrives, `/today` will redirect to it correctly.
 
 ### Visual editing (TinaCMS islands)
 
