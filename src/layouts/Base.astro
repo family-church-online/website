@@ -51,24 +51,32 @@ const orgLd = {
 			<Footer config={config} />
 		</TinaIsland>
 		<script>
-			// Nav: transparent at top, frosted when scrolled
-			const header = document.querySelector('header');
+			// Nav: transparent at top, frosted when scrolled.
+			// Re-query header after each View Transition swap so the reference stays fresh.
+			let header = document.querySelector('header');
+			document.addEventListener('astro:after-swap', () => { header = document.querySelector('header'); });
 			const onScroll = () => header?.classList.toggle('nav-scrolled', window.scrollY > 60);
 			window.addEventListener('scroll', onScroll, { passive: true });
 			onScroll();
 
-			// Scroll-reveal
-			const observer = new IntersectionObserver((entries) => {
-				entries.forEach(entry => {
-					if (!entry.isIntersecting) return;
-					const el = entry.target as HTMLElement;
-					const delay = parseFloat(el.dataset.revealDelay ?? '0');
-					setTimeout(() => el.classList.add('is-visible'), delay * 1000);
-					observer.unobserve(el);
-				});
-			}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+			// Scroll-reveal — re-init after each View Transition so new .reveal elements are observed.
+			let revealObserver: IntersectionObserver | null = null;
+			function initReveal() {
+				revealObserver?.disconnect();
+				revealObserver = new IntersectionObserver((entries) => {
+					entries.forEach(entry => {
+						if (!entry.isIntersecting) return;
+						const el = entry.target as HTMLElement;
+						const delay = parseFloat(el.dataset.revealDelay ?? '0');
+						setTimeout(() => el.classList.add('is-visible'), delay * 1000);
+						revealObserver!.unobserve(el);
+					});
+				}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+				document.querySelectorAll('.reveal').forEach(el => revealObserver!.observe(el));
+			}
 
-			document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+			initReveal();
+			document.addEventListener('astro:page-load', initReveal);
 		</script>
 	</body>
 </html>
