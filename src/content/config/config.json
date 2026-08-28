@@ -25,11 +25,15 @@
       "children": [
         {
           "title": "Video",
-          "link": "/video"
+          "link": "/video#video"
         },
         {
           "title": "Audio",
-          "link": "/video"
+          "link": "/video#audio"
+        },
+        {
+          "title": "Catch up",
+          "link": "/video#sermons"
         }
       ]
     },
