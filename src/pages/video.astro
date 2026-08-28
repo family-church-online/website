@@ -72,8 +72,8 @@ function fmtDate(dateStr: string) {
 
           {/* Stream status */}
           <div class="info-card px-6 py-3 flex items-center gap-2 text-sm text-[var(--ink)]/80 dark:text-white/75">
-            <span class="shrink-0 w-2 h-2 rounded-full bg-[var(--green)] animate-pulse"></span>
-            <span>
+            <span id="stream-dot" class="shrink-0 w-2 h-2 rounded-full bg-[var(--ink)]/20 dark:bg-white/20"></span>
+            <span id="stream-status-text">
               Live Audio Only Broadcast:&nbsp;
               <strong><span class="cc_streaminfo" data-type="source" data-username="familychurchon"></span></strong>
               &nbsp;·&nbsp;
@@ -218,6 +218,31 @@ function fmtDate(dateStr: string) {
 </style>
 
 <script src="https://janus.shoutca.st:2199/system/streaminfo.js"></script>
+
+<script>
+  function updateStreamIndicator() {
+    const dot    = document.getElementById('stream-dot');
+    const source = document.querySelector<HTMLElement>('.cc_streaminfo[data-type="source"]');
+    if (!dot || !source) return;
+
+    const text    = source.textContent?.trim() ?? '';
+    const isLive  = text.length > 0 && text.toLowerCase() !== 'stream offline' && text.toLowerCase() !== 'offline';
+
+    dot.classList.toggle('bg-[var(--green)]', isLive);
+    dot.classList.toggle('animate-pulse',     isLive);
+    dot.classList.toggle('bg-[var(--ink)]/20',  !isLive);
+    dot.classList.toggle('dark:bg-white/20',    !isLive);
+  }
+
+  // Poll briefly after page load to catch when streaminfo.js populates the spans
+  document.addEventListener('astro:page-load', () => {
+    let attempts = 0;
+    const interval = setInterval(() => {
+      updateStreamIndicator();
+      if (++attempts >= 10) clearInterval(interval);
+    }, 500);
+  });
+</script>
 
 <script>
 document.addEventListener('astro:page-load', () => {
