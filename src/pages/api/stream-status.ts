@@ -17,17 +17,16 @@ export const GET: APIRoute = async () => {
 			contentType.includes('aac')
 		);
 
-		// Abort the body immediately — we only needed the headers
 		res.body?.cancel();
 
-		return new Response(JSON.stringify({ live: isLive }), {
-			headers: {
-				'Content-Type': 'application/json',
-				'Cache-Control': 'no-store',
-			},
+		return new Response(JSON.stringify({
+			live: isLive,
+			debug: { status: res.status, contentType },
+		}), {
+			headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
 		});
-	} catch {
-		return new Response(JSON.stringify({ live: false }), {
+	} catch (err) {
+		return new Response(JSON.stringify({ live: false, debug: { error: String(err) } }), {
 			headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
 		});
 	}

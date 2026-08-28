@@ -232,11 +232,13 @@ function fmtDate(dateStr: string) {
     }
   }
 
-  document.addEventListener('astro:page-load', () => {
+  function init() {
     checkStream();
-    // Re-check every 60 seconds in case the stream comes online while the page is open
     setInterval(checkStream, 60_000);
-  });
+  }
+
+  document.addEventListener('astro:page-load', init);
+  document.addEventListener('DOMContentLoaded', init);
 </script>
 
 <script>
