@@ -58,7 +58,6 @@ function fmtDate(dateStr: string) {
     {/* ── AUDIO ── */}
     {audio?.streamUrl && (
       <div id="audio" class="scroll-mt-24 reveal" data-reveal-delay="0.05">
-        <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Live Audio</p>
         <div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 
           <div class="px-6 pt-6 pb-5">
@@ -97,7 +96,6 @@ function fmtDate(dateStr: string) {
     {/* ── VIDEO ── */}
     {video?.embedUrl && (
       <div id="video" class="scroll-mt-24 reveal" data-reveal-delay="0.1">
-        <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Live Video</p>
         <div class="rounded-2xl overflow-hidden shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 relative w-full" style="padding-top: 56.25%;">
           <iframe
             src={video.embedUrl}
