@@ -57,7 +57,7 @@ function fmtDate(dateStr: string) {
 
     {/* ── AUDIO ── */}
     {audio?.streamUrl && (
-      <div id="audio" class="scroll-mt-24 reveal" data-reveal-delay="0.05">
+      <div id="audio" class="scroll-mt-32 reveal" data-reveal-delay="0.05">
         <div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 
           <div class="px-6 pt-6 pb-5">
@@ -95,7 +95,7 @@ function fmtDate(dateStr: string) {
 
     {/* ── VIDEO ── */}
     {video?.embedUrl && (
-      <div id="video" class="scroll-mt-24 reveal" data-reveal-delay="0.1">
+      <div id="video" class="scroll-mt-32 reveal" data-reveal-delay="0.1">
         <div class="rounded-2xl overflow-hidden shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 relative w-full" style="padding-top: 56.25%;">
           <iframe
             src={video.embedUrl}
@@ -113,7 +113,7 @@ function fmtDate(dateStr: string) {
 
   {/* ── PREVIOUS SERMONS ── */}
   {recentSermons.length > 0 && (
-    <section id="sermons" class="scroll-mt-24 bg-[var(--background)] py-12">
+    <section id="sermons" class="scroll-mt-32 bg-[var(--background)] py-12">
       <div class="max-w-3xl mx-auto px-6 mb-5 text-center reveal">
         <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Missed the live service?</p>
         <h2 class="font-display text-2xl font-semibold text-[var(--ink)] dark:text-white inline-block uppercase tracking-wide">Catch Up</h2>
