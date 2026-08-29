@@ -22,7 +22,7 @@ const articles  = (sofData?.articles ?? []).filter(Boolean) as Array<{
 >
 
   {/* ── PAGE HEADER ────────────────────────────────────────────────────────── */}
-  <div class="max-w-3xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+  <div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
     <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Family Church</p>
     <h1 class="text-4xl font-semibold lg:text-5xl text-balance mb-4">Statement of Faith</h1>
     <p class="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
@@ -31,7 +31,7 @@ const articles  = (sofData?.articles ?? []).filter(Boolean) as Array<{
   </div>
 
   {/* ── ARTICLES ───────────────────────────────────────────────────────────── */}
-  <main class="max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-24">
+  <main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10 pb-24">
     <ol class="space-y-4 list-none p-0">
       {articles.map((a, i) => (
         <li class="reveal" data-reveal-delay={String((i % 5) * 0.05)}>

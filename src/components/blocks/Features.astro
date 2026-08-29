@@ -15,7 +15,7 @@ const { data } = Astro.props;
 const items = (data.items ?? []).filter(it => it !== null);
 ---
 <Section>
-	<div class="mx-auto max-w-5xl px-6">
+	<div class="mx-auto max-w-[var(--content-width)] px-6">
 		<div class="text-center">
 			<h2 data-tina-field={tinaField(data, 'title')} class="text-balance text-4xl font-semibold lg:text-5xl">{data.title}</h2>
 			<p data-tina-field={tinaField(data, 'description')} class="mt-4 text-muted-foreground">{data.description}</p>
