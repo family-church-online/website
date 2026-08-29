@@ -40,6 +40,10 @@
       ]
     },
     {
+      "title": "Courses",
+      "link": "/courses"
+    },
+    {
       "title": "Guides",
       "link": "/guides"
     },
