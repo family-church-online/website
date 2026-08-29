@@ -3,6 +3,7 @@
     "title": "Family Church",
     "description": "A community walking together in faith, in family, in everyday life.",
     "siteOwner": "Family Church Online",
+    "logo": "",
     "whatsappPhone": "27689816115"
   },
   "nav": [
@@ -48,6 +49,11 @@
       "title": "Connect",
       "link": "mailto:connect@familychurch.online",
       "icon": "✉"
+    },
+    {
+      "title": "Chat",
+      "link": "https://wa.me/27689816115",
+      "icon": "tabler:brand-whatsapp"
     }
   ],
   "banner": {
