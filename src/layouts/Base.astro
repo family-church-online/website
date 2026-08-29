@@ -60,6 +60,9 @@ const orgLd = {
 			onScroll();
 
 			// Scroll-reveal — re-init after each View Transition so new .reveal elements are observed.
+			// Double-rAF before observing: ensures the browser has finished layout after the
+			// View Transition swap before the IntersectionObserver starts measuring positions.
+			// Without this, mobile browsers report already-visible elements as non-intersecting.
 			let revealObserver: IntersectionObserver | null = null;
 			function initReveal() {
 				revealObserver?.disconnect();
@@ -72,7 +75,9 @@ const orgLd = {
 						revealObserver!.unobserve(el);
 					});
 				}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-				document.querySelectorAll('.reveal').forEach(el => revealObserver!.observe(el));
+				requestAnimationFrame(() => requestAnimationFrame(() => {
+					document.querySelectorAll('.reveal').forEach(el => revealObserver!.observe(el));
+				}));
 			}
 
 			initReveal();
