@@ -48,7 +48,7 @@ const link = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}
 		position: relative;
 		width: 56px;
 		height: 56px;
-		background: #25D366;
+		background: var(--green);
 		border-radius: 50%;
 		display: flex;
 		align-items: center;
@@ -63,7 +63,7 @@ const link = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}
 		position: absolute;
 		inset: 0;
 		border-radius: 50%;
-		border: 2px solid #25D366;
+		border: 2px solid var(--green);
 		opacity: 0;
 		pointer-events: none;
 	}
