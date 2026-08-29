@@ -38,7 +38,7 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 		background: 'linear-gradient(180deg, rgba(20,32,47,0.6) 0%, rgba(20,32,47,0.45) 40%, rgba(20,32,47,0.88) 100%)',
 	}}></div>
 
-	<div class="hero-content" style={{ position: 'relative', zIndex: '2', textAlign: 'center', maxWidth: '640px', padding: '2rem 1.5rem', width: '100%', marginTop: '5rem' }}>
+	<div class="hero-content" style={{ position: 'relative', zIndex: '2', textAlign: 'center', maxWidth: '640px', width: '100%', marginTop: '5rem' }}>
 		{data.logo?.src && (
 			<img
 				src={data.logo.src}
@@ -92,6 +92,10 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 </section>
 
 <style>
+	.hero-content {
+		padding: 2rem 1.5rem;
+	}
+
 	.hero-logo {
 		width: min(420px, 78vw);
 		height: auto;
@@ -185,6 +189,7 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 	}
 
 	@media (max-width: 480px) {
+		.hero-content { padding-bottom: 6rem; }
 		.hero-cta { flex-direction: column; align-items: center; }
 		.btn { width: 100%; max-width: 260px; text-align: center; }
 		.service-strip-inner { flex-direction: column; gap: 0.5rem; padding: 0.75rem 1.5rem; }
