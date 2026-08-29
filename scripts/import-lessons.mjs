@@ -11,8 +11,8 @@
  */
 
 import { createInterface }             from 'node:readline/promises';
-import { readdirSync, readFileSync,
-         existsSync, execFileSync }    from 'node:fs';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
+import { execFileSync }                          from 'node:child_process';
 import { join, resolve, dirname } from 'node:path';
 import { homedir }                     from 'node:os';
 import { fileURLToPath }               from 'node:url';
