@@ -70,6 +70,31 @@ const sections = fm.sections ?? [];
 const pageTitle = `${fm.lesson ?? 'Lesson'} · ${siteTitle}`;
 const pageDesc = fm.point ?? `A lesson from ${fm.course ?? 'Truth and Grace'}.`;
 
+// Prev / next within the same chapter
+const allLessonMods = import.meta.glob<{ frontmatter: LessonFrontmatter }>(
+  '../../../../content/courses/**/*.mdx',
+  { eager: true },
+);
+
+const siblings = Object.entries(allLessonMods)
+  .filter(([p]) => {
+    const parts = p.replace('../../../../content/courses/', '').split('/');
+    return parts[0] === course && parts[1] === chapter;
+  })
+  .map(([p, mod]) => {
+    const slug = p.replace('../../../../content/courses/', '').replace('.mdx', '').split('/')[2];
+    return {
+      slug,
+      lesson:      mod.frontmatter.lesson ?? slug,
+      pointNumber: mod.frontmatter.pointNumber ?? null,
+    };
+  })
+  .sort((a, b) => (a.pointNumber ?? 99) - (b.pointNumber ?? 99));
+
+const currentIdx = siblings.findIndex(s => s.slug === lesson);
+const prevLesson = currentIdx > 0              ? siblings[currentIdx - 1] : null;
+const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] : null;
+
 // Build per-question IDs for JS: "<sectionId>-<qIndex>"
 // e.g. "A-0", "A-1", "B-0", ...
 ---
@@ -78,14 +103,20 @@ const pageDesc = fm.point ?? `A lesson from ${fm.course ?? 'Truth and Grace'}.`;
 
   {/* ── BREADCRUMB + HEADER ────────────────────────────────────────────────── */}
   <div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
-    <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">
-      {fm.course ?? 'Course'}
-      <span class="opacity-40 mx-1">›</span>
-      {fm.chapter ?? 'Chapter'}
-    </p>
+    <nav class="flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4 flex-wrap">
+      <a href="/courses" class="hover:text-[var(--green)] transition-colors">Courses</a>
+      <span class="opacity-40">›</span>
+      <a href={`/courses/${course}`} class="hover:text-[var(--green)] transition-colors">
+        {fm.course ?? course}
+      </a>
+      <span class="opacity-40">›</span>
+      <span>{fm.chapter ?? chapter}</span>
+    </nav>
     <h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-3">{fm.lesson ?? 'Lesson'}</h1>
-    {fm.statementNumber && (
-      <p class="text-sm text-muted-foreground">Statement {fm.statementNumber} · Point 1</p>
+    {fm.statementNumber && fm.pointNumber && (
+      <p class="text-sm text-[var(--ink)]/50 dark:text-white/40">
+        Statement {fm.statementNumber} · Point {fm.pointNumber}
+      </p>
     )}
   </div>
 
@@ -239,6 +270,45 @@ const pageDesc = fm.point ?? `A lesson from ${fm.course ?? 'Truth and Grace'}.`;
         Try Again
       </button>
     </div>
+
+    {/* ── PREV / NEXT ────────────────────────────────────────────────────────── */}
+    <nav class="flex items-center justify-between gap-4 pt-2 pb-4">
+
+      {prevLesson ? (
+        <a
+          href={`/courses/${course}/${chapter}/${prevLesson.slug}`}
+          class="group flex items-center gap-2 text-sm font-semibold text-[var(--navy)]/60 dark:text-white/50 hover:text-[var(--green)] transition-colors min-w-0"
+        >
+          <svg class="shrink-0 w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="truncate">{prevLesson.lesson}</span>
+        </a>
+      ) : (
+        <a
+          href={`/courses/${course}`}
+          class="group flex items-center gap-2 text-sm font-semibold text-[var(--navy)]/60 dark:text-white/50 hover:text-[var(--green)] transition-colors"
+        >
+          <svg class="shrink-0 w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>All lessons</span>
+        </a>
+      )}
+
+      {nextLesson && (
+        <a
+          href={`/courses/${course}/${chapter}/${nextLesson.slug}`}
+          class="group flex items-center gap-2 text-sm font-semibold text-[var(--navy)]/60 dark:text-white/50 hover:text-[var(--green)] transition-colors min-w-0"
+        >
+          <span class="truncate">{nextLesson.lesson}</span>
+          <svg class="shrink-0 w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      )}
+
+    </nav>
 
   </main>
 
