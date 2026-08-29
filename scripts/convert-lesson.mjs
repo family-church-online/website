@@ -149,6 +149,93 @@ function bs(str, indent = 0) {
   return `>-\n${lines.map(l => contentIndent + l).join('\n')}`;
 }
 
+// ── Shared text helpers ──────────────────────────────────────────────────────
+
+// Strip pandoc markdown artifacts and normalize whitespace.
+function cleanText(str) {
+  return str
+    .replace(/\n>\s*/g, ' ')              // > continuation lines → space
+    .replace(/\\"/g, '"')                 // \" → "
+    .replace(/\\'/g, "'")                 // \' → '
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1') // **bold** → plain
+    .replace(/\*([^*\n]+)\*/g, '$1')      // *italic* → plain
+    .replace(/---/g, '—')                 // triple dash → em dash
+    .replace(/--/g, '-')                  // double dash → hyphen
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Parse scripture refs that appear as **Ref**\n\n> *text* (blockquote may span lines).
+function parseScriptures(body) {
+  const scriptures = [];
+  const re = /\*\*([^\n*]+)\*\*\n\n((?:> [^\n]*\n?)+)/g;
+  for (const m of body.matchAll(re)) {
+    const ref  = cleanText(m[1]);
+    const text = cleanText(
+      m[2].split('\n')
+        .filter(l => l.startsWith('> '))
+        .map(l => l.slice(2))
+        .join(' ')
+        .replace(/^\*|\*$/g, '')
+    );
+    if (ref && text) scriptures.push({ ref, text });
+  }
+  return scriptures;
+}
+
+// Collect plain commentary paragraphs (not blockquotes, refs, headings).
+function parseCommentary(body) {
+  return body
+    .split('\n\n')
+    .filter(p => {
+      const t = p.trim();
+      return t && !t.startsWith('>') && !t.startsWith('**') && !t.startsWith('#') && !t.startsWith('---');
+    })
+    .map(p => cleanText(p))
+    .join(' ')
+    .trim();
+}
+
+// Parse MCQ options with pandoc-style continuation lines:
+//   -   a\) text that may
+//       > continue here
+function parseOptions(body) {
+  const options = [];
+  let cur = null;
+  for (const line of body.split('\n')) {
+    const start = line.match(/^-\s+([a-d])\\?\)\s+(.*)/);
+    if (start) {
+      if (cur) options.push(cur);
+      cur = { label: start[1], parts: [start[2]] };
+      continue;
+    }
+    const cont = line.match(/^\s+>\s+(.*)/);
+    if (cont && cur) { cur.parts.push(cont[1]); continue; }
+  }
+  if (cur) options.push(cur);
+  return options.map(o => ({ label: o.label, text: cleanText(o.parts.join(' ')) }));
+}
+
+// Parse takeaway list items with pandoc continuation lines:
+//   -   text with **bold** that
+//       > continues here
+function parseTakeaways(body) {
+  const items = [];
+  let cur = null;
+  for (const line of body.split('\n')) {
+    const start = line.match(/^-\s+(.*)/);
+    if (start) {
+      if (cur !== null) items.push(cur);
+      cur = start[1];
+      continue;
+    }
+    const cont = line.match(/^\s+>\s+(.*)/);
+    if (cont !== null && cur !== null) { cur += ' ' + cont[1]; continue; }
+  }
+  if (cur !== null) items.push(cur);
+  return items.filter(Boolean).map(cleanText);
+}
+
 // ── Parse source ─────────────────────────────────────────────────────────────
 
 const src = readFileSync(inputFile, 'utf8');
@@ -165,36 +252,41 @@ const pointNumber = pointNumArg
   ? parseInt(pointNumArg, 10)
   : pointHeadingMatch ? parseInt(pointHeadingMatch[1], 10) : null;
 
-// "We believe ..." paragraph
-const statementMatch = src.match(/^(We believe[\s\S]*?)(?=\n\n---|\n---)/m);
-const statement = statementMatch
-  ? statementMatch[1].replace(/\s+/g, ' ').trim()
-  : '';
+// "We believe ..." paragraph (ends at a horizontal rule or the next ## heading)
+const statementMatch = src.match(/^(We believe[\s\S]*?)(?=\n\n---|\n---|\n\n##)/m);
+const statement = statementMatch ? cleanText(statementMatch[1]) : '';
 
 // Italic sentence after ## Point N
 const pointMatch = src.match(/## Point \d+\n\n\*([\s\S]*?)\*/);
-const point = pointMatch
-  ? pointMatch[1].replace(/\s+/g, ' ').trim()
-  : '';
+const point = pointMatch ? cleanText(pointMatch[1]) : '';
 
-// Key takeaways
-const takeawaysMatch = src.match(/## Key Takeaways\n\n([\s\S]*?)(?=\n---|\n## |$)/);
-const takeaways = takeawaysMatch
-  ? takeawaysMatch[1]
-      .split('\n')
-      .filter(l => l.startsWith('- '))
-      .map(l => l.slice(2).trim())
-  : [];
+// Key takeaways section body
+const takeawaysMatch = src.match(/## Key Takeaways\n\n([\s\S]*?)(?=\n## |\n---|$)/);
+const takeawaysBody  = takeawaysMatch ? takeawaysMatch[1] : '';
 
-// Answer key table: |A|description|a|a|
+// Detect format: new files use **A --- heading**, old files use ### A — heading
+const isNewFormat = /^\*\*[A-D] ---/m.test(src);
+
+// Answer key
 const answerMap = {};
-for (const m of src.matchAll(/\|\s*([A-D])\s*\|[^|]+\|\s*([a-d])\s*\|\s*([a-d])\s*\|/g)) {
-  answerMap[m[1]] = { q1: m[2], q2: m[3] };
+if (isNewFormat) {
+  // Grid table: "  A   description    d    c"
+  for (const m of src.matchAll(/^\s+([A-D])\s.*\s+([a-d])\s+([a-d])\s*$/gm)) {
+    answerMap[m[1]] = { q1: m[2], q2: m[3] };
+  }
+} else {
+  // Pipe table: |A|description|a|a|
+  for (const m of src.matchAll(/\|\s*([A-D])\s*\|[^|]+\|\s*([a-d])\s*\|\s*([a-d])\s*\|/g)) {
+    answerMap[m[1]] = { q1: m[2], q2: m[3] };
+  }
 }
 
+// Takeaways
+const takeaways = isNewFormat
+  ? parseTakeaways(takeawaysBody)
+  : takeawaysBody.split('\n').filter(l => l.startsWith('- ')).map(l => cleanText(l.slice(2)));
+
 // ── Parse sections ───────────────────────────────────────────────────────────
-// Each section starts with "### X — heading" and runs until the next ### or a ## heading or end.
-// We split the Scriptural Basis block by the section pattern.
 
 const scriptBasisMatch = src.match(/## Scriptural Basis\n\n([\s\S]*?)(?=\n## Key Takeaways|\n## Answer Key|$)/);
 if (!scriptBasisMatch) {
@@ -203,84 +295,83 @@ if (!scriptBasisMatch) {
 }
 
 const basisBody = scriptBasisMatch[1];
+const sections  = [];
 
-// Split into per-section chunks on "### X — "
-const sectionChunks = basisBody.split(/(?=### [A-D] —)/);
+if (isNewFormat) {
+  // New format: **A --- heading** sections, **Question N** question labels
+  const QUESTION_TYPES = ['Comprehension', 'Faith and Life'];
+  const chunks = basisBody.split(/\n\n(?=\*\*[A-D] ---)/);
 
-const sections = [];
+  for (const chunk of chunks) {
+    if (!chunk.trim()) continue;
+    const hm = chunk.match(/^\*\*([A-D]) ---\s+([\s\S]+?)\*\*/);
+    if (!hm) continue;
 
-for (const chunk of sectionChunks) {
-  if (!chunk.trim()) continue;
+    const sectionId = hm[1];
+    const heading   = cleanText(hm[2]);
+    const body      = chunk.slice(hm[0].length).trim();
 
-  const headingMatch = chunk.match(/^### ([A-D]) —\s+(.+)/);
-  if (!headingMatch) continue;
+    const scriptures = parseScriptures(body);
 
-  const sectionId = headingMatch[1];
-  const heading   = headingMatch[2].trim();
-  const body      = chunk.slice(headingMatch[0].length).trim();
+    // Split on **Question N** markers; everything before the first is pre-Q (commentary+refs)
+    const parts  = body.split(/\n\n(?=\*\*Question \d+\*\*)/);
+    const preQ   = parts[0] ?? '';
+    const commentary = parseCommentary(preQ);
 
-  // Scripture references: **Ref\n\n> *text*
-  const scriptures = [];
-  const scriptureRegex = /\*\*([^\n*]+)\*\*\n\n> \*([^*]+)\*/g;
-  for (const sm of body.matchAll(scriptureRegex)) {
-    scriptures.push({
-      ref:  sm[1].trim(),
-      text: sm[2].replace(/\s+/g, ' ').trim(),
-    });
-  }
-
-  // Commentary: the plain paragraph(s) after all blockquotes and before the
-  // first question-block div.
-  const beforeFirstQ = body.split('<div class="question-block">')[0] ?? body;
-  // Remove blockquote lines and scripture ref lines, collect remaining paragraphs
-  const commentaryParas = beforeFirstQ
-    .split('\n\n')
-    .filter(p => {
-      const t = p.trim();
-      return t
-        && !t.startsWith('>')          // not a blockquote
-        && !t.startsWith('**')         // not a scripture ref
-        && !t.startsWith('###')        // not a heading
-        && !t.startsWith('#')
-        && !t.startsWith('---');
-    });
-  const commentary = commentaryParas
-    .map(p => p.replace(/\s+/g, ' ').trim())
-    .join(' ')
-    .trim();
-
-  // Question blocks
-  const questions = [];
-  const qBlockRegex = /<div class="question-block">([\s\S]*?)<\/div>/g;
-  let qIndex = 0;
-
-  for (const qm of body.matchAll(qBlockRegex)) {
-    const qBody = qm[1].trim();
-
-    // Type line: **Q1 — Comprehension**
-    const typeMatch = qBody.match(/\*\*Q\d+ —\s+([^*]+)\*\*/);
-    const qType = typeMatch ? typeMatch[1].trim() : '';
-
-    // Question text: paragraph immediately after the type line
-    const segments = qBody.split('\n\n');
-    const typeIdx  = segments.findIndex(s => s.startsWith('**Q'));
-    const qText    = (segments[typeIdx + 1] ?? '').replace(/\s+/g, ' ').trim();
-
-    // Options: "- a) ..."
-    const options = [];
-    for (const om of qBody.matchAll(/^- ([a-d])\) (.+)$/gm)) {
-      options.push({ label: om[1], text: om[2].trim() });
+    const questions = [];
+    for (let qi = 1; qi < parts.length; qi++) {
+      const qChunk = parts[qi].replace(/^\*\*Question \d+\*\*\n\n/, '');
+      const optPos = qChunk.search(/^-\s+[a-d]\\?\)/m);
+      const qText  = cleanText(optPos >= 0 ? qChunk.slice(0, optPos) : qChunk);
+      const opts   = optPos >= 0 ? parseOptions(qChunk.slice(optPos)) : [];
+      const ans    = answerMap[sectionId];
+      questions.push({
+        type:     QUESTION_TYPES[qi - 1] ?? `Q${qi}`,
+        question: qText,
+        options:  opts,
+        answer:   qi === 1 ? (ans?.q1 ?? '') : (ans?.q2 ?? ''),
+      });
     }
 
-    // Answer from key
-    const answers = answerMap[sectionId];
-    const answer  = qIndex === 0 ? (answers?.q1 ?? '') : (answers?.q2 ?? '');
-
-    questions.push({ type: qType, question: qText, options, answer });
-    qIndex++;
+    sections.push({ id: sectionId, heading, scriptures, commentary, questions });
   }
+} else {
+  // Old format: ### A — heading sections, <div class="question-block"> questions
+  const chunks = basisBody.split(/(?=### [A-D] —)/);
 
-  sections.push({ id: sectionId, heading, scriptures, commentary, questions });
+  for (const chunk of chunks) {
+    if (!chunk.trim()) continue;
+    const hm = chunk.match(/^### ([A-D]) —\s+(.+)/);
+    if (!hm) continue;
+
+    const sectionId = hm[1];
+    const heading   = hm[2].trim();
+    const body      = chunk.slice(hm[0].length).trim();
+
+    const scriptures = parseScriptures(body);
+    const beforeFirstQ = body.split('<div class="question-block">')[0] ?? body;
+    const commentary   = parseCommentary(beforeFirstQ);
+
+    const questions = [];
+    let qIndex = 0;
+    for (const qm of body.matchAll(/<div class="question-block">([\s\S]*?)<\/div>/g)) {
+      const qBody    = qm[1].trim();
+      const typeMatch = qBody.match(/\*\*Q\d+ —\s+([^*]+)\*\*/);
+      const qType    = typeMatch ? typeMatch[1].trim() : '';
+      const segments = qBody.split('\n\n');
+      const typeIdx  = segments.findIndex(s => s.startsWith('**Q'));
+      const qText    = cleanText(segments[typeIdx + 1] ?? '');
+      const options  = [];
+      for (const om of qBody.matchAll(/^- ([a-d])\) (.+)$/gm)) {
+        options.push({ label: om[1], text: cleanText(om[2]) });
+      }
+      const ans = answerMap[sectionId];
+      questions.push({ type: qType, question: qText, options, answer: qIndex === 0 ? (ans?.q1 ?? '') : (ans?.q2 ?? '') });
+      qIndex++;
+    }
+
+    sections.push({ id: sectionId, heading, scriptures, commentary, questions });
+  }
 }
 
 // ── Validate ─────────────────────────────────────────────────────────────────
