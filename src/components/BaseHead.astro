@@ -33,7 +33,7 @@ const resolvedHeight = imageHeight ?? (image === '/images/hero.jpg' ? 667  : und
 		function isDark() {
 			try {
 				const stored = localStorage.getItem('theme');
-				return stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+				return stored !== 'light';
 			} catch (e) {
 				return false;
 			}
