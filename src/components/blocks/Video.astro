@@ -35,7 +35,7 @@ if (video?.type === 'embed') {
 ---
 {video && (
 	<Section>
-		<div data-tina-field={tinaField(data, 'url')} class="relative mx-auto aspect-video w-full max-w-5xl overflow-hidden rounded-2xl border">
+		<div data-tina-field={tinaField(data, 'url')} class="relative mx-auto aspect-video w-full max-w-[var(--content-width)] overflow-hidden rounded-2xl border">
 			{video.type === 'youtube'
 				? <YouTubeFacade id={video.id} params={ytParams} />
 				: <iframe class="absolute inset-0 h-full w-full" src={embedSrc} title="Video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>}

@@ -145,7 +145,7 @@ const ldJsonVideo = vimeoId ? {
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(ldJson)} />
   {ldJsonVideo && <script slot="head" type="application/ld+json" set:html={JSON.stringify(ldJsonVideo)} />}
   {/* ── PAGE HEADER ─────────────────────────────────────────────────────── */}
-  <div class="reveal max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+  <div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
     {fm.series && (
       <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">{fm.series}</p>
     )}
@@ -171,7 +171,7 @@ const ldJsonVideo = vimeoId ? {
   </div>
 
   {/* ── MAIN CONTENT ─────────────────────────────────────────────────────── */}
-  <main class="relative max-w-4xl mx-auto px-4 sm:px-6 pb-20">
+  <main class="relative max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-20">
 
     {/* ── TAB CARD ─────────────────────────────────────────────────────────── */}
     <div class="reveal bg-white rounded-2xl shadow-xl overflow-hidden mb-8 text-[var(--ink)]" data-reveal-delay="0.1">

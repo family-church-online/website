@@ -5,6 +5,8 @@ import Content from './Content.astro';
 import Cta from './Cta.astro';
 import Features from './Features.astro';
 import Hero from './Hero.astro';
+import LiveStream from './LiveStream.astro';
+import RecentSermons from './RecentSermons.astro';
 import Split from './Split.astro';
 import Stats from './Stats.astro';
 import Testimonial from './Testimonial.astro';
@@ -32,6 +34,10 @@ const blocks = (data?.blocks ?? []).filter(b => b !== null);
 			case 'PageBlocksTestimonial': return <Testimonial data={block} />;
 			case 'PageBlocksTimeline': return <Timeline data={block} />;
 			case 'PageBlocksVideo': return <Video data={block} />;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			case 'PageBlocksLiveStream': return <LiveStream data={block as any} />;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			case 'PageBlocksRecentSermons': return <RecentSermons data={block as any} />;
 		}
 	})();
 	return <div class="reveal" data-tina-field={tinaField(block)}>{rendered}</div>;

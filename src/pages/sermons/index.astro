@@ -65,7 +65,7 @@ function fmtMins(mins: number | null | undefined) {
 >
 
   {/* ── PAGE HEADER ────────────────────────────────────────────────────────── */}
-  <div class="reveal max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+  <div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
     <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Family Church, Fourways</p>
     <h1 class="text-4xl font-semibold lg:text-5xl text-balance">Sermons</h1>
     <p class="text-lg text-muted-foreground mt-4">Sunday messages from Family Church, Fourways.</p>
@@ -73,7 +73,7 @@ function fmtMins(mins: number | null | undefined) {
 
   {/* ── FILTER BAR ─────────────────────────────────────────────────────────── */}
   <div class="bg-[var(--background)] border-b border-[var(--ink)]/10 sticky top-20 z-20">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap gap-3 items-center">
+    <div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-3 flex flex-wrap gap-3 items-center">
 
       <div class="filter-wrap">
         <select id="filter-series" class="filter-select">
@@ -105,7 +105,7 @@ function fmtMins(mins: number | null | undefined) {
   </div>
 
   {/* ── SERMON LIST ────────────────────────────────────────────────────────── */}
-  <main class="max-w-4xl mx-auto px-4 sm:px-6 py-10" id="sermons-top">
+  <main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10" id="sermons-top">
 
     <ul id="sermon-list" class="space-y-3">
       {sermons.map(s => (

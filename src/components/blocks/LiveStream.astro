@@ -1,0 +1,114 @@
+---
+import { tinaField } from '@tinacms/astro/tina-field';
+
+interface Props {
+	data: {
+		heading?: string | null;
+		subheading?: string | null;
+		streamUrl?: string | null;
+		description?: string | null;
+	};
+}
+
+const { data } = Astro.props;
+---
+
+{data.streamUrl && (
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6">
+
+		{(data.heading || data.subheading) && (
+			<div class="pt-10 pb-8 text-center reveal">
+				{data.heading && (
+					<>
+						<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Family Church</p>
+						<h1
+							data-tina-field={tinaField(data, 'heading')}
+							class="text-4xl font-semibold lg:text-5xl text-balance mb-4"
+						>{data.heading}</h1>
+					</>
+				)}
+				{data.subheading && (
+					<p
+						data-tina-field={tinaField(data, 'subheading')}
+						class="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed"
+					>{data.subheading}</p>
+				)}
+			</div>
+		)}
+
+		<div class="py-6 reveal" data-reveal-delay="0.05">
+			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
+
+				<div class="px-6 pt-6 pb-5">
+					<audio
+						controls
+						preload="none"
+						class="w-full"
+						style="color-scheme: light dark;"
+						data-tina-field={tinaField(data, 'streamUrl')}
+					>
+						<source src={data.streamUrl} />
+						<p class="text-sm text-[var(--ink)] dark:text-white">
+							Your browser doesn't support audio.
+							<a href={data.streamUrl} class="text-[var(--green)] underline">Open stream</a>.
+						</p>
+					</audio>
+				</div>
+
+				<div class="info-card px-6 py-3 flex items-center gap-2 text-sm text-[var(--ink)]/80 dark:text-white/75">
+					<span id="stream-dot" class="shrink-0 w-2 h-2 rounded-full bg-[var(--ink)]/20 dark:bg-white/20"></span>
+					<span id="stream-label">Checking stream…</span>
+				</div>
+
+				{data.description && (
+					<div class="px-6 py-4">
+						<p
+							data-tina-field={tinaField(data, 'description')}
+							class="text-sm text-[var(--ink)]/70 dark:text-white/65 leading-relaxed"
+						>{data.description}</p>
+					</div>
+				)}
+
+			</div>
+		</div>
+
+	</div>
+)}
+
+<style>
+.info-card {
+	background-color: #e6ecf4;
+}
+:global(.dark) .info-card {
+	background-color: rgba(39, 63, 97, 0.45);
+}
+</style>
+
+<script>
+async function checkStream() {
+	const dot   = document.getElementById('stream-dot');
+	const label = document.getElementById('stream-label');
+	if (!dot || !label) return;
+
+	try {
+		const res  = await fetch('/api/stream-status');
+		const data = await res.json() as { live: boolean };
+
+		dot.classList.toggle('bg-[var(--red)]',    data.live);
+		dot.classList.toggle('animate-pulse',       data.live);
+		dot.classList.toggle('bg-[var(--ink)]/20', !data.live);
+		dot.classList.toggle('dark:bg-white/20',   !data.live);
+		label.textContent = data.live ? 'Live Audio Broadcast — on air now' : 'Live Audio Broadcast — off air';
+	} catch {
+		label.textContent = 'Live Audio Broadcast';
+	}
+}
+
+function init() {
+	checkStream();
+	setInterval(checkStream, 60_000);
+}
+
+document.addEventListener('astro:page-load', init);
+document.addEventListener('DOMContentLoaded', init);
+</script>

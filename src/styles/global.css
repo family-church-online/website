@@ -13,6 +13,9 @@
 
 	--font-display: 'Fraunces', Georgia, serif;
 	--font-body: 'Inter Variable', system-ui, sans-serif;
+
+	/* Site-wide content column width — change here to affect all pages and blocks */
+	--content-width: 56rem;
 }
 
 /* Nav: transparent at top in dark mode (dark hero provides contrast),

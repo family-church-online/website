@@ -9,6 +9,8 @@ import { contentBlockSchema } from '../../src/components/blocks/content.template
 import { videoBlockSchema } from '../../src/components/blocks/video.template';
 import { splitBlockSchema } from '../../src/components/blocks/split.template';
 import { timelineBlockSchema } from '../../src/components/blocks/timeline.template';
+import { liveStreamBlockSchema } from '../../src/components/blocks/live-stream.template';
+import { recentSermonsBlockSchema } from '../../src/components/blocks/recent-sermons.template';
 
 export const PageCollection: Collection = {
 	name: 'page',
@@ -47,6 +49,8 @@ export const PageCollection: Collection = {
 				videoBlockSchema,
 				splitBlockSchema,
 				timelineBlockSchema,
+				liveStreamBlockSchema,
+				recentSermonsBlockSchema,
 			],
 		},
 	],

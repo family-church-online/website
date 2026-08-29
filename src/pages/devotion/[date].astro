@@ -101,7 +101,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
 <Base title={pageTitle} description={pageDesc} image={fm.image ?? undefined}>
 
   {/* ── PAGE HEADER ────────────────────────────────────────────────────────── */}
-  <div class="reveal max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+  <div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
     <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Daily Devotion</p>
     <h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-3">{fm.title ?? 'Devotion'}</h1>
     <time class="text-sm text-muted-foreground" datetime={date}>{fmtDate(date)}</time>
@@ -117,7 +117,7 @@ const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '
     )}
   </div>
 
-  <main class="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+  <main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10 space-y-8">
 
     {/* ── KEY SCRIPTURE ──────────────────────────────────────────────────────── */}
     {(fm.image || fm.keyScripture?.text) && (
