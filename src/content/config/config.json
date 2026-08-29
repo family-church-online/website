@@ -3,8 +3,8 @@
     "title": "Family Church",
     "description": "A community walking together in faith, in family, in everyday life.",
     "siteOwner": "Family Church Online",
-    "whatsappPhone": "27689816115",
-    "logo": "/Stone_xSmall.png"
+    "logo": "/Stone_xSmall.png",
+    "whatsappPhone": "27689816115"
   },
   "nav": [
     {
@@ -38,6 +38,10 @@
           "link": "/video#sermons"
         }
       ]
+    },
+    {
+      "title": "Guides",
+      "link": "/guides"
     },
     {
       "title": "Sermons",

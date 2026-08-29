@@ -1,0 +1,181 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+interface GuideFrontmatter {
+	title?: string;
+	date?: string;
+	excerpt?: string | null;
+	image?: string | null;
+}
+
+export function getStaticPaths() {
+	const mods = import.meta.glob<{ frontmatter: GuideFrontmatter; default: any }>(
+		'../../content/guides/*.mdx',
+		{ eager: true },
+	);
+
+	const all = Object.entries(mods)
+		.map(([path, mod]) => ({
+			slug: path.replace('../../content/guides/', '').replace('.mdx', ''),
+			frontmatter: mod.frontmatter,
+			Content: mod.default,
+		}))
+		.sort((a, b) => (b.frontmatter.date ?? '').localeCompare(a.frontmatter.date ?? ''));
+
+	return all.map((guide, i) => ({
+		params: { slug: guide.slug },
+		props: {
+			frontmatter: guide.frontmatter,
+			Content: guide.Content,
+			prev: i < all.length - 1 ? { slug: all[i + 1].slug, title: all[i + 1].frontmatter.title } : null,
+			next: i > 0 ? { slug: all[i - 1].slug, title: all[i - 1].frontmatter.title } : null,
+		},
+	}));
+}
+
+const { frontmatter: fm, Content, prev, next } = Astro.props as {
+	frontmatter: GuideFrontmatter;
+	Content: any;
+	prev: { slug: string; title?: string } | null;
+	next: { slug: string; title?: string } | null;
+};
+
+const config = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+function fmtDate(dateStr: string) {
+	return new Date(dateStr.split('T')[0] + 'T00:00:00Z').toLocaleDateString('en-ZA', {
+		weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+	});
+}
+
+const pageTitle = `${fm.title ?? 'Guide'} · ${siteTitle}`;
+const pageDesc = fm.excerpt ?? 'A guide from Family Church.';
+---
+
+<Base title={pageTitle} description={pageDesc} image={fm.image ?? undefined}>
+
+	{/* Page header */}
+	<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Guide</p>
+		<h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-3">{fm.title ?? 'Guide'}</h1>
+		{fm.date && (
+			<time class="text-sm text-muted-foreground" datetime={fm.date}>{fmtDate(fm.date)}</time>
+		)}
+	</div>
+	{fm.image && (
+		<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 mb-6">
+			<img
+				src={fm.image}
+				alt={fm.title ?? ''}
+				class="w-full rounded-2xl object-cover aspect-[3/1]"
+			/>
+		</div>
+	)}
+
+	<main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10">
+
+		{/* Body */}
+		<div class="reveal prose-guide">
+			<Content />
+		</div>
+
+		{/* Prev / Next */}
+		{(prev || next) && (
+			<nav class="reveal flex items-stretch gap-3 mt-12 mb-8">
+				{prev ? (
+					<a href={`/guides/${prev.slug}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow">
+						<svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+							<path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+						<div class="min-w-0">
+							<p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Prev</p>
+							<p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{prev.title}</p>
+						</div>
+					</a>
+				) : <div class="flex-1" />}
+
+				{next ? (
+					<a href={`/guides/${next.slug}`} class="group flex-1 flex items-center justify-end gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow text-right">
+						<div class="min-w-0">
+							<p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Next</p>
+							<p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{next.title}</p>
+						</div>
+						<svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+							<path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+					</a>
+				) : <div class="flex-1" />}
+			</nav>
+		)}
+
+	</main>
+</Base>
+
+<style>
+	.prose-guide {
+		color: var(--ink);
+		line-height: 1.75;
+	}
+	:global(.dark) .prose-guide {
+		color: rgba(255, 255, 255, 0.8);
+	}
+
+	.prose-guide :global(h2) {
+		font-size: 1.05rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--olive);
+		margin: 2.25rem 0 0.75rem;
+	}
+	.prose-guide :global(h3) {
+		font-size: 0.875rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--olive);
+		margin: 1.75rem 0 0.5rem;
+	}
+	.prose-guide :global(p) {
+		margin: 0 0 1rem;
+		color: var(--ink);
+		opacity: 0.8;
+	}
+	:global(.dark) .prose-guide :global(p) {
+		color: rgba(255, 255, 255, 0.75);
+		opacity: 1;
+	}
+	.prose-guide :global(ul) {
+		margin: 0.5rem 0 1.25rem 1.25rem;
+		space-y: 0.5rem;
+		list-style: disc;
+	}
+	.prose-guide :global(ul ul) {
+		margin-top: 0.35rem;
+		margin-bottom: 0.35rem;
+		list-style: circle;
+	}
+	.prose-guide :global(li) {
+		margin-bottom: 0.4rem;
+		color: var(--ink);
+		opacity: 0.8;
+	}
+	:global(.dark) .prose-guide :global(li) {
+		color: rgba(255, 255, 255, 0.75);
+		opacity: 1;
+	}
+	.prose-guide :global(strong) {
+		font-weight: 600;
+		color: var(--navy);
+	}
+	:global(.dark) .prose-guide :global(strong) {
+		color: white;
+	}
+	.prose-guide :global(em) {
+		font-style: italic;
+	}
+</style>

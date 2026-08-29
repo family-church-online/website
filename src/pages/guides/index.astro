@@ -1,0 +1,107 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+interface GuideFrontmatter {
+	title?: string;
+	date?: string;
+	excerpt?: string | null;
+	image?: string | null;
+}
+
+const mods = import.meta.glob<{ frontmatter: GuideFrontmatter }>(
+	'../../content/guides/*.mdx',
+	{ eager: true },
+);
+
+const guides = Object.entries(mods)
+	.map(([path, mod]) => ({
+		slug: path.replace('../../content/guides/', '').replace('.mdx', ''),
+		...mod.frontmatter,
+	}))
+	.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+
+const config = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+function fmtDate(dateStr: string) {
+	return new Date(dateStr.split('T')[0] + 'T00:00:00Z').toLocaleDateString('en-ZA', {
+		day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+	});
+}
+
+const [featured, ...rest] = guides;
+---
+
+<Base title={`Guides · ${siteTitle}`} description="Practical guides to help you grow in faith.">
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-4 text-center reveal">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Resources</p>
+		<h1 class="text-3xl font-semibold lg:text-4xl text-balance">Guides</h1>
+	</div>
+
+	<main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10 space-y-10">
+
+		{/* Featured guide */}
+		{featured && (
+			<a
+				href={`/guides/${featured.slug}`}
+				class="reveal group block bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden hover:shadow-md transition-shadow"
+			>
+				{featured.image && (
+					<div class="aspect-[3/1] overflow-hidden">
+						<img
+							src={featured.image}
+							alt={featured.title ?? ''}
+							class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+						/>
+					</div>
+				)}
+				<div class="p-8">
+					{featured.date && (
+						<time class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)]" datetime={featured.date}>
+							{fmtDate(featured.date)}
+						</time>
+					)}
+					<h2 class="text-2xl font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors mt-2 mb-4 leading-snug">
+						{featured.title}
+					</h2>
+					{featured.excerpt && (
+						<p class="text-[var(--ink)]/70 dark:text-white/65 leading-relaxed mb-5">
+							{featured.excerpt}
+						</p>
+					)}
+					<span class="text-sm font-semibold text-[var(--green)]">Read guide →</span>
+				</div>
+			</a>
+		)}
+
+		{/* Remaining guides */}
+		{rest.length > 0 && (
+			<div class="reveal divide-y divide-[var(--navy)]/8 dark:divide-white/8">
+				{rest.map((guide) => (
+					<a
+						href={`/guides/${guide.slug}`}
+						class="group flex items-center gap-4 py-4"
+					>
+						{guide.image && (
+							<img
+								src={guide.image}
+								alt={guide.title ?? ''}
+								class="shrink-0 w-14 h-14 rounded-lg object-cover"
+							/>
+						)}
+						<span class="flex-1 font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">
+							{guide.title}
+						</span>
+						<span class="shrink-0 text-xs text-[var(--ink)]/45 dark:text-white/40">
+							{guide.date ? fmtDate(guide.date) : ''}
+						</span>
+					</a>
+				))}
+			</div>
+		)}
+
+	</main>
+</Base>
