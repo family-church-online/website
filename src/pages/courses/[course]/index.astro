@@ -1,0 +1,218 @@
+---
+export const prerender = true;
+
+import Base from '../../../layouts/Base.astro';
+import { getConfig } from '../../../lib/data';
+
+interface CourseRegistry {
+  title?: string;
+  description?: string;
+  chapters?: Array<{ slug: string; title: string; description?: string }>;
+}
+
+interface LessonFrontmatter {
+  lesson?: string;
+  pointNumber?: number;
+}
+
+export function getStaticPaths() {
+  const registryMods = import.meta.glob<CourseRegistry>(
+    '../../../content/courses/*.json',
+    { eager: true },
+  );
+
+  return Object.entries(registryMods).map(([path, data]) => {
+    const slug = path.replace('../../../content/courses/', '').replace('.json', '');
+    return {
+      params: { course: slug },
+      props: { registry: data },
+    };
+  });
+}
+
+const { course } = Astro.params;
+const { registry } = Astro.props as { registry: CourseRegistry };
+
+// Load all lessons, filtered to this course
+const allLessonMods = import.meta.glob<{ frontmatter: LessonFrontmatter }>(
+  '../../../content/courses/**/*.mdx',
+  { eager: true },
+);
+
+interface LessonEntry {
+  chapterSlug: string;
+  lessonSlug: string;
+  lesson: string;
+  pointNumber: number | null;
+  href: string;
+}
+
+const lessons: LessonEntry[] = Object.entries(allLessonMods)
+  .filter(([path]) => {
+    const parts = path.replace('../../../content/courses/', '').split('/');
+    return parts[0] === course;
+  })
+  .map(([path, mod]) => {
+    const parts = path.replace('../../../content/courses/', '').replace('.mdx', '').split('/');
+    const [, chapterSlug, lessonSlug] = parts;
+    return {
+      chapterSlug,
+      lessonSlug,
+      lesson:      mod.frontmatter.lesson ?? lessonSlug,
+      pointNumber: mod.frontmatter.pointNumber ?? null,
+      href:        `/courses/${course}/${chapterSlug}/${lessonSlug}`,
+    };
+  })
+  .sort((a, b) => (a.pointNumber ?? 99) - (b.pointNumber ?? 99));
+
+// Group lessons by chapter, preserving registry order
+const chapters = (registry.chapters ?? []).map(ch => ({
+  ...ch,
+  lessons: lessons.filter(l => l.chapterSlug === ch.slug),
+}));
+
+// Chapters that exist on disk but aren't in the registry yet
+const knownSlugs = new Set(chapters.map(c => c.slug));
+const orphanLessons = lessons.filter(l => !knownSlugs.has(l.chapterSlug));
+
+const config = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+const totalLessons = lessons.length;
+
+const pageTitle = `${registry.title ?? 'Course'} · ${siteTitle}`;
+const pageDesc  = registry.description ?? `A course from ${siteTitle}.`;
+---
+
+<Base title={pageTitle} description={pageDesc}>
+
+  {/* ── HEADER ─────────────────────────────────────────────────────────────── */}
+  <div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+    <a
+      href="/courses"
+      class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--olive)] hover:text-[var(--green)] transition-colors mb-4"
+    >
+      <svg class="w-3 h-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Courses
+    </a>
+    <h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-3">
+      {registry.title ?? course}
+    </h1>
+    {registry.description && (
+      <p class="text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
+        {registry.description}
+      </p>
+    )}
+    {totalLessons > 0 && (
+      <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mt-4">
+        {chapters.length} {chapters.length === 1 ? 'chapter' : 'chapters'}
+        <span class="opacity-40 mx-1.5">·</span>
+        {totalLessons} {totalLessons === 1 ? 'lesson' : 'lessons'}
+      </p>
+    )}
+  </div>
+
+  {/* ── CHAPTERS ───────────────────────────────────────────────────────────── */}
+  <main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-24 space-y-5">
+
+    {chapters.length === 0 && (
+      <p class="text-center text-[var(--ink)]/50 dark:text-white/40 py-16">
+        No chapters defined yet. Add them in TinaCMS (admin → Courses).
+      </p>
+    )}
+
+    {chapters.map((chapter, ci) => (
+      <div
+        class="reveal bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden"
+        data-reveal-delay={String(ci * 0.07)}
+      >
+        {/* Chapter header */}
+        <div class="flex items-start gap-4 px-6 py-5 border-b border-[var(--navy)]/8 dark:border-white/8">
+          <span class="shrink-0 mt-0.5 w-8 h-8 rounded-full bg-[var(--navy)] flex items-center justify-center text-xs font-bold text-white tabular-nums">
+            {ci + 1}
+          </span>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-base font-semibold text-[var(--navy)] dark:text-white leading-snug">
+              {chapter.title}
+            </h2>
+            {chapter.description && (
+              <p class="text-sm text-[var(--ink)]/60 dark:text-white/50 mt-1 leading-snug">
+                {chapter.description}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Lessons */}
+        {chapter.lessons.length === 0 ? (
+          <p class="px-6 py-4 text-sm text-[var(--ink)]/40 dark:text-white/30 italic">
+            No lessons yet for this chapter.
+          </p>
+        ) : (
+          <ul class="divide-y divide-[var(--navy)]/6 dark:divide-white/6">
+            {chapter.lessons.map((lesson, li) => (
+              <li>
+                <a
+                  href={lesson.href}
+                  class="group flex items-center gap-4 px-6 py-4 hover:bg-[var(--navy)]/[0.03] dark:hover:bg-white/[0.03] transition-colors"
+                >
+                  {/* Lesson number */}
+                  <span class="shrink-0 w-7 h-7 rounded-full border border-[var(--navy)]/15 dark:border-white/15 group-hover:border-[var(--green)] group-hover:bg-[var(--green)] flex items-center justify-center text-xs font-bold text-[var(--navy)]/50 dark:text-white/40 group-hover:text-white transition-all tabular-nums">
+                    {li + 1}
+                  </span>
+
+                  {/* Lesson title */}
+                  <span class="flex-1 min-w-0 text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">
+                    {lesson.lesson}
+                  </span>
+
+                  {/* Point badge */}
+                  {lesson.pointNumber && (
+                    <span class="shrink-0 text-xs font-semibold text-[var(--olive)] bg-[var(--olive)]/10 rounded-full px-2.5 py-0.5">
+                      Point {lesson.pointNumber}
+                    </span>
+                  )}
+
+                  {/* Arrow */}
+                  <svg
+                    class="shrink-0 w-4 h-4 text-[var(--navy)]/20 dark:text-white/20 group-hover:text-[var(--green)] transition-colors"
+                    viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+                  >
+                    <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    ))}
+
+    {/* Orphaned lessons (on disk but chapter not in registry) */}
+    {orphanLessons.length > 0 && (
+      <div class="reveal rounded-2xl border border-dashed border-[var(--olive)]/30 px-6 py-5">
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">
+          Uncategorised lessons
+        </p>
+        <p class="text-xs text-[var(--ink)]/50 dark:text-white/40 mb-4">
+          These lessons exist on disk but their chapter slug is not in the course registry.
+          Add the chapter in TinaCMS to place them correctly.
+        </p>
+        <ul class="space-y-2">
+          {orphanLessons.map(lesson => (
+            <li class="text-sm text-[var(--ink)]/60 dark:text-white/50">
+              <code class="text-xs bg-[var(--navy)]/6 dark:bg-white/8 rounded px-1.5 py-0.5 mr-2">
+                {lesson.chapterSlug}
+              </code>
+              {lesson.lesson}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+  </main>
+
+</Base>

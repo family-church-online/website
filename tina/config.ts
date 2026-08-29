@@ -5,6 +5,8 @@ import { SermonCollection } from "./collections/sermon";
 import { DevotionCollection } from "./collections/devotion";
 import { StatementOfFaithCollection } from "./collections/statement-of-faith";
 import { GuideCollection } from "./collections/guide";
+import { LiveVideoCollection } from "./collections/live-video";
+import { CourseCollection } from "./collections/course";
 
 // Your hosting provider likely exposes this as an environment variable
 const branch =
@@ -58,6 +60,8 @@ export default defineConfig({
       DevotionCollection,
       StatementOfFaithCollection,
       GuideCollection,
+      LiveVideoCollection,
+      CourseCollection,
       GlobalConfigCollection,
     ],
   },

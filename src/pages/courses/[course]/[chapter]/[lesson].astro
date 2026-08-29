@@ -1,0 +1,440 @@
+---
+export const prerender = true;
+
+import Base from '../../../../layouts/Base.astro';
+import { getConfig } from '../../../../lib/data';
+
+interface QuestionOption {
+  label: string;
+  text: string;
+}
+
+interface Question {
+  type: string;
+  question: string;
+  options: QuestionOption[];
+  answer: string;
+}
+
+interface Scripture {
+  ref: string;
+  text: string;
+}
+
+interface Section {
+  id: string;
+  heading: string;
+  scriptures: Scripture[];
+  commentary: string;
+  questions: Question[];
+}
+
+interface LessonFrontmatter {
+  course?: string;
+  chapter?: string;
+  lesson?: string;
+  statementNumber?: number;
+  point?: string;
+  statement?: string;
+  sections?: Section[];
+  takeaways?: string[];
+}
+
+export function getStaticPaths() {
+  const mods = import.meta.glob<{ frontmatter: LessonFrontmatter }>(
+    '../../../../content/courses/**/*.mdx',
+    { eager: true },
+  );
+
+  return Object.entries(mods).map(([path, mod]) => {
+    const relative = path
+      .replace('../../../../content/courses/', '')
+      .replace('.mdx', '');
+    const parts = relative.split('/');
+    const [course, chapter, lesson] = parts;
+    return {
+      params: { course, chapter, lesson },
+      props: { frontmatter: mod.frontmatter },
+    };
+  });
+}
+
+const { course, chapter, lesson } = Astro.params;
+const { frontmatter: fm } = Astro.props as { frontmatter: LessonFrontmatter };
+
+const config = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+const sections = fm.sections ?? [];
+
+const pageTitle = `${fm.lesson ?? 'Lesson'} · ${siteTitle}`;
+const pageDesc = fm.point ?? `A lesson from ${fm.course ?? 'Truth and Grace'}.`;
+
+// Build per-question IDs for JS: "<sectionId>-<qIndex>"
+// e.g. "A-0", "A-1", "B-0", ...
+---
+
+<Base title={pageTitle} description={pageDesc}>
+
+  {/* ── BREADCRUMB + HEADER ────────────────────────────────────────────────── */}
+  <div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+    <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">
+      {fm.course ?? 'Course'}
+      <span class="opacity-40 mx-1">›</span>
+      {fm.chapter ?? 'Chapter'}
+    </p>
+    <h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-3">{fm.lesson ?? 'Lesson'}</h1>
+    {fm.statementNumber && (
+      <p class="text-sm text-muted-foreground">Statement {fm.statementNumber} · Point 1</p>
+    )}
+  </div>
+
+  <main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-24 space-y-6">
+
+    {/* ── STATEMENT BLOCK ────────────────────────────────────────────────────── */}
+    {fm.statement && (
+      <div class="reveal statement-block rounded-2xl px-6 py-5 shadow-sm">
+        <p class="text-xs font-bold uppercase tracking-widest text-white/50 mb-3">We Believe</p>
+        <p class="text-sm text-white/90 leading-relaxed">{fm.statement}</p>
+      </div>
+    )}
+
+    {/* ── POINT ──────────────────────────────────────────────────────────────── */}
+    {fm.point && (
+      <div class="reveal point-block rounded-2xl px-6 py-5">
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">This Lesson</p>
+        <p class="text-base font-medium text-[var(--navy)] dark:text-white leading-relaxed italic">
+          {fm.point}
+        </p>
+      </div>
+    )}
+
+    {/* ── SCORE BAR ──────────────────────────────────────────────────────────── */}
+    <div id="score-bar" class="reveal flex items-center gap-4 bg-white dark:bg-[var(--card)] rounded-2xl px-6 py-4 shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8">
+      <div class="flex-1">
+        <div class="flex items-baseline justify-between mb-2">
+          <span class="text-xs font-bold uppercase tracking-widest text-[var(--olive)]">Progress</span>
+          <span id="score-text" class="text-sm font-semibold text-[var(--navy)] dark:text-white tabular-nums">
+            0 / {sections.reduce((n, s) => n + (s.questions?.length ?? 0), 0)}
+          </span>
+        </div>
+        <div class="h-2 rounded-full bg-[var(--navy)]/10 dark:bg-white/10 overflow-hidden">
+          <div
+            id="score-fill"
+            class="h-full rounded-full bg-[var(--green)] transition-all duration-500"
+            style="width:0%"
+          ></div>
+        </div>
+      </div>
+      <button
+        id="reset-btn"
+        class="hidden shrink-0 text-xs font-semibold text-[var(--ink)]/45 dark:text-white/40 hover:text-[var(--navy)] dark:hover:text-white transition-colors"
+      >
+        Reset
+      </button>
+    </div>
+
+    {/* ── SECTIONS ───────────────────────────────────────────────────────────── */}
+    {sections.map((section) => (
+      <div class="reveal bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
+
+        {/* Section header */}
+        <div class="section-header flex items-center gap-4 px-6 py-4 border-b border-[var(--navy)]/8 dark:border-white/8">
+          <span class="shrink-0 w-9 h-9 rounded-full bg-[var(--navy)] flex items-center justify-center text-sm font-bold text-white">
+            {section.id}
+          </span>
+          <h2 class="text-sm font-semibold text-[var(--navy)] dark:text-white leading-snug">
+            {section.heading}
+          </h2>
+        </div>
+
+        {/* Scripture references */}
+        <div class="px-6 py-5 space-y-4 border-b border-[var(--navy)]/8 dark:border-white/8">
+          {section.scriptures.map((s) => (
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">{s.ref}</p>
+              <blockquote class="border-l-4 border-[var(--green)] pl-4">
+                <p class="text-sm text-[var(--ink)]/80 dark:text-white/75 leading-relaxed italic">
+                  {s.text}
+                </p>
+              </blockquote>
+            </div>
+          ))}
+        </div>
+
+        {/* Commentary */}
+        <div class="px-6 py-5 bg-[var(--navy)]/[0.02] dark:bg-white/[0.02] border-b border-[var(--navy)]/8 dark:border-white/8">
+          <p class="text-sm text-[var(--ink)]/80 dark:text-white/75 leading-relaxed">
+            {section.commentary}
+          </p>
+        </div>
+
+        {/* Questions */}
+        <div class="divide-y divide-[var(--navy)]/8 dark:divide-white/8">
+          {section.questions.map((q, qi) => {
+            const qid = `${section.id}-${qi}`;
+            return (
+              <div
+                class="mcq-block px-6 py-5"
+                data-qid={qid}
+                data-answer={q.answer}
+              >
+                <div class="flex items-start gap-3 mb-3">
+                  <span class="question-badge shrink-0 mt-0.5 text-xs font-bold uppercase tracking-widest text-[var(--olive)] bg-[var(--olive)]/10 rounded px-2 py-0.5">
+                    {q.type}
+                  </span>
+                </div>
+                <p class="text-sm font-semibold text-[var(--navy)] dark:text-white leading-snug mb-4">
+                  {q.question}
+                </p>
+                <div class="space-y-2">
+                  {q.options.map((opt) => (
+                    <button
+                      class="mcq-option w-full text-left flex items-start gap-3 rounded-xl px-4 py-3 text-sm ring-1 ring-[var(--navy)]/12 dark:ring-white/12 transition-all"
+                      data-label={opt.label}
+                    >
+                      <span class="option-letter shrink-0 w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs font-bold tabular-nums transition-colors">
+                        {opt.label}
+                      </span>
+                      <span class="option-text leading-snug pt-0.5">{opt.text}</span>
+                    </button>
+                  ))}
+                </div>
+                <div class="mcq-feedback hidden mt-3 text-xs font-semibold flex items-center gap-1.5"></div>
+              </div>
+            );
+          })}
+        </div>
+
+      </div>
+    ))}
+
+    {/* ── TAKEAWAYS ──────────────────────────────────────────────────────────── */}
+    {(fm.takeaways?.length ?? 0) > 0 && (
+      <div class="reveal takeaways-block rounded-2xl px-6 py-5 shadow-sm">
+        <p class="text-xs font-bold uppercase tracking-widest text-white/50 mb-4">Key Takeaways</p>
+        <ul class="space-y-3">
+          {fm.takeaways!.map((t) => (
+            <li class="flex items-start gap-3 text-sm text-white/85 leading-relaxed">
+              <span class="shrink-0 mt-0.5 text-[var(--green)] font-bold text-base leading-none">›</span>
+              {t}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {/* ── RESULTS PANEL ─────────────────────────────────────────────────────── */}
+    <div
+      id="results-panel"
+      class="hidden reveal rounded-2xl px-6 py-6 text-center"
+    >
+      <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">Lesson Complete</p>
+      <p id="results-score" class="text-4xl font-bold text-[var(--navy)] dark:text-white mb-1 tabular-nums"></p>
+      <p id="results-label" class="text-sm text-[var(--ink)]/60 dark:text-white/55 mb-5"></p>
+      <button
+        id="results-reset"
+        class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[var(--navy)] dark:text-white border border-[var(--navy)]/20 dark:border-white/20 rounded-full px-5 py-2.5 hover:bg-[var(--navy)]/5 dark:hover:bg-white/5 transition-colors"
+      >
+        Try Again
+      </button>
+    </div>
+
+  </main>
+
+</Base>
+
+<style>
+/* Statement block — navy */
+.statement-block {
+  background-color: var(--navy);
+}
+
+/* Point block — pale green tint */
+.point-block {
+  background-color: color-mix(in srgb, var(--green) 10%, white);
+  border: 1px solid color-mix(in srgb, var(--green) 20%, transparent);
+}
+:global(.dark) .point-block {
+  background-color: color-mix(in srgb, var(--green) 12%, transparent);
+  border-color: color-mix(in srgb, var(--green) 20%, transparent);
+}
+:global(.dark) .point-block .text-\[var\(--navy\)\] {
+  color: white;
+}
+
+/* Takeaways block — navy */
+.takeaways-block {
+  background-color: var(--navy);
+}
+
+/* Results panel */
+#results-panel {
+  background-color: color-mix(in srgb, var(--green) 10%, white);
+  border: 1px solid color-mix(in srgb, var(--green) 25%, transparent);
+}
+:global(.dark) #results-panel {
+  background-color: color-mix(in srgb, var(--green) 12%, transparent);
+  border-color: color-mix(in srgb, var(--green) 20%, transparent);
+}
+
+/* MCQ option default state */
+.mcq-option {
+  color: var(--ink);
+  background-color: transparent;
+}
+:global(.dark) .mcq-option {
+  color: rgba(255,255,255,0.8);
+}
+.mcq-option:not([disabled]):hover {
+  background-color: color-mix(in srgb, var(--navy) 5%, transparent);
+  ring-color: var(--navy);
+}
+:global(.dark) .mcq-option:not([disabled]):hover {
+  background-color: rgba(255,255,255,0.05);
+}
+
+/* Correct answer */
+.mcq-option.is-correct {
+  background-color: color-mix(in srgb, var(--green) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--green) 40%, transparent);
+  color: color-mix(in srgb, var(--green) 70%, var(--ink));
+}
+:global(.dark) .mcq-option.is-correct {
+  background-color: color-mix(in srgb, var(--green) 15%, transparent);
+  color: color-mix(in srgb, var(--green) 80%, white);
+}
+.mcq-option.is-correct .option-letter {
+  background-color: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+/* Wrong answer */
+.mcq-option.is-wrong {
+  background-color: color-mix(in srgb, var(--red) 8%, white);
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
+  color: color-mix(in srgb, var(--red) 70%, var(--ink));
+}
+:global(.dark) .mcq-option.is-wrong {
+  background-color: color-mix(in srgb, var(--red) 12%, transparent);
+  color: color-mix(in srgb, var(--red) 70%, white);
+}
+.mcq-option.is-wrong .option-letter {
+  background-color: var(--red);
+  border-color: var(--red);
+  color: white;
+}
+
+/* Dimmed options (after answer, not selected, not correct) */
+.mcq-option.is-dimmed {
+  opacity: 0.4;
+}
+</style>
+
+<script>
+function initCoursePage() {
+  const totalQuestions = document.querySelectorAll('.mcq-block').length;
+  let answered = 0;
+  let correct = 0;
+
+  const scoreText = document.getElementById('score-text');
+  const scoreFill = document.getElementById('score-fill');
+  const resetBtn  = document.getElementById('reset-btn');
+  const resultsPanel = document.getElementById('results-panel');
+  const resultsScore = document.getElementById('results-score');
+  const resultsLabel = document.getElementById('results-label');
+  const resultsReset = document.getElementById('results-reset');
+
+  function updateScoreBar() {
+    if (scoreText) scoreText.textContent = `${correct} / ${totalQuestions}`;
+    const pct = totalQuestions > 0 ? (answered / totalQuestions) * 100 : 0;
+    if (scoreFill) scoreFill.style.width = `${pct}%`;
+    if (resetBtn && answered > 0) resetBtn.classList.remove('hidden');
+  }
+
+  function showResults() {
+    if (!resultsPanel || !resultsScore || !resultsLabel) return;
+    resultsPanel.classList.remove('hidden');
+    resultsScore.textContent = `${correct} / ${totalQuestions}`;
+
+    const pct = correct / totalQuestions;
+    let label = 'Keep studying — you\'ll get there!';
+    if (pct === 1) label = 'Perfect score — outstanding!';
+    else if (pct >= 0.875) label = 'Excellent work!';
+    else if (pct >= 0.75) label = 'Well done — nearly there!';
+    else if (pct >= 0.5) label = 'Good effort — review the sections you missed.';
+    resultsLabel.textContent = label;
+
+    resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function reset() {
+    answered = 0;
+    correct = 0;
+    updateScoreBar();
+    if (resetBtn) resetBtn.classList.add('hidden');
+    if (resultsPanel) resultsPanel.classList.add('hidden');
+
+    document.querySelectorAll('.mcq-block').forEach(block => {
+      delete (block as HTMLElement).dataset.answered;
+      block.querySelectorAll('.mcq-option').forEach(btn => {
+        const b = btn as HTMLButtonElement;
+        b.disabled = false;
+        b.classList.remove('is-correct', 'is-wrong', 'is-dimmed');
+      });
+      const fb = block.querySelector('.mcq-feedback') as HTMLElement | null;
+      if (fb) { fb.classList.add('hidden'); fb.textContent = ''; }
+    });
+  }
+
+  resetBtn?.addEventListener('click', reset);
+  resultsReset?.addEventListener('click', reset);
+
+  document.querySelectorAll('.mcq-block').forEach(block => {
+    const el = block as HTMLElement;
+    const correctAnswer = el.dataset.answer ?? '';
+
+    el.querySelectorAll('.mcq-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (el.dataset.answered) return;
+        el.dataset.answered = 'true';
+
+        const b = btn as HTMLButtonElement;
+        const chosen = b.dataset.label ?? '';
+        const isCorrect = chosen === correctAnswer;
+
+        if (isCorrect) correct++;
+        answered++;
+
+        // Style every option in this block
+        el.querySelectorAll('.mcq-option').forEach(opt => {
+          const ob = opt as HTMLButtonElement;
+          ob.disabled = true;
+          if (ob.dataset.label === correctAnswer) {
+            ob.classList.add('is-correct');
+          } else if (ob === b) {
+            ob.classList.add('is-wrong');
+          } else {
+            ob.classList.add('is-dimmed');
+          }
+        });
+
+        // Feedback line
+        const fb = el.querySelector('.mcq-feedback') as HTMLElement | null;
+        if (fb) {
+          fb.classList.remove('hidden');
+          fb.innerHTML = isCorrect
+            ? '<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--green)" aria-hidden="true"><path d="M4 10l4.5 4.5L16 7" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="color:var(--green)">Correct</span>'
+            : `<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--red)" aria-hidden="true"><path d="M6 6l8 8M14 6l-8 8" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="color:var(--red)">Incorrect — the right answer is <strong>${correctAnswer.toUpperCase()}</strong></span>`;
+        }
+
+        updateScoreBar();
+        if (answered === totalQuestions) showResults();
+      });
+    });
+  });
+}
+
+document.addEventListener('astro:page-load', initCoursePage);
+</script>

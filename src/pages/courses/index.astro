@@ -1,0 +1,112 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+interface CourseRegistry {
+  title?: string;
+  description?: string;
+  chapters?: Array<{ slug: string; title: string; description?: string }>;
+}
+
+interface LessonFrontmatter {
+  lesson?: string;
+}
+
+// Load all course registries
+const registryMods = import.meta.glob<CourseRegistry>(
+  '../../content/courses/*.json',
+  { eager: true },
+);
+
+// Load all lesson files to count per course
+const lessonMods = import.meta.glob<{ frontmatter: LessonFrontmatter }>(
+  '../../content/courses/**/*.mdx',
+  { eager: true },
+);
+
+// Count lessons per course slug
+const lessonCounts: Record<string, number> = {};
+for (const path of Object.keys(lessonMods)) {
+  const courseSlug = path.replace('../../content/courses/', '').split('/')[0];
+  lessonCounts[courseSlug] = (lessonCounts[courseSlug] ?? 0) + 1;
+}
+
+const courses = Object.entries(registryMods).map(([path, data]) => {
+  const slug = path.replace('../../content/courses/', '').replace('.json', '');
+  return {
+    slug,
+    title:       data.title ?? slug,
+    description: data.description ?? '',
+    chapters:    data.chapters ?? [],
+    lessonCount: lessonCounts[slug] ?? 0,
+  };
+});
+
+const config = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+---
+
+<Base
+  title={`Courses · ${siteTitle}`}
+  description="Bible-based courses to help you grow in your understanding of the faith."
+>
+
+  <div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-4 text-center reveal">
+    <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Study</p>
+    <h1 class="text-3xl font-semibold lg:text-4xl text-balance">Courses</h1>
+  </div>
+
+  <main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10 space-y-4">
+
+    {courses.length === 0 && (
+      <p class="text-center text-[var(--ink)]/50 dark:text-white/40 py-16">
+        No courses yet. Create one in TinaCMS.
+      </p>
+    )}
+
+    {courses.map((course, i) => (
+      <a
+        href={`/courses/${course.slug}`}
+        class="reveal group flex items-start gap-5 bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-6 py-5 hover:shadow-md transition-shadow"
+        data-reveal-delay={String(i * 0.06)}
+      >
+        {/* Left: number badge */}
+        <span class="shrink-0 mt-0.5 w-10 h-10 rounded-full bg-[var(--navy)] group-hover:bg-[var(--green)] transition-colors flex items-center justify-center text-sm font-bold text-white tabular-nums">
+          {i + 1}
+        </span>
+
+        {/* Middle: text */}
+        <div class="flex-1 min-w-0">
+          <h2 class="text-lg font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug mb-1">
+            {course.title}
+          </h2>
+          {course.description && (
+            <p class="text-sm text-[var(--ink)]/65 dark:text-white/55 leading-relaxed mb-3">
+              {course.description}
+            </p>
+          )}
+          <div class="flex gap-3 text-xs font-semibold uppercase tracking-widest text-[var(--olive)]">
+            <span>{course.chapters.length} {course.chapters.length === 1 ? 'chapter' : 'chapters'}</span>
+            {course.lessonCount > 0 && (
+              <>
+                <span class="opacity-40">·</span>
+                <span>{course.lessonCount} {course.lessonCount === 1 ? 'lesson' : 'lessons'}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right: arrow */}
+        <svg
+          class="shrink-0 mt-1 w-5 h-5 text-[var(--navy)]/25 dark:text-white/25 group-hover:text-[var(--green)] transition-colors"
+          viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+        >
+          <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    ))}
+
+  </main>
+</Base>
