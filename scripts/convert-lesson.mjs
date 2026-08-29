@@ -264,27 +264,24 @@ const point = pointMatch ? cleanText(pointMatch[1]) : '';
 const takeawaysMatch = src.match(/## Key Takeaways\n\n([\s\S]*?)(?=\n## |\n---|$)/);
 const takeawaysBody  = takeawaysMatch ? takeawaysMatch[1] : '';
 
-// Detect format: new files use **A --- heading**, old files use ### A — heading
-const isNewFormat = /^\*\*[A-D] ---/m.test(src);
+// Detect section style:
+//   old  — ### A — heading  (with <div class="question-block">)
+//   bold — **A — heading**  or  **A --- heading**
+const hasBoldSections = /^\*\*[A-D] (?:---|—)/m.test(src);
 
-// Answer key
+// Answer key: try pipe table first (letter may optionally have trailing ")"), fall back to grid table
 const answerMap = {};
-if (isNewFormat) {
-  // Grid table: "  A   description    d    c"
+for (const m of src.matchAll(/\|\s*([A-D])\s*\|[^|]+\|\s*([a-d])\)?\s*\|\s*([a-d])\)?\s*\|/g)) {
+  answerMap[m[1]] = { q1: m[2], q2: m[3] };
+}
+if (Object.keys(answerMap).length === 0) {
   for (const m of src.matchAll(/^\s+([A-D])\s.*\s+([a-d])\s+([a-d])\s*$/gm)) {
-    answerMap[m[1]] = { q1: m[2], q2: m[3] };
-  }
-} else {
-  // Pipe table: |A|description|a|a|
-  for (const m of src.matchAll(/\|\s*([A-D])\s*\|[^|]+\|\s*([a-d])\s*\|\s*([a-d])\s*\|/g)) {
     answerMap[m[1]] = { q1: m[2], q2: m[3] };
   }
 }
 
-// Takeaways
-const takeaways = isNewFormat
-  ? parseTakeaways(takeawaysBody)
-  : takeawaysBody.split('\n').filter(l => l.startsWith('- ')).map(l => cleanText(l.slice(2)));
+// Takeaways — parseTakeaways handles both simple "- text" and continuation styles
+const takeaways = parseTakeaways(takeawaysBody);
 
 // ── Parse sections ───────────────────────────────────────────────────────────
 
@@ -297,14 +294,15 @@ if (!scriptBasisMatch) {
 const basisBody = scriptBasisMatch[1];
 const sections  = [];
 
-if (isNewFormat) {
-  // New format: **A --- heading** sections, **Question N** question labels
+if (hasBoldSections) {
+  // Bold-heading format: **A — heading** or **A --- heading**
+  // Question labels are **Question N**; options may be simple or continuation-style.
   const QUESTION_TYPES = ['Comprehension', 'Faith and Life'];
-  const chunks = basisBody.split(/\n\n(?=\*\*[A-D] ---)/);
+  const chunks = basisBody.split(/\n\n(?=\*\*[A-D] (?:---|—))/);
 
   for (const chunk of chunks) {
     if (!chunk.trim()) continue;
-    const hm = chunk.match(/^\*\*([A-D]) ---\s+([\s\S]+?)\*\*/);
+    const hm = chunk.match(/^\*\*([A-D]) (?:---|—)\s+([\s\S]+?)\*\*/);
     if (!hm) continue;
 
     const sectionId = hm[1];
@@ -313,20 +311,27 @@ if (isNewFormat) {
 
     const scriptures = parseScriptures(body);
 
-    // Split on **Question N** markers; everything before the first is pre-Q (commentary+refs)
-    const parts  = body.split(/\n\n(?=\*\*Question \d+\*\*)/);
+    // Split on **Question N** or **Q1 — Type** markers
+    // Everything before the first question is pre-Q (commentary + refs)
+    const parts  = body.split(/\n\n(?=\*\*(?:Question \d+|Q\d+ —))/);
     const preQ   = parts[0] ?? '';
     const commentary = parseCommentary(preQ);
 
     const questions = [];
     for (let qi = 1; qi < parts.length; qi++) {
-      const qChunk = parts[qi].replace(/^\*\*Question \d+\*\*\n\n/, '');
+      // Extract type from **Q1 — Comprehension** or fall back to positional default
+      const typeLine = parts[qi].match(/^\*\*Q\d+ —\s+([^*]+)\*\*/);
+      const qType    = typeLine ? typeLine[1].trim() : (QUESTION_TYPES[qi - 1] ?? `Q${qi}`);
+      // Strip the question header line
+      const qChunk   = parts[qi]
+        .replace(/^\*\*Q\d+ —[^*]*\*\*\n\n/, '')
+        .replace(/^\*\*Question \d+\*\*\n\n/, '');
       const optPos = qChunk.search(/^-\s+[a-d]\\?\)/m);
       const qText  = cleanText(optPos >= 0 ? qChunk.slice(0, optPos) : qChunk);
       const opts   = optPos >= 0 ? parseOptions(qChunk.slice(optPos)) : [];
       const ans    = answerMap[sectionId];
       questions.push({
-        type:     QUESTION_TYPES[qi - 1] ?? `Q${qi}`,
+        type:     qType,
         question: qText,
         options:  opts,
         answer:   qi === 1 ? (ans?.q1 ?? '') : (ans?.q2 ?? ''),
@@ -336,7 +341,7 @@ if (isNewFormat) {
     sections.push({ id: sectionId, heading, scriptures, commentary, questions });
   }
 } else {
-  // Old format: ### A — heading sections, <div class="question-block"> questions
+  // Old format: ### A — heading sections with <div class="question-block"> question blocks
   const chunks = basisBody.split(/(?=### [A-D] —)/);
 
   for (const chunk of chunks) {

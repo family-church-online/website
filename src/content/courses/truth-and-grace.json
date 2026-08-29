@@ -3,6 +3,21 @@
   "description": "A study through our statement of faith — what we believe and why it matters.",
   "chapters": [
     {
+      "slug": "scripture",
+      "title": "Scripture",
+      "description": "Understanding the nature and authority of Scripture, the Holy Bible."
+    },
+    {
+      "slug": "god",
+      "title": "God",
+      "description": "What we believe about the nature and identity of God."
+    },
+    {
+      "slug": "humanity",
+      "title": "Humanity",
+      "description": "What we believe about creation, humanity, marriage, and the Fall."
+    },
+    {
       "slug": "the-son-of-god",
       "title": "The Son of God",
       "description": "Exploring the Incarnation — who Jesus is, how He came, and what it means for us."
