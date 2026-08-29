@@ -11,6 +11,7 @@ import { splitBlockSchema } from '../../src/components/blocks/split.template';
 import { timelineBlockSchema } from '../../src/components/blocks/timeline.template';
 import { liveStreamBlockSchema } from '../../src/components/blocks/live-stream.template';
 import { recentSermonsBlockSchema } from '../../src/components/blocks/recent-sermons.template';
+import { whatsAppButtonBlockSchema } from '../../src/components/blocks/whats-app-button.template';
 
 export const PageCollection: Collection = {
 	name: 'page',
@@ -51,6 +52,7 @@ export const PageCollection: Collection = {
 				timelineBlockSchema,
 				liveStreamBlockSchema,
 				recentSermonsBlockSchema,
+				whatsAppButtonBlockSchema,
 			],
 		},
 	],

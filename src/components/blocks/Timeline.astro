@@ -46,14 +46,14 @@ const items = (data.items ?? []).filter((i): i is TimelineItem => i !== null);
 		{/* Timeline */}
 		<ol class="list-none p-0 m-0 mb-12" data-tina-field={tinaField(data, 'items')}>
 			{items.map((item, i) => (
-				<li class="grid gap-x-5" style="grid-template-columns:2rem 1fr" data-tina-field={tinaField(item)}>
+				<li class="grid gap-x-5 pb-12 last:pb-0" style="grid-template-columns:2rem 1fr" data-tina-field={tinaField(item)}>
 					<div class="flex flex-col items-center pt-1.5">
 						<span class="w-3 h-3 rounded-full shrink-0 bg-[var(--green)] shadow-[0_0_0_3px_rgba(146,196,35,0.18)]"></span>
 						{i < items.length - 1 && (
 							<span class="flex-1 w-px mt-1.5 min-h-8 bg-gradient-to-b from-[var(--green)]/30 to-[var(--green)]/5"></span>
 						)}
 					</div>
-					<div class="pb-16 last:pb-0">
+					<div>
 						<p class="font-display text-2xl font-semibold text-foreground leading-none mb-1"
 							data-tina-field={tinaField(item, 'time')}>{item.time}</p>
 						<h2 class="text-base font-semibold text-foreground mb-2"

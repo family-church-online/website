@@ -47,7 +47,13 @@ export const GlobalConfigCollection: Collection = {
           label: 'Logo',
           type: 'image',
           description: 'Shown next to the Site Name in the header navigation.',
-        }
+        },
+        {
+          name: 'whatsappPhone',
+          label: 'WhatsApp Phone Number',
+          type: 'string',
+          description: 'Used for the WhatsApp chat button. Include country code, no + or spaces (e.g. 27821234567).',
+        },
         //Add more site settings here...
       ],
     },
