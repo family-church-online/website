@@ -10,6 +10,7 @@ if (!flags.includes('nodejs_compat_populate_process_env')) {
 	flags.push('nodejs_compat_populate_process_env');
 }
 config.compatibility_flags = flags;
+config.keep_vars = true;
 
 delete config.vars;
 
