@@ -1,13 +1,16 @@
 import type { AstroGlobal, APIContext } from 'astro';
-import {
-	PCO_CLIENT_ID,
-	PCO_CLIENT_SECRET,
-	PCO_REDIRECT_URI,
-	PCO_APP_TOKEN,
-	PCO_APP_SECRET,
-	PCO_TRACKED_LIST_IDS,
-	SESSION_SECRET,
-} from 'astro:env/server';
+import { getSecret } from 'astro:env/server';
+
+// getSecret() reads from _getEnv at call time. By the time any request handler
+// runs, the CF adapter has already called setGetEnv(createGetEnv(cfEnv)), so
+// getSecret correctly returns values from the Cloudflare dashboard. Using
+// named module-level exports (export let X = _internalGetSecret()) would
+// evaluate at module init time — before setGetEnv runs — and throw.
+function secret(key: string): string {
+	const v = getSecret(key);
+	if (!v) throw new Error(`Missing required env var: ${key}`);
+	return v;
+}
 
 export interface SessionUser {
 	sub: string;
@@ -41,10 +44,10 @@ function b64urlToBytes(str: string): Uint8Array {
 
 // ── HMAC-SHA256 session signing (Web Crypto — works in Cloudflare Workers) ──
 
-async function hmacKey(secret: string): Promise<CryptoKey> {
+async function hmacKey(s: string): Promise<CryptoKey> {
 	return crypto.subtle.importKey(
 		'raw',
-		new TextEncoder().encode(secret),
+		new TextEncoder().encode(s),
 		{ name: 'HMAC', hash: 'SHA-256' },
 		false,
 		['sign', 'verify'],
@@ -53,7 +56,7 @@ async function hmacKey(secret: string): Promise<CryptoKey> {
 
 export async function createSession(user: SessionUser): Promise<string> {
 	const payload = btoa(JSON.stringify(user));
-	const key = await hmacKey(SESSION_SECRET);
+	const key = await hmacKey(secret('SESSION_SECRET'));
 	const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
 	return `${payload}.${b64url(sig)}`;
 }
@@ -64,7 +67,7 @@ export async function readSession(token: string): Promise<SessionUser | null> {
 	const payload = token.slice(0, dot);
 	const sig = token.slice(dot + 1);
 	try {
-		const key = await hmacKey(SESSION_SECRET);
+		const key = await hmacKey(secret('SESSION_SECRET'));
 		const valid = await crypto.subtle.verify(
 			'HMAC',
 			key,
@@ -96,8 +99,8 @@ export function pcoAuthUrl(state: string, challenge: string): string {
 	return (
 		'https://api.planningcenteronline.com/oauth/authorize?' +
 		new URLSearchParams({
-			client_id: PCO_CLIENT_ID,
-			redirect_uri: PCO_REDIRECT_URI,
+			client_id: secret('PCO_CLIENT_ID'),
+			redirect_uri: secret('PCO_REDIRECT_URI'),
 			response_type: 'code',
 			scope: 'openid',
 			state,
@@ -117,9 +120,9 @@ export async function exchangeCode(
 		body: new URLSearchParams({
 			grant_type: 'authorization_code',
 			code,
-			redirect_uri: PCO_REDIRECT_URI,
-			client_id: PCO_CLIENT_ID,
-			client_secret: PCO_CLIENT_SECRET,
+			redirect_uri: secret('PCO_REDIRECT_URI'),
+			client_id: secret('PCO_CLIENT_ID'),
+			client_secret: secret('PCO_CLIENT_SECRET'),
 			code_verifier: verifier,
 		}),
 	});
@@ -144,7 +147,7 @@ export async function fetchListMemberships(
 	trackedIds: string[],
 ): Promise<string[]> {
 	if (trackedIds.length === 0) return [];
-	const auth = btoa(`${PCO_APP_TOKEN}:${PCO_APP_SECRET}`);
+	const auth = btoa(`${secret('PCO_APP_TOKEN')}:${secret('PCO_APP_SECRET')}`);
 	const results = await Promise.all(
 		trackedIds.map(async (id) => {
 			const res = await fetch(
@@ -160,7 +163,7 @@ export async function fetchListMemberships(
 }
 
 export function getTrackedListIds(): string[] {
-	return (PCO_TRACKED_LIST_IDS ?? '')
+	return (getSecret('PCO_TRACKED_LIST_IDS') ?? '')
 		.split(',')
 		.map((s) => s.trim())
 		.filter(Boolean);
@@ -168,15 +171,6 @@ export function getTrackedListIds(): string[] {
 
 // ── Page helpers ──────────────────────────────────────────────────────────────
 
-/**
- * Call at the top of any on-demand page frontmatter to require authentication.
- * Optionally pass a PCO list ID (or array) — user must belong to at least one.
- *
- * Usage:
- *   const auth = requireAuth(Astro, 'list-id');
- *   if (auth instanceof Response) return auth;
- *   const user = auth;
- */
 export function requireAuth(
 	astro: AstroGlobal,
 	listId?: string | string[],
@@ -195,7 +189,6 @@ export function requireAuth(
 	return user;
 }
 
-/** Returns the session user without redirecting. Useful for optional auth UI. */
 export function getUser(astro: AstroGlobal): SessionUser | null {
 	return astro.locals.user ?? null;
 }
