@@ -12,7 +12,5 @@ if (!flags.includes('nodejs_compat_populate_process_env')) {
 config.compatibility_flags = flags;
 config.keep_vars = true;
 
-delete config.vars;
-
 writeFileSync(path, JSON.stringify(config, null, 2));
 console.log('[patch-wrangler] patched dist/server/wrangler.json');
