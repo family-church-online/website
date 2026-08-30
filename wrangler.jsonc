@@ -4,5 +4,21 @@
 	// which the Tina visual-editing island route (AsyncLocalStorage) needs.
 	"name": "tina-astro-starter",
 	"compatibility_date": "2026-06-01",
-	"compatibility_flags": ["nodejs_compat"]
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": {
+		"enabled": false,
+		"head_sampling_rate": 1,
+		"redact_query_string": false,
+		"logs": {
+			"enabled": true,
+			"head_sampling_rate": 1,
+			"persist": true,
+			"invocation_logs": true
+		},
+		"traces": {
+			"enabled": false,
+			"persist": true,
+			"head_sampling_rate": 1
+		}
+	}
 }
