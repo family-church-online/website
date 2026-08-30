@@ -48,12 +48,6 @@ export const GuideCollection: Collection = {
 			description: 'Short summary shown on the guides listing page.',
 		},
 		{
-			name: 'requiredListId',
-			label: 'Required Planning Center List ID',
-			type: 'string',
-			description: 'Leave blank for public access. Set to a Planning Center list ID to restrict this guide to list members only.',
-		},
-		{
 			name: 'body',
 			label: 'Body',
 			type: 'rich-text',

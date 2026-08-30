@@ -6,13 +6,13 @@ import sitemap from '@astrojs/sitemap';
 import icon from 'astro-icon';
 import tina from '@tinacms/astro/integration';
 import tailwindcss from '@tailwindcss/vite';
-import { accessManifest } from './src/integrations/access-manifest.ts';
 
-// Host-neutral: every content page prerenders to static HTML. On Cloudflare
-// Pages the functions/ directory handles dynamic routes (auth, today redirect)
-// via Pages Functions — no adapter needed. Other platforms still use adapters
-// for the on-demand routes (/tina-island, /today). Set DEPLOY_ADAPTER to force
-// a specific adapter for local/manual non-Pages deploys.
+// Host-neutral: every content page prerenders to static HTML, and the one
+// on-demand route (/tina-island, the visual-editing endpoint) is served by
+// whichever host built the site. Each platform sets its own build env var
+// automatically — nothing to configure — and any other host (including a
+// local `wrangler deploy`) falls back to a portable Node server. Set
+// DEPLOY_ADAPTER to force a specific adapter when no env var applies.
 async function getAdapter() {
 	const vercel = async () => (await import('@astrojs/vercel')).default();
 	const cloudflare = async () => (await import('@astrojs/cloudflare')).default();
@@ -30,10 +30,8 @@ async function getAdapter() {
 			console.warn(`[astro.config] Unknown DEPLOY_ADAPTER "${process.env.DEPLOY_ADAPTER}" - ignoring and auto-detecting.`);
 	}
 	if (process.env.VERCEL) return vercel();
-	// On Cloudflare Pages the functions/ directory takes over dynamic routes —
-	// no Astro adapter needed. Returning undefined tells Astro to build purely static.
-	if (process.env.CF_PAGES) return undefined;
-	if (process.env.WORKERS_CI) return cloudflare();
+	// CF_PAGES = Cloudflare Pages CI; WORKERS_CI = Cloudflare Workers Builds CI.
+	if (process.env.WORKERS_CI || process.env.CF_PAGES) return cloudflare();
 	if (process.env.NETLIFY) return netlify();
 
 	return nodeStandalone();
@@ -68,13 +66,10 @@ export default defineConfig({
 				!page.includes('/sermons/feed.xml') &&
 				!page.match(/\/sermons\/?$/) &&
 				!page.includes('/404') &&
-				!page.includes('/tina-island') &&
-				!page.includes('/login') &&
-				!page.includes('/denied'),
+				!page.includes('/tina-island'),
 		}),
 		icon(),
 		tina(),
-		accessManifest(),
 	],
 	markdown: {
 		syntaxHighlight: false,
