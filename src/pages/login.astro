@@ -1,0 +1,35 @@
+---
+import Base from '../layouts/Base.astro';
+
+const redirect = Astro.url.searchParams.get('redirect') ?? '/';
+const error = Astro.url.searchParams.get('error');
+const loginUrl = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
+---
+<Base title="Sign In" description="Sign in with your Planning Center account to access member content.">
+	<section class="flex min-h-[70vh] items-center justify-center px-6">
+		<div class="w-full max-w-sm text-center">
+			<p class="text-sm font-medium tracking-widest text-primary uppercase">Members Area</p>
+			<h1 class="mt-2 text-3xl font-semibold tracking-tight">Sign in to continue</h1>
+			<p class="mx-auto mt-3 max-w-xs text-muted-foreground text-sm">
+				Use your Planning Center account to access member content.
+			</p>
+
+			{error && (
+				<p class="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+					{error}
+				</p>
+			)}
+
+			<a
+				href={loginUrl}
+				class="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-xs transition-all hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/50"
+			>
+				Sign in with Planning Center
+			</a>
+
+			<p class="mt-6 text-xs text-muted-foreground">
+				Only current members can access this content. <a href="/" class="underline underline-offset-4 hover:text-foreground">Back to home</a>
+			</p>
+		</div>
+	</section>
+</Base>
