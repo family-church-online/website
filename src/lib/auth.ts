@@ -112,13 +112,14 @@ export async function exchangeCode(
 ): Promise<{ id_token: string }> {
 	const res = await fetch('https://api.planningcenteronline.com/oauth/token', {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+			'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+		},
 		body: new URLSearchParams({
 			grant_type: 'authorization_code',
 			code,
 			redirect_uri: redirectUri,
-			client_id: clientId,
-			client_secret: clientSecret,
 			code_verifier: verifier,
 		}),
 	});
