@@ -1,4 +1,10 @@
-import type { AstroGlobal } from 'astro';
+import type { AstroGlobal, APIContext } from 'astro';
+
+// Works in both local dev (import.meta.env) and Cloudflare Workers (runtime.env)
+export function getEnv(context: AstroGlobal | APIContext): CloudflareEnv & ImportMetaEnv {
+	const runtime = (context.locals as App.Locals).runtime;
+	return (runtime?.env ?? import.meta.env) as CloudflareEnv & ImportMetaEnv;
+}
 
 export interface SessionUser {
 	sub: string;

@@ -1,11 +1,22 @@
 import type { APIRoute } from 'astro';
-import { exchangeCode, parseIdToken, fetchListMemberships, createSession } from '../../../lib/auth';
+import { exchangeCode, parseIdToken, fetchListMemberships, createSession, getEnv } from '../../../lib/auth';
 
 export const prerender = false;
 
 const SESSION_DAYS = 30;
 
-export const GET: APIRoute = async ({ url, cookies, redirect }) => {
+export const GET: APIRoute = async (context) => {
+	const { url, cookies, redirect } = context;
+	const {
+		PCO_CLIENT_ID,
+		PCO_CLIENT_SECRET,
+		PCO_REDIRECT_URI,
+		PCO_APP_TOKEN,
+		PCO_APP_SECRET,
+		PCO_TRACKED_LIST_IDS,
+		SESSION_SECRET,
+	} = getEnv(context);
+
 	const code = url.searchParams.get('code');
 	const state = url.searchParams.get('state');
 	const storedState = cookies.get('pco_state')?.value;
@@ -21,32 +32,20 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	}
 
 	try {
-		const tokens = await exchangeCode(
-			code,
-			verifier,
-			import.meta.env.PCO_CLIENT_ID,
-			import.meta.env.PCO_CLIENT_SECRET,
-			import.meta.env.PCO_REDIRECT_URI,
-		);
-
+		const tokens = await exchangeCode(code, verifier, PCO_CLIENT_ID, PCO_CLIENT_SECRET, PCO_REDIRECT_URI);
 		const { sub, name, email } = parseIdToken(tokens.id_token);
 
-		const trackedIds = (import.meta.env.PCO_TRACKED_LIST_IDS ?? '')
+		const trackedIds = (PCO_TRACKED_LIST_IDS ?? '')
 			.split(',')
 			.map((s: string) => s.trim())
 			.filter(Boolean);
 
-		const lists = await fetchListMemberships(
-			sub,
-			trackedIds,
-			import.meta.env.PCO_APP_TOKEN,
-			import.meta.env.PCO_APP_SECRET,
-		);
+		const lists = await fetchListMemberships(sub, trackedIds, PCO_APP_TOKEN, PCO_APP_SECRET);
 
 		if (lists.length === 0) return redirect('/auth/denied');
 
 		const exp = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
-		const token = await createSession({ sub, name, email, lists, exp }, import.meta.env.SESSION_SECRET);
+		const token = await createSession({ sub, name, email, lists, exp }, SESSION_SECRET);
 
 		cookies.set('pco_session', token, {
 			path: '/',
