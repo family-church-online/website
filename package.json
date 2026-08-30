@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "tinacms dev -c \"astro dev\"",
     "dev:mobile": "node scripts/proxy-tina.mjs & TINA_HOST=$(hostname -I | awk '{print $1}') tinacms dev -c \"astro dev\"",
-    "build": "tinacms build --content=local -c \"astro build\"",
+    "build": "tinacms build --content=local --skip-cloud-checks -c \"astro build\"",
     "build:local": "tinacms build --local --skip-cloud-checks -c \"astro build\"",
     "build:search": "tinacms search-index",
     "preview": "astro preview",
