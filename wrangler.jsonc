@@ -5,6 +5,15 @@
 	"name": "family-church-website",
 	"compatibility_date": "2026-06-01",
 	"compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
+	"vars": {
+		"SESSION_SECRET": "",
+		"PCO_CLIENT_ID": "",
+		"PCO_REDIRECT_URI": "",
+		"PCO_CLIENT_SECRET": "",
+		"PCO_APP_TOKEN": "",
+		"PCO_APP_SECRET": "",
+		"PCO_TRACKED_LIST_IDS": ""
+	},
 	"observability": {
 		"enabled": false,
 		"head_sampling_rate": 1,
