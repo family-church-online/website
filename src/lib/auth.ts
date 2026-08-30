@@ -1,10 +1,13 @@
 import type { AstroGlobal, APIContext } from 'astro';
-
-// Works in both local dev (import.meta.env) and Cloudflare Workers (runtime.env)
-export function getEnv(context: AstroGlobal | APIContext): CloudflareEnv & ImportMetaEnv {
-	const runtime = (context.locals as App.Locals).runtime;
-	return (runtime?.env ?? import.meta.env) as CloudflareEnv & ImportMetaEnv;
-}
+import {
+	PCO_CLIENT_ID,
+	PCO_CLIENT_SECRET,
+	PCO_REDIRECT_URI,
+	PCO_APP_TOKEN,
+	PCO_APP_SECRET,
+	PCO_TRACKED_LIST_IDS,
+	SESSION_SECRET,
+} from 'astro:env/server';
 
 export interface SessionUser {
 	sub: string;
@@ -48,20 +51,20 @@ async function hmacKey(secret: string): Promise<CryptoKey> {
 	);
 }
 
-export async function createSession(user: SessionUser, secret: string): Promise<string> {
+export async function createSession(user: SessionUser): Promise<string> {
 	const payload = btoa(JSON.stringify(user));
-	const key = await hmacKey(secret);
+	const key = await hmacKey(SESSION_SECRET);
 	const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
 	return `${payload}.${b64url(sig)}`;
 }
 
-export async function readSession(token: string, secret: string): Promise<SessionUser | null> {
+export async function readSession(token: string): Promise<SessionUser | null> {
 	const dot = token.lastIndexOf('.');
 	if (dot === -1) return null;
 	const payload = token.slice(0, dot);
 	const sig = token.slice(dot + 1);
 	try {
-		const key = await hmacKey(secret);
+		const key = await hmacKey(SESSION_SECRET);
 		const valid = await crypto.subtle.verify(
 			'HMAC',
 			key,
@@ -89,17 +92,12 @@ export async function generatePkce(): Promise<{ verifier: string; challenge: str
 
 // ── PCO OAuth ─────────────────────────────────────────────────────────────────
 
-export function pcoAuthUrl(
-	clientId: string,
-	redirectUri: string,
-	state: string,
-	challenge: string,
-): string {
+export function pcoAuthUrl(state: string, challenge: string): string {
 	return (
 		'https://api.planningcenteronline.com/oauth/authorize?' +
 		new URLSearchParams({
-			client_id: clientId,
-			redirect_uri: redirectUri,
+			client_id: PCO_CLIENT_ID,
+			redirect_uri: PCO_REDIRECT_URI,
 			response_type: 'code',
 			scope: 'openid',
 			state,
@@ -112,9 +110,6 @@ export function pcoAuthUrl(
 export async function exchangeCode(
 	code: string,
 	verifier: string,
-	clientId: string,
-	clientSecret: string,
-	redirectUri: string,
 ): Promise<{ id_token: string }> {
 	const res = await fetch('https://api.planningcenteronline.com/oauth/token', {
 		method: 'POST',
@@ -122,9 +117,9 @@ export async function exchangeCode(
 		body: new URLSearchParams({
 			grant_type: 'authorization_code',
 			code,
-			redirect_uri: redirectUri,
-			client_id: clientId,
-			client_secret: clientSecret,
+			redirect_uri: PCO_REDIRECT_URI,
+			client_id: PCO_CLIENT_ID,
+			client_secret: PCO_CLIENT_SECRET,
 			code_verifier: verifier,
 		}),
 	});
@@ -147,11 +142,9 @@ export function parseIdToken(idToken: string): { sub: string; name: string; emai
 export async function fetchListMemberships(
 	pcoId: string,
 	trackedIds: string[],
-	appToken: string,
-	appSecret: string,
 ): Promise<string[]> {
 	if (trackedIds.length === 0) return [];
-	const auth = btoa(`${appToken}:${appSecret}`);
+	const auth = btoa(`${PCO_APP_TOKEN}:${PCO_APP_SECRET}`);
 	const results = await Promise.all(
 		trackedIds.map(async (id) => {
 			const res = await fetch(
@@ -164,6 +157,13 @@ export async function fetchListMemberships(
 		}),
 	);
 	return results.filter((id): id is string => id !== null);
+}
+
+export function getTrackedListIds(): string[] {
+	return (PCO_TRACKED_LIST_IDS ?? '')
+		.split(',')
+		.map((s) => s.trim())
+		.filter(Boolean);
 }
 
 // ── Page helpers ──────────────────────────────────────────────────────────────

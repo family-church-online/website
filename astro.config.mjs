@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
 import { fileURLToPath } from 'node:url';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
@@ -87,6 +87,19 @@ export default defineConfig({
 		// variant matched to the rendered box + DPR, not the full intrinsic size.
 		layout: 'constrained',
 		remotePatterns: [{ protocol: 'https', hostname: 'assets.tina.io' }],
+	},
+	// Server-side env vars — validated at runtime (not build time), works with
+	// Cloudflare dashboard vars via @astrojs/cloudflare's astro:env integration.
+	env: {
+		schema: {
+			PCO_CLIENT_ID: envField.string({ context: 'server', access: 'secret' }),
+			PCO_CLIENT_SECRET: envField.string({ context: 'server', access: 'secret' }),
+			PCO_REDIRECT_URI: envField.string({ context: 'server', access: 'secret' }),
+			PCO_APP_TOKEN: envField.string({ context: 'server', access: 'secret' }),
+			PCO_APP_SECRET: envField.string({ context: 'server', access: 'secret' }),
+			PCO_TRACKED_LIST_IDS: envField.string({ context: 'server', access: 'secret', optional: true }),
+			SESSION_SECRET: envField.string({ context: 'server', access: 'secret' }),
+		},
 	},
 	vite: {
 		// Proxy all /admin/ requests to TinaCMS's own Vite dev server (port 4001)

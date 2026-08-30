@@ -1,22 +1,11 @@
 import type { APIRoute } from 'astro';
-import { exchangeCode, parseIdToken, fetchListMemberships, createSession, getEnv } from '../../../lib/auth';
+import { exchangeCode, parseIdToken, fetchListMemberships, createSession, getTrackedListIds } from '../../../lib/auth';
 
 export const prerender = false;
 
 const SESSION_DAYS = 30;
 
-export const GET: APIRoute = async (context) => {
-	const { url, cookies, redirect } = context;
-	const {
-		PCO_CLIENT_ID,
-		PCO_CLIENT_SECRET,
-		PCO_REDIRECT_URI,
-		PCO_APP_TOKEN,
-		PCO_APP_SECRET,
-		PCO_TRACKED_LIST_IDS,
-		SESSION_SECRET,
-	} = getEnv(context);
-
+export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	const code = url.searchParams.get('code');
 	const state = url.searchParams.get('state');
 	const storedState = cookies.get('pco_state')?.value;
@@ -32,20 +21,16 @@ export const GET: APIRoute = async (context) => {
 	}
 
 	try {
-		const tokens = await exchangeCode(code, verifier, PCO_CLIENT_ID, PCO_CLIENT_SECRET, PCO_REDIRECT_URI);
+		const tokens = await exchangeCode(code, verifier);
 		const { sub, name, email } = parseIdToken(tokens.id_token);
 
-		const trackedIds = (PCO_TRACKED_LIST_IDS ?? '')
-			.split(',')
-			.map((s: string) => s.trim())
-			.filter(Boolean);
-
-		const lists = await fetchListMemberships(sub, trackedIds, PCO_APP_TOKEN, PCO_APP_SECRET);
+		const trackedIds = getTrackedListIds();
+		const lists = await fetchListMemberships(sub, trackedIds);
 
 		if (lists.length === 0) return redirect('/auth/denied');
 
 		const exp = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
-		const token = await createSession({ sub, name, email, lists, exp }, SESSION_SECRET);
+		const token = await createSession({ sub, name, email, lists, exp });
 
 		cookies.set('pco_session', token, {
 			path: '/',
