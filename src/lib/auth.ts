@@ -122,7 +122,10 @@ export async function exchangeCode(
 			code_verifier: verifier,
 		}),
 	});
-	if (!res.ok) throw new Error(`PCO token exchange failed: ${res.status}`);
+	if (!res.ok) {
+		const body = await res.text();
+		throw new Error(`PCO token exchange failed: ${res.status} — ${body}`);
+	}
 	return res.json();
 }
 
