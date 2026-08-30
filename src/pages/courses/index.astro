@@ -1,8 +1,9 @@
 ---
-export const prerender = true;
+export const prerender = false;
 
 import Base from '../../layouts/Base.astro';
 import { getConfig } from '../../lib/data';
+import { requireAuth } from '../../lib/auth';
 
 interface CourseRegistry {
   title?: string;
@@ -43,6 +44,9 @@ const courses = Object.entries(registryMods).map(([path, data]) => {
     lessonCount: lessonCounts[slug] ?? 0,
   };
 });
+
+const auth = requireAuth(Astro);
+if (auth instanceof Response) return auth;
 
 const config = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';

@@ -1,8 +1,9 @@
 ---
-export const prerender = true;
+export const prerender = false;
 
 import Base from '../../../../layouts/Base.astro';
 import { getConfig } from '../../../../lib/data';
+import { requireAuth } from '../../../../lib/auth';
 
 interface QuestionOption {
   label: string;
@@ -34,33 +35,39 @@ interface LessonFrontmatter {
   chapter?: string;
   lesson?: string;
   statementNumber?: number;
+  pointNumber?: number;
   point?: string;
   statement?: string;
   sections?: Section[];
   takeaways?: string[];
 }
 
-export function getStaticPaths() {
-  const mods = import.meta.glob<{ frontmatter: LessonFrontmatter }>(
-    '../../../../content/courses/**/*.mdx',
-    { eager: true },
-  );
-
-  return Object.entries(mods).map(([path, mod]) => {
-    const relative = path
-      .replace('../../../../content/courses/', '')
-      .replace('.mdx', '');
-    const parts = relative.split('/');
-    const [course, chapter, lesson] = parts;
-    return {
-      params: { course, chapter, lesson },
-      props: { frontmatter: mod.frontmatter },
-    };
-  });
+interface CourseRegistry {
+  requiredListId?: string;
 }
 
 const { course, chapter, lesson } = Astro.params;
-const { frontmatter: fm } = Astro.props as { frontmatter: LessonFrontmatter };
+
+// Load all lesson modules (bundled at build time — in-memory lookup at runtime)
+const allLessonMods = import.meta.glob<{ frontmatter: LessonFrontmatter }>(
+  '../../../../content/courses/**/*.mdx',
+  { eager: true },
+);
+
+const modKey = `../../../../content/courses/${course}/${chapter}/${lesson}.mdx`;
+const mod = allLessonMods[modKey];
+if (!mod) return new Response('Not Found', { status: 404 });
+const { frontmatter: fm } = mod;
+
+// Load course registry for list requirement
+const registryMods = import.meta.glob<CourseRegistry>(
+  '../../../../content/courses/*.json',
+  { eager: true },
+);
+const registry = registryMods[`../../../../content/courses/${course}.json`];
+
+const auth = requireAuth(Astro, registry?.requiredListId);
+if (auth instanceof Response) return auth;
 
 const config = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
@@ -71,32 +78,24 @@ const pageTitle = `${fm.lesson ?? 'Lesson'} · ${siteTitle}`;
 const pageDesc = fm.point ?? `A lesson from ${fm.course ?? 'Truth and Grace'}.`;
 
 // Prev / next within the same chapter
-const allLessonMods = import.meta.glob<{ frontmatter: LessonFrontmatter }>(
-  '../../../../content/courses/**/*.mdx',
-  { eager: true },
-);
-
 const siblings = Object.entries(allLessonMods)
   .filter(([p]) => {
     const parts = p.replace('../../../../content/courses/', '').split('/');
     return parts[0] === course && parts[1] === chapter;
   })
-  .map(([p, mod]) => {
+  .map(([p, m]) => {
     const slug = p.replace('../../../../content/courses/', '').replace('.mdx', '').split('/')[2];
     return {
       slug,
-      lesson:      mod.frontmatter.lesson ?? slug,
-      pointNumber: mod.frontmatter.pointNumber ?? null,
+      lesson:      m.frontmatter.lesson ?? slug,
+      pointNumber: m.frontmatter.pointNumber ?? null,
     };
   })
   .sort((a, b) => (a.pointNumber ?? 99) - (b.pointNumber ?? 99));
 
 const currentIdx = siblings.findIndex(s => s.slug === lesson);
-const prevLesson = currentIdx > 0              ? siblings[currentIdx - 1] : null;
+const prevLesson = currentIdx > 0               ? siblings[currentIdx - 1] : null;
 const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] : null;
-
-// Build per-question IDs for JS: "<sectionId>-<qIndex>"
-// e.g. "A-0", "A-1", "B-0", ...
 ---
 
 <Base title={pageTitle} description={pageDesc}>

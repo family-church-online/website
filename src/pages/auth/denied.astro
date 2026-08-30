@@ -1,0 +1,40 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+const config = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+---
+
+<Base
+	title={`Access Restricted · ${siteTitle}`}
+	description="This content is available to church members only."
+>
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-24 text-center">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">
+			Members Only
+		</p>
+		<h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-4">
+			Access Restricted
+		</h1>
+		<p class="text-base text-[var(--ink)]/65 dark:text-white/55 max-w-md mx-auto leading-relaxed mb-8">
+			This content is available to church members only. If you believe you should have access,
+			please contact us.
+		</p>
+		<div class="flex items-center justify-center gap-3 flex-wrap">
+			<a
+				href="/api/auth/login"
+				class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-5 py-2.5 hover:bg-[var(--green)] transition-colors"
+			>
+				Sign in with a different account
+			</a>
+			<a
+				href="/"
+				class="inline-flex items-center gap-2 text-sm font-semibold text-[var(--navy)] dark:text-white border border-[var(--navy)]/20 dark:border-white/20 rounded-full px-5 py-2.5 hover:bg-[var(--navy)]/5 dark:hover:bg-white/5 transition-colors"
+			>
+				Back to home
+			</a>
+		</div>
+	</div>
+</Base>

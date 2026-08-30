@@ -1,77 +1,73 @@
 ---
-export const prerender = true;
+export const prerender = false;
 
 import Base from '../../../layouts/Base.astro';
 import { getConfig } from '../../../lib/data';
+import { requireAuth } from '../../../lib/auth';
 
 interface CourseRegistry {
-  title?: string;
-  description?: string;
-  chapters?: Array<{ slug: string; title: string; description?: string }>;
+	title?: string;
+	description?: string;
+	requiredListId?: string;
+	chapters?: Array<{ slug: string; title: string; description?: string }>;
 }
 
 interface LessonFrontmatter {
-  lesson?: string;
-  pointNumber?: number;
-}
-
-export function getStaticPaths() {
-  const registryMods = import.meta.glob<CourseRegistry>(
-    '../../../content/courses/*.json',
-    { eager: true },
-  );
-
-  return Object.entries(registryMods).map(([path, data]) => {
-    const slug = path.replace('../../../content/courses/', '').replace('.json', '');
-    return {
-      params: { course: slug },
-      props: { registry: data },
-    };
-  });
+	lesson?: string;
+	pointNumber?: number;
 }
 
 const { course } = Astro.params;
-const { registry } = Astro.props as { registry: CourseRegistry };
 
-// Load all lessons, filtered to this course
+const registryMods = import.meta.glob<CourseRegistry>(
+	'../../../content/courses/*.json',
+	{ eager: true },
+);
+const registry = Object.entries(registryMods)
+	.find(([path]) => path.endsWith(`/${course}.json`))
+	?.[1];
+
+if (!registry) return new Response('Not Found', { status: 404 });
+
+const auth = requireAuth(Astro, registry.requiredListId);
+if (auth instanceof Response) return auth;
+
 const allLessonMods = import.meta.glob<{ frontmatter: LessonFrontmatter }>(
-  '../../../content/courses/**/*.mdx',
-  { eager: true },
+	'../../../content/courses/**/*.mdx',
+	{ eager: true },
 );
 
 interface LessonEntry {
-  chapterSlug: string;
-  lessonSlug: string;
-  lesson: string;
-  pointNumber: number | null;
-  href: string;
+	chapterSlug: string;
+	lessonSlug: string;
+	lesson: string;
+	pointNumber: number | null;
+	href: string;
 }
 
 const lessons: LessonEntry[] = Object.entries(allLessonMods)
-  .filter(([path]) => {
-    const parts = path.replace('../../../content/courses/', '').split('/');
-    return parts[0] === course;
-  })
-  .map(([path, mod]) => {
-    const parts = path.replace('../../../content/courses/', '').replace('.mdx', '').split('/');
-    const [, chapterSlug, lessonSlug] = parts;
-    return {
-      chapterSlug,
-      lessonSlug,
-      lesson:      mod.frontmatter.lesson ?? lessonSlug,
-      pointNumber: mod.frontmatter.pointNumber ?? null,
-      href:        `/courses/${course}/${chapterSlug}/${lessonSlug}`,
-    };
-  })
-  .sort((a, b) => (a.pointNumber ?? 99) - (b.pointNumber ?? 99));
+	.filter(([path]) => {
+		const parts = path.replace('../../../content/courses/', '').split('/');
+		return parts[0] === course;
+	})
+	.map(([path, mod]) => {
+		const parts = path.replace('../../../content/courses/', '').replace('.mdx', '').split('/');
+		const [, chapterSlug, lessonSlug] = parts;
+		return {
+			chapterSlug,
+			lessonSlug,
+			lesson:      mod.frontmatter.lesson ?? lessonSlug,
+			pointNumber: mod.frontmatter.pointNumber ?? null,
+			href:        `/courses/${course}/${chapterSlug}/${lessonSlug}`,
+		};
+	})
+	.sort((a, b) => (a.pointNumber ?? 99) - (b.pointNumber ?? 99));
 
-// Group lessons by chapter, preserving registry order
 const chapters = (registry.chapters ?? []).map(ch => ({
-  ...ch,
-  lessons: lessons.filter(l => l.chapterSlug === ch.slug),
+	...ch,
+	lessons: lessons.filter(l => l.chapterSlug === ch.slug),
 }));
 
-// Chapters that exist on disk but aren't in the registry yet
 const knownSlugs = new Set(chapters.map(c => c.slug));
 const orphanLessons = lessons.filter(l => !knownSlugs.has(l.chapterSlug));
 
@@ -158,24 +154,17 @@ const pageDesc  = registry.description ?? `A course from ${siteTitle}.`;
                   href={lesson.href}
                   class="group flex items-center gap-4 px-6 py-4 hover:bg-[var(--navy)]/[0.03] dark:hover:bg-white/[0.03] transition-colors"
                 >
-                  {/* Lesson number */}
                   <span class="shrink-0 w-7 h-7 rounded-full border border-[var(--navy)]/15 dark:border-white/15 group-hover:border-[var(--green)] group-hover:bg-[var(--green)] flex items-center justify-center text-xs font-bold text-[var(--navy)]/50 dark:text-white/40 group-hover:text-white transition-all tabular-nums">
                     {li + 1}
                   </span>
-
-                  {/* Lesson title */}
                   <span class="flex-1 min-w-0 text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">
                     {lesson.lesson}
                   </span>
-
-                  {/* Point badge */}
                   {lesson.pointNumber && (
                     <span class="shrink-0 text-xs font-semibold text-[var(--olive)] bg-[var(--olive)]/10 rounded-full px-2.5 py-0.5">
                       Point {lesson.pointNumber}
                     </span>
                   )}
-
-                  {/* Arrow */}
                   <svg
                     class="shrink-0 w-4 h-4 text-[var(--navy)]/20 dark:text-white/20 group-hover:text-[var(--green)] transition-colors"
                     viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -190,7 +179,6 @@ const pageDesc  = registry.description ?? `A course from ${siteTitle}.`;
       </div>
     ))}
 
-    {/* Orphaned lessons (on disk but chapter not in registry) */}
     {orphanLessons.length > 0 && (
       <div class="reveal rounded-2xl border border-dashed border-[var(--olive)]/30 px-6 py-5">
         <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">

@@ -30,6 +30,12 @@ export const CourseCollection: Collection = {
 			description: 'Shown on the course index page.',
 		},
 		{
+			name: 'requiredListId',
+			label: 'Required PCO List ID',
+			type: 'string',
+			description: 'Planning Center list ID — only members of this list can access the course. Leave blank for public access.',
+		},
+		{
 			name: 'chapters',
 			label: 'Chapters',
 			type: 'object',
