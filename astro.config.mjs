@@ -30,9 +30,10 @@ async function getAdapter() {
 			console.warn(`[astro.config] Unknown DEPLOY_ADAPTER "${process.env.DEPLOY_ADAPTER}" - ignoring and auto-detecting.`);
 	}
 	if (process.env.VERCEL) return vercel();
-	// On any Cloudflare CI (Pages Git integration or Workers Builds), the
-	// functions/ directory takes over dynamic routes — no Astro adapter needed.
-	if (process.env.CF_PAGES || process.env.WORKERS_CI) return undefined;
+	// On Cloudflare Pages the functions/ directory takes over dynamic routes —
+	// no Astro adapter needed. Returning undefined tells Astro to build purely static.
+	if (process.env.CF_PAGES) return undefined;
+	if (process.env.WORKERS_CI) return cloudflare();
 	if (process.env.NETLIFY) return netlify();
 
 	return nodeStandalone();
