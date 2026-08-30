@@ -1,21 +1,19 @@
-import type { APIRoute } from 'astro';
+import type { PagesFunction } from '../_lib/types';
 
-export const prerender = false;
-
-export const GET: APIRoute = async () => {
+export const onRequestGet: PagesFunction = async () => {
 	try {
 		const res = await fetch('https://familychurchon.radioca.st/live', {
-			headers: { 'Accept': 'audio/mpeg, audio/*', 'Icy-MetaData': '1' },
+			headers: { Accept: 'audio/mpeg, audio/*', 'Icy-MetaData': '1' },
 			signal: AbortSignal.timeout(5000),
 		});
 
 		const contentType = res.headers.get('content-type') ?? '';
-		const isLive = res.ok && (
-			contentType.startsWith('audio/') ||
-			contentType.includes('mpeg') ||
-			contentType.includes('ogg') ||
-			contentType.includes('aac')
-		);
+		const isLive =
+			res.ok &&
+			(contentType.startsWith('audio/') ||
+				contentType.includes('mpeg') ||
+				contentType.includes('ogg') ||
+				contentType.includes('aac'));
 
 		res.body?.cancel();
 
