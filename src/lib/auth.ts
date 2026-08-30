@@ -1,13 +1,11 @@
 import type { AstroGlobal, APIContext } from 'astro';
 import { getSecret } from 'astro:env/server';
 
-// getSecret() reads from _getEnv at call time. By the time any request handler
-// runs, the CF adapter has already called setGetEnv(createGetEnv(cfEnv)), so
-// getSecret correctly returns values from the Cloudflare dashboard. Using
-// named module-level exports (export let X = _internalGetSecret()) would
-// evaluate at module init time — before setGetEnv runs — and throw.
+// In CF Workers production: nodejs_compat_populate_process_env fills process.env
+// with all worker secrets/bindings before any module runs.
+// In Vite dev: process.env may not have vars, so getSecret() reads from .env.
 function secret(key: string): string {
-	const v = getSecret(key);
+	const v = process.env[key] ?? getSecret(key);
 	if (!v) throw new Error(`Missing required env var: ${key}`);
 	return v;
 }
@@ -163,7 +161,7 @@ export async function fetchListMemberships(
 }
 
 export function getTrackedListIds(): string[] {
-	return (getSecret('PCO_TRACKED_LIST_IDS') ?? '')
+	return ((process.env['PCO_TRACKED_LIST_IDS'] ?? getSecret('PCO_TRACKED_LIST_IDS')) ?? '')
 		.split(',')
 		.map((s) => s.trim())
 		.filter(Boolean);
