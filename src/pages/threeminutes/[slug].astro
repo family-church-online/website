@@ -60,7 +60,7 @@ function fmtDate(dateStr: string) {
 >
 	<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
 		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Three Minutes</p>
-		<h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-3">{fm.title ?? 'Article'}</h1>
+		<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-3">{fm.title ?? 'Article'}</h1>
 		{fm.date && (
 			<time class="text-sm text-muted-foreground" datetime={fm.date}>{fmtDate(fm.date)}</time>
 		)}

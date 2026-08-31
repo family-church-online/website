@@ -25,6 +25,18 @@ export const heroBlockSchema: Template = {
 			ui: { component: 'textarea' },
 		},
 		{
+			type: 'string',
+			label: 'Service Time & Location',
+			name: 'serviceInfo',
+			description: 'e.g. "Sundays 09:30 · Dainfern College, Johannesburg"',
+		},
+		{
+			type: 'string',
+			label: 'Eyebrow / Mission Text',
+			name: 'eyebrow',
+			description: 'Small text below the service info, e.g. "love, worship, honour & obey"',
+		},
+		{
 			type: 'object',
 			label: 'Buttons',
 			name: 'actions',
@@ -51,6 +63,8 @@ export const heroBlockSchema: Template = {
 	ui: {
 		defaultItem: {
 			tagline: 'A community walking together — in faith, in family, in everyday life.',
+			serviceInfo: 'Sundays 09:30 · Dainfern College, Johannesburg',
+			eyebrow: 'love, worship, honour & obey',
 			actions: [
 				{ label: 'Plan a Visit', style: 'primary', link: '#' },
 				{ label: 'Watch a Sermon', style: 'ghost', link: '#' },

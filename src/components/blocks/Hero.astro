@@ -39,15 +39,19 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 			</p>
 		)}
 
-		<p class="hero-service">
-			<span class="service-dot" aria-hidden="true"></span>
-			<span><strong>Sundays</strong> 09:30 &nbsp;·&nbsp; Dainfern College, Johannesburg</span>
-		</p>
+		{(data.serviceInfo ?? 'Sundays 09:30 · Dainfern College, Johannesburg') && (
+			<p class="hero-service" data-tina-field={tinaField(data, 'serviceInfo')}>
+				<span class="service-dot" aria-hidden="true"></span>
+				<span>{data.serviceInfo ?? 'Sundays 09:30 · Dainfern College, Johannesburg'}</span>
+			</p>
+		)}
 
-		<p class="hero-eyebrow" aria-label="Our mission">
-			<span class="eyebrow-dot" aria-hidden="true"></span>
-			love, worship, honour &amp; obey
-		</p>
+		{(data.eyebrow ?? 'love, worship, honour & obey') && (
+			<p class="hero-eyebrow" aria-label="Our mission" data-tina-field={tinaField(data, 'eyebrow')}>
+				<span class="eyebrow-dot" aria-hidden="true"></span>
+				{data.eyebrow ?? 'love, worship, honour & obey'}
+			</p>
+		)}
 
 		{actions.length > 0 && (
 			<div class="hero-cta" data-tina-field={tinaField(data, 'actions')}>
@@ -108,7 +112,7 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 		font-size: 0.75rem;
 		font-weight: 700;
 		letter-spacing: 0.06em;
-		text-transform: lowercase;
+		text-transform: none;
 		color: rgba(255,255,255,0.75);
 		text-shadow: 0 1px 6px rgba(0,0,0,0.4);
 		margin: 0 0 1.5rem;
@@ -211,7 +215,7 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 			font-size: 0.78rem;
 			font-weight: 700;
 			letter-spacing: 0.06em;
-			text-transform: lowercase;
+			text-transform: none;
 			color: rgba(255,255,255,0.85);
 			text-shadow: 0 1px 6px rgba(0,0,0,0.4);
 			margin: 0 0 1.25rem;

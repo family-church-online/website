@@ -46,7 +46,7 @@ function fmtDate(dateStr: string) {
 		<div class="max-w-[var(--content-width)] mx-auto px-6 mb-5 text-center reveal">
 			<h2
 				data-tina-field={tinaField(data, 'heading')}
-				class="font-display text-2xl font-semibold text-[var(--ink)] dark:text-white uppercase tracking-wide mb-3"
+				class="font-display text-3xl font-semibold text-[var(--ink)] dark:text-white tracking-tight mb-3"
 			>{heading}</h2>
 			<a
 				href="/sermons"
@@ -71,7 +71,7 @@ function fmtDate(dateStr: string) {
 									<img
 										src={s.image}
 										alt={s.title ?? ''}
-										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+										class="w-full h-full object-cover scale-[1.20] group-hover:scale-[1.26] transition-transform duration-300"
 										loading="lazy"
 									/>
 								) : (

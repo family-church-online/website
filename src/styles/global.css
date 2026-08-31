@@ -63,6 +63,7 @@ html:not(.dark) header {
 
 @theme inline {
 	--font-sans: 'Inter Variable', 'Inter Fallback', system-ui, sans-serif;
+	--font-display: 'Fraunces', Georgia, serif;
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
@@ -143,6 +144,17 @@ html:not(.dark) header {
 @layer base {
 	* {
 		border-color: var(--border);
+	}
+	h1, h2, h3, h4, h5, h6 {
+		font-family: var(--font-display);
+	}
+	h1 {
+		font-size: 2.25rem;
+		font-weight: 600;
+		line-height: 1.1;
+	}
+	@media (min-width: 1024px) {
+		h1 { font-size: 3rem; }
 	}
 	body {
 		background-color: var(--background);

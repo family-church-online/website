@@ -25,10 +25,10 @@ const { text, link } = Astro.props;
 		right: 0;
 		z-index: 30;
 		height: var(--banner-h);
-		background: rgba(39, 63, 97, 0.3);
+		background: rgba(200, 64, 41, 0.75);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
-		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.15);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -36,15 +36,15 @@ const { text, link } = Astro.props;
 	.banner-inner {
 		font-size: 0.78rem;
 		font-weight: 600;
-		color: rgba(255, 255, 255, 0.88);
+		color: #fff;
 		text-decoration: none;
 		letter-spacing: 0.02em;
 		text-align: center;
 		padding: 0 1rem;
 	}
-	a.banner-inner:hover { color: var(--green); }
+	a.banner-inner:hover { color: rgba(255, 255, 255, 0.8); text-decoration: underline; }
 	.banner-icon {
-		color: rgba(255, 255, 255, 0.6);
+		color: rgba(255, 255, 255, 0.8);
 		flex-shrink: 0;
 		margin-right: 0.5rem;
 	}

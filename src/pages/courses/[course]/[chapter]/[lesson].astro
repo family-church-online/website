@@ -111,7 +111,7 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
       <span class="opacity-40">›</span>
       <span>{fm.chapter ?? chapter}</span>
     </nav>
-    <h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-3">{fm.lesson ?? 'Lesson'}</h1>
+    <h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-3">{fm.lesson ?? 'Lesson'}</h1>
     {fm.statementNumber && fm.pointNumber && (
       <p class="text-sm text-[var(--ink)]/50 dark:text-white/40">
         Statement {fm.statementNumber} · Point {fm.pointNumber}
