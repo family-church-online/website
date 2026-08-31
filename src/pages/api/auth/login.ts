@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import { lookupPersonByEmail, fetchListMemberships, getTrackedListIds, createSession, sendMagicLink } from '../../../lib/auth';
-import { getSecret } from 'astro:env/server';
 
 export const prerender = false;
 
@@ -49,8 +48,8 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 			const exp = Date.now() + 10 * 60 * 1000;
 			const token = await createSession({ sub: person.pcoId, name: person.name, email, lists, exp });
 
-			const siteUrl = (process.env['SITE_URL'] ?? getSecret('SITE_URL') ?? '').replace(/\/$/, '');
-			const verifyUrl = `${siteUrl}/api/auth/verify?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(returnTo)}`;
+			const origin = new URL(request.url).origin;
+			const verifyUrl = `${origin}/api/auth/verify?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(returnTo)}`;
 
 			await sendMagicLink(email, verifyUrl);
 		} catch (err) {
