@@ -83,7 +83,7 @@
     }
   ],
   "banner": {
-    "enabled": true,
+    "enabled": false,
     "text": "Today's Devotion and Reading Plan",
     "link": "/today"
   },

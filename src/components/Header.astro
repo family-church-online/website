@@ -60,7 +60,7 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 		<!-- Right end -->
 		<div class="flex items-center gap-3 flex-shrink-0">
 			<ThemeToggle />
-			<a href="/services" class="nav-cta hidden sm:inline-block">Plan a Visit</a>
+			<a href="/today" class="nav-cta hidden sm:inline-block">Today's Devotion</a>
 			<button
 				id="mobile-menu-toggle"
 				type="button"
@@ -102,7 +102,7 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 					</a>
 				);
 			})}
-			<a href="/services" class="nav-cta self-start mt-4 mb-2">Plan a Visit</a>
+			<a href="/today" class="nav-cta self-start mt-4 mb-2">Today's Devotion</a>
 		</div>
 	</div>
 </header>
@@ -110,6 +110,7 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 <style>
 	.nav-brand { text-decoration: none; }
 	.nav-title  { color: rgba(255,255,255,0.9); }
+
 
 	.nav-link {
 		color: rgba(255,255,255,0.72);
