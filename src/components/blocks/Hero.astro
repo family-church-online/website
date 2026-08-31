@@ -30,11 +30,6 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 
 	<div class="hero-content" style={{ position: 'relative', zIndex: '2', marginTop: '5rem' }}>
 
-		<p class="hero-eyebrow" aria-label="Our mission">
-			<span class="eyebrow-dot" aria-hidden="true"></span>
-			love, worship, honour &amp; obey
-		</p>
-
 		{data.tagline && (
 			<p
 				data-tina-field={tinaField(data, 'tagline')}
@@ -47,6 +42,11 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 		<p class="hero-service">
 			<span class="service-dot" aria-hidden="true"></span>
 			<span><strong>Sundays</strong> 09:30 &nbsp;·&nbsp; Dainfern College, Johannesburg</span>
+		</p>
+
+		<p class="hero-eyebrow" aria-label="Our mission">
+			<span class="eyebrow-dot" aria-hidden="true"></span>
+			love, worship, honour &amp; obey
 		</p>
 
 		{actions.length > 0 && (
@@ -96,17 +96,29 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 		width: 100%;
 		max-width: 640px;
 		padding: 2rem 1.5rem 4rem;
-		text-align: center;
+		text-align: left;
 	}
 
-	/* Eyebrow — hidden on mobile */
-	.hero-eyebrow { display: none; }
+	/* Eyebrow */
+	.hero-eyebrow {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+		font-family: var(--font-body);
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: lowercase;
+		color: rgba(255,255,255,0.75);
+		text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+		margin: 0 0 1.5rem;
+	}
 
 	.hero-tagline {
 		font-family: var(--font-display);
 		font-weight: 500;
-		font-size: clamp(1.05rem, 2.4vw, 1.4rem);
-		line-height: 1.55;
+		font-size: clamp(2rem, 7.5vw, 3.5rem);
+		line-height: 1.15;
 		color: rgba(255,255,255,0.92);
 		text-shadow: 0 2px 12px rgba(0,0,0,0.35);
 		margin: 0 0 1.25rem;
@@ -116,13 +128,13 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 	/* Service info */
 	.hero-service {
 		display: flex;
-		align-items: center;
-		justify-content: center;
+		align-items: flex-start;
+		justify-content: flex-start;
 		gap: 0.5rem;
 		font-size: 0.85rem;
 		color: rgba(255,255,255,0.80);
 		text-shadow: 0 1px 8px rgba(0,0,0,0.4);
-		margin: 0 0 2rem;
+		margin: 0 0 0.35rem;
 	}
 	.service-dot {
 		display: inline-block;
@@ -130,6 +142,15 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 		border-radius: 50%;
 		background: var(--green);
 		flex-shrink: 0;
+		margin-top: calc(0.5lh - 3.5px);
+	}
+	.eyebrow-dot {
+		display: inline-block;
+		width: 7px; height: 7px;
+		border-radius: 50%;
+		background: var(--red);
+		flex-shrink: 0;
+		margin-top: calc(0.5lh - 3.5px);
 	}
 	.hero-service strong {
 		color: rgba(255,255,255,0.95);
@@ -139,7 +160,7 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 	.hero-cta {
 		display: flex;
 		gap: 0.85rem;
-		justify-content: center;
+		justify-content: flex-start;
 		flex-wrap: wrap;
 	}
 
@@ -184,38 +205,34 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 		/* Eyebrow */
 		.hero-eyebrow {
 			display: flex;
-			align-items: center;
+			align-items: flex-start;
 			gap: 0.5rem;
 			font-family: var(--font-body);
 			font-size: 0.78rem;
-			font-weight: 500;
+			font-weight: 700;
 			letter-spacing: 0.06em;
 			text-transform: lowercase;
 			color: rgba(255,255,255,0.85);
 			text-shadow: 0 1px 6px rgba(0,0,0,0.4);
 			margin: 0 0 1.25rem;
 		}
-		.eyebrow-dot {
-			display: inline-block;
-			width: 7px; height: 7px;
-			border-radius: 50%;
-			background: rgba(255,255,255,0.7);
-			flex-shrink: 0;
-		}
-
 		/* Fraunces display font, larger */
 		.hero-tagline {
-			font-size: clamp(2rem, 3.8vw, 4rem);
+			font-size: clamp(3.5rem, 5vw, 5.5rem);
 			font-weight: 400;
-			line-height: 1.15;
+			line-height: 1.1;
 			letter-spacing: -0.01em;
-			margin: 0 0 1.5rem;
+			margin: 0 0 1.25rem;
 		}
 
 		.hero-service {
 			justify-content: flex-start;
 			font-size: 0.9rem;
-			margin: 0 0 2.5rem;
+			margin: 0 0 0.4rem;
+		}
+
+		.hero-eyebrow {
+			margin: 0 0 2rem;
 		}
 
 		.hero-cta { justify-content: flex-start; }
@@ -224,7 +241,7 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 	/* Narrow mobile */
 	@media (max-width: 480px) {
 		.hero-content { padding-bottom: 3rem; }
-		.hero-cta { flex-direction: column; align-items: center; }
+		.hero-cta { flex-direction: column; align-items: flex-start; }
 		.btn { width: 100%; max-width: 260px; text-align: center; }
 	}
 </style>
@@ -232,8 +249,8 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 <script>
 	import gsap from 'gsap';
 	gsap.timeline({ delay: 0.1 })
-		.from('#hero .hero-eyebrow',  { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' })
-		.from('#hero .hero-tagline',  { opacity: 0, y: 16, duration: 0.6, ease: 'power2.out' }, '-=0.3')
-		.from('#hero .hero-service',  { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' }, '-=0.25')
+		.from('#hero .hero-tagline',  { opacity: 0, y: 16, duration: 0.7, ease: 'power3.out' })
+		.from('#hero .hero-service',  { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' }, '-=0.3')
+		.from('#hero .hero-eyebrow',  { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' }, '-=0.25')
 		.from('#hero .hero-cta',      { opacity: 0, y: 12, duration: 0.5, ease: 'power2.out' }, '-=0.2');
 </script>
