@@ -33,7 +33,7 @@ const active = (siteConfig.announcements ?? []).filter(
 
 {active.length > 0 && (
 	<section class="bg-[var(--background)] py-12">
-		<div class="max-w-[var(--content-width)] mx-auto px-6">
+		<div class="max-w-[var(--content-width)] mx-auto px-6 text-center">
 			{data.heading && (
 				<h2
 					data-tina-field={tinaField(data, 'heading')}
@@ -50,7 +50,7 @@ const active = (siteConfig.announcements ?? []).filter(
 						{item.link && (
 							<a
 								href={item.link}
-								class="self-start text-sm font-semibold text-[var(--navy)] dark:text-white hover:text-[var(--green)] dark:hover:text-[var(--green)] transition-colors"
+								class="self-center text-sm font-semibold text-[var(--navy)] dark:text-white hover:text-[var(--green)] dark:hover:text-[var(--green)] transition-colors"
 							>
 								{item.linkLabel ?? 'Learn more'} →
 							</a>
