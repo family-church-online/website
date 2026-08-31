@@ -1,0 +1,127 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+interface ArticleFrontmatter {
+	title?: string;
+	date?: string;
+	description?: string | null;
+	image?: string | null;
+}
+
+const mods = import.meta.glob<{ frontmatter: ArticleFrontmatter }>(
+	'../../content/threeminutes/*.mdx',
+	{ eager: true },
+);
+
+const articles = Object.entries(mods)
+	.map(([path, mod]) => ({
+		slug: path.replace('../../content/threeminutes/', '').replace('.mdx', ''),
+		...mod.frontmatter,
+	}))
+	.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+function fmtDate(dateStr: string) {
+	return new Date(dateStr.split('T')[0] + 'T00:00:00Z').toLocaleDateString('en-ZA', {
+		day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+	});
+}
+
+const [featured, ...rest] = articles;
+---
+
+<Base title={`Three Minutes · ${siteTitle}`} description="Short reflections on faith and everyday life.">
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-4 text-center reveal">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Articles</p>
+		<h1 class="text-3xl font-semibold lg:text-4xl text-balance">Three Minutes</h1>
+	</div>
+
+	<div class="reveal max-w-xl mx-auto px-6 pb-2 text-center">
+		<p class="text-[var(--ink)]/65 dark:text-white/55 leading-relaxed">
+			Short reflections on faith through everyday moments — written to share.
+			If you know someone asking life's big questions, send them a link.
+			Each article takes about three minutes to read.
+		</p>
+	</div>
+
+	<main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10 space-y-10">
+
+		{featured && (
+			<a
+				href={`/threeminutes/${featured.slug}`}
+				class="reveal group block bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden hover:shadow-md transition-shadow"
+			>
+				{featured.image && (
+					<div class="aspect-[3/1] overflow-hidden">
+						<img
+							src={featured.image}
+							alt={featured.title ?? ''}
+							class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+						/>
+					</div>
+				)}
+				<div class="p-8">
+					{featured.date && (
+						<time class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)]" datetime={featured.date}>
+							{fmtDate(featured.date)}
+						</time>
+					)}
+					<h2 class="text-2xl font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors mt-2 mb-4 leading-snug">
+						{featured.title}
+					</h2>
+					{featured.description && (
+						<p class="text-[var(--ink)]/70 dark:text-white/65 leading-relaxed mb-5">
+							{featured.description}
+						</p>
+					)}
+					<span class="text-sm font-semibold text-[var(--green)]">Read article →</span>
+				</div>
+			</a>
+		)}
+
+		{rest.length > 0 && (
+			<ul class="reveal grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+				{rest.map((article) => (
+					<li>
+						<a
+							href={`/threeminutes/${article.slug}`}
+							class="group flex flex-col h-full bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden hover:shadow-md transition-shadow"
+						>
+							{article.image && (
+								<div class="aspect-video overflow-hidden">
+									<img
+										src={article.image}
+										alt={article.title ?? ''}
+										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+										loading="lazy"
+									/>
+								</div>
+							)}
+							<div class="px-5 py-4 flex flex-col gap-2 flex-1">
+								<h2 class="font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] dark:group-hover:text-[var(--green)] transition-colors leading-snug">
+									{article.title}
+								</h2>
+								{article.description && (
+									<p class="text-sm text-[var(--ink)]/65 dark:text-white/55 line-clamp-3 leading-relaxed">
+										{article.description}
+									</p>
+								)}
+								{article.date && (
+									<p class="text-xs text-[var(--ink)]/40 dark:text-white/30 mt-auto pt-1">
+										{fmtDate(article.date)}
+									</p>
+								)}
+							</div>
+						</a>
+					</li>
+				))}
+			</ul>
+		)}
+
+	</main>
+</Base>

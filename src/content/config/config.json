@@ -27,11 +27,7 @@
       "children": [
         {
           "title": "Live services",
-          "link": "/video#audio"
-        },
-        {
-          "title": "Watch live",
-          "link": "/video#video"
+          "link": "/video"
         },
         {
           "title": "Catch up",
@@ -66,6 +62,10 @@
         {
           "title": "Reading Plans",
           "link": "/today#readings"
+        },
+        {
+          "title": "Outreach",
+          "link": "/threeminutes"
         }
       ]
     }

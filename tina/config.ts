@@ -8,6 +8,7 @@ import { GuideCollection } from "./collections/guide";
 import { LiveVideoCollection } from "./collections/live-video";
 import { CourseCollection } from "./collections/course";
 import { EventCollection } from "./collections/event";
+import { ThreeMinutesCollection } from "./collections/three-minutes";
 
 // Your hosting provider likely exposes this as an environment variable
 const branch =
@@ -64,6 +65,7 @@ export default defineConfig({
       LiveVideoCollection,
       CourseCollection,
       EventCollection,
+      ThreeMinutesCollection,
       GlobalConfigCollection,
     ],
   },
