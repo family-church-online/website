@@ -42,8 +42,6 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
 			const trackedIds = getTrackedListIds();
 			const lists = await fetchListMemberships(person.pcoId, trackedIds);
-			if (lists.length === 0) return;
-			if (requiredListId && !lists.includes(requiredListId)) return;
 
 			const exp = Date.now() + 10 * 60 * 1000;
 			const token = await createSession({ sub: person.pcoId, name: person.name, email, lists, exp });
