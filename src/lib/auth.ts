@@ -1,4 +1,4 @@
-import type { AstroGlobal, APIContext } from 'astro';
+import type { AstroGlobal } from 'astro';
 import { getSecret } from 'astro:env/server';
 
 // In CF Workers production: nodejs_compat_populate_process_env fills process.env
@@ -81,61 +81,54 @@ export async function readSession(token: string): Promise<SessionUser | null> {
 	}
 }
 
-// ── PKCE ─────────────────────────────────────────────────────────────────────
+// ── PCO People API — look up a person by email address ───────────────────────
 
-export async function generatePkce(): Promise<{ verifier: string; challenge: string }> {
-	const buf = new Uint8Array(32);
-	crypto.getRandomValues(buf);
-	const verifier = b64url(buf.buffer as ArrayBuffer);
-	const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-	return { verifier, challenge: b64url(hash) };
-}
-
-// ── PCO OAuth ─────────────────────────────────────────────────────────────────
-
-export function pcoAuthUrl(state: string, challenge: string): string {
-	return (
-		'https://api.planningcenteronline.com/oauth/authorize?' +
-		new URLSearchParams({
-			client_id: secret('PCO_CLIENT_ID'),
-			redirect_uri: secret('PCO_REDIRECT_URI'),
-			response_type: 'code',
-			scope: 'openid',
-			state,
-			code_challenge: challenge,
-			code_challenge_method: 'S256',
-		})
+export async function lookupPersonByEmail(
+	email: string,
+): Promise<{ pcoId: string; name: string } | null> {
+	const auth = btoa(`${secret('PCO_APP_TOKEN')}:${secret('PCO_APP_SECRET')}`);
+	const res = await fetch(
+		`https://api.planningcenteronline.com/people/v2/emails?where[address]=${encodeURIComponent(email)}&include=person&per_page=1`,
+		{ headers: { Authorization: `Basic ${auth}` } },
 	);
+	if (!res.ok) return null;
+	const json = (await res.json()) as {
+		data: Array<{ relationships: { person: { data: { id: string } } } }>;
+		included: Array<{ id: string; attributes: { name: string } }>;
+	};
+	if (json.data.length === 0) return null;
+	const pcoId = json.data[0].relationships.person.data.id;
+	const person = json.included.find((r) => r.id === pcoId);
+	return { pcoId, name: person?.attributes.name ?? email };
 }
 
-export async function exchangeCode(
-	code: string,
-	verifier: string,
-): Promise<{ id_token: string }> {
-	const res = await fetch('https://api.planningcenteronline.com/oauth/token', {
+// ── Magic link email via Resend ───────────────────────────────────────────────
+
+export async function sendMagicLink(to: string, verifyUrl: string): Promise<void> {
+	const from = 'Family Church <noreply@familychurch.online>';
+
+	const res = await fetch('https://api.resend.com/emails', {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-		body: new URLSearchParams({
-			grant_type: 'authorization_code',
-			code,
-			redirect_uri: secret('PCO_REDIRECT_URI'),
-			client_id: secret('PCO_CLIENT_ID'),
-			client_secret: secret('PCO_CLIENT_SECRET'),
-			code_verifier: verifier,
+		headers: {
+			Authorization: `Bearer ${secret('RESEND_API_KEY')}`,
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({
+			from,
+			to,
+			subject: 'Your sign-in link for Family Church',
+			html: `
+				<p>Click the link below to sign in. It expires in 10 minutes.</p>
+				<p><a href="${verifyUrl}" style="font-size:16px;font-weight:bold">Sign in to Family Church</a></p>
+				<p style="color:#666;font-size:13px">If you didn't request this, you can ignore this email.</p>
+			`,
+			text: `Sign in to Family Church:\n\n${verifyUrl}\n\nThis link expires in 10 minutes. If you didn't request this, ignore this email.`,
 		}),
 	});
 	if (!res.ok) {
 		const body = await res.text();
-		throw new Error(`PCO token exchange failed: ${res.status} — ${body}`);
+		throw new Error(`Resend failed: ${res.status} — ${body}`);
 	}
-	return res.json();
-}
-
-// JWT payload is decoded without signature verification — received directly
-// from PCO over HTTPS so the transport itself is the trust anchor.
-export function parseIdToken(idToken: string): { sub: string; name: string; email: string } {
-	const [, payload] = idToken.split('.');
-	return JSON.parse(b64urlDecode(payload));
 }
 
 // ── PCO list membership (server-side PAT check) ───────────────────────────────
@@ -176,7 +169,7 @@ export function requireAuth(
 	const user = astro.locals.user;
 	if (!user) {
 		const ret = encodeURIComponent(astro.url.pathname + astro.url.search);
-		return astro.redirect(`/api/auth/login?return=${ret}`);
+		return astro.redirect(`/login?redirect=${ret}`);
 	}
 	if (listId) {
 		const required = Array.isArray(listId) ? listId : [listId];

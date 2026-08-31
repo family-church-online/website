@@ -1,0 +1,67 @@
+---
+export const prerender = false;
+import Base from '../layouts/Base.astro';
+import { getConfig } from '../lib/data';
+
+const config = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+const redirect = Astro.url.searchParams.get('redirect') ?? '/courses';
+const error = Astro.url.searchParams.get('error');
+---
+
+<Base
+	title={`Sign In · ${siteTitle}`}
+	description="Sign in to access member content."
+	noindex={true}
+>
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-24 flex flex-col items-center">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">
+			Members
+		</p>
+		<h1 class="text-3xl font-semibold lg:text-4xl text-balance text-center mb-3">
+			Sign in
+		</h1>
+		<p class="text-base text-[var(--ink)]/65 dark:text-white/55 text-center max-w-sm mb-10 leading-relaxed">
+			Enter your email address and we'll send you a sign-in link.
+		</p>
+
+		<form
+			method="POST"
+			action="/api/auth/login"
+			class="w-full max-w-sm flex flex-col gap-4"
+		>
+			<input type="hidden" name="redirect" value={redirect} />
+
+			<div class="flex flex-col gap-1.5">
+				<label for="email" class="text-sm font-medium text-[var(--ink)] dark:text-white">
+					Email address
+				</label>
+				<input
+					id="email"
+					name="email"
+					type="email"
+					required
+					autocomplete="email"
+					placeholder="you@example.com"
+					class="w-full rounded-lg border border-[var(--navy)]/20 dark:border-white/20 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-[var(--ink)] dark:text-white placeholder:text-[var(--ink)]/35 dark:placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-[var(--navy)] dark:focus:ring-white/40"
+				/>
+			</div>
+
+			{error === 'email' && (
+				<p class="text-sm text-[var(--red)]">Please enter a valid email address.</p>
+			)}
+
+			<button
+				type="submit"
+				class="w-full rounded-full bg-[var(--navy)] text-white text-sm font-semibold py-2.5 hover:bg-[var(--green)] transition-colors"
+			>
+				Send sign-in link
+			</button>
+		</form>
+
+		<p class="mt-8 text-xs text-[var(--ink)]/45 dark:text-white/35 text-center max-w-xs">
+			Sign-in links are for church members only. If you need access, please contact us.
+		</p>
+	</div>
+</Base>

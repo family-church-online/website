@@ -1,0 +1,32 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+const config = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+---
+
+<Base
+	title={`Check your email · ${siteTitle}`}
+	description="We've sent you a sign-in link."
+	noindex={true}
+>
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-24 text-center">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">
+			Sign in
+		</p>
+		<h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-4">
+			Check your email
+		</h1>
+		<p class="text-base text-[var(--ink)]/65 dark:text-white/55 max-w-sm mx-auto leading-relaxed mb-8">
+			If your email address is registered with our church, you'll receive a sign-in link shortly. The link expires in 10 minutes.
+		</p>
+		<a
+			href="/"
+			class="inline-flex items-center gap-2 text-sm font-semibold text-[var(--navy)] dark:text-white border border-[var(--navy)]/20 dark:border-white/20 rounded-full px-5 py-2.5 hover:bg-[var(--navy)]/5 dark:hover:bg-white/5 transition-colors"
+		>
+			Back to home
+		</a>
+	</div>
+</Base>

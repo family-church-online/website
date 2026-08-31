@@ -8,26 +8,26 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 ---
 
 <Base
-	title={`Access Restricted · ${siteTitle}`}
-	description="This content is available to church members only."
+	title={`Link expired · ${siteTitle}`}
+	description="Your sign-in link has expired."
+	noindex={true}
 >
 	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-24 text-center">
 		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">
-			Members Only
+			Sign in
 		</p>
 		<h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-4">
-			Access Restricted
+			Link expired
 		</h1>
-		<p class="text-base text-[var(--ink)]/65 dark:text-white/55 max-w-md mx-auto leading-relaxed mb-8">
-			This content is available to church members only. If you believe you should have access,
-			please contact us.
+		<p class="text-base text-[var(--ink)]/65 dark:text-white/55 max-w-sm mx-auto leading-relaxed mb-8">
+			This sign-in link is no longer valid — links expire after 10 minutes. Please request a new one.
 		</p>
 		<div class="flex items-center justify-center gap-3 flex-wrap">
 			<a
 				href="/login"
 				class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-5 py-2.5 hover:bg-[var(--green)] transition-colors"
 			>
-				Try a different email
+				Request a new link
 			</a>
 			<a
 				href="/"
