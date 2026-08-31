@@ -68,6 +68,31 @@
           "link": "/threeminutes"
         }
       ]
+    },
+    {
+      "title": "Ministries",
+      "children": [
+        {
+          "title": "Kids Church",
+          "link": "/kids-church"
+        },
+        {
+          "title": "Teen Church",
+          "link": "/amplify"
+        },
+        {
+          "title": "Friday Youth",
+          "link": "/connect"
+        },
+        {
+          "title": "Retirment",
+          "link": "/retirement"
+        },
+        {
+          "title": "Sports",
+          "link": "/489"
+        }
+      ]
     }
   ],
   "contactLinks": [
