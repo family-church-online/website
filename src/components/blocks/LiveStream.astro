@@ -14,7 +14,7 @@ const { data } = Astro.props;
 ---
 
 {data.streamUrl && (
-	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6">
+	<div id="audio" class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6">
 
 		{(data.heading || data.subheading) && (
 			<div class="pt-10 pb-8 text-center reveal">

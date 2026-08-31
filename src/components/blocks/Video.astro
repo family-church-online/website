@@ -34,7 +34,7 @@ if (video?.type === 'embed') {
 }
 ---
 {video && (
-	<Section>
+	<Section id="video">
 		<div data-tina-field={tinaField(data, 'url')} class="relative mx-auto aspect-video w-full max-w-[var(--content-width)] overflow-hidden rounded-2xl border">
 			{video.type === 'youtube'
 				? <YouTubeFacade id={video.id} params={ytParams} />

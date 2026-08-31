@@ -27,11 +27,15 @@
       "children": [
         {
           "title": "Live services",
-          "link": "/video"
+          "link": "/video#audio"
+        },
+        {
+          "title": "Watch live",
+          "link": "/video#video"
         },
         {
           "title": "Catch up",
-          "link": "/video#sermons"
+          "link": "/video#catchup"
         },
         {
           "title": "Events",
@@ -44,6 +48,10 @@
       "link": "",
       "children": [
         {
+          "title": "Sermons",
+          "link": "/sermons"
+        },
+        {
           "title": "Courses",
           "link": "/courses"
         },
@@ -52,8 +60,12 @@
           "link": "/guides"
         },
         {
-          "title": "Sermons",
-          "link": "/sermons"
+          "title": "Daily Devotion",
+          "link": "/today"
+        },
+        {
+          "title": "Reading Plans",
+          "link": "/today#readings"
         }
       ]
     }
