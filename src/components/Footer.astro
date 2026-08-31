@@ -9,7 +9,7 @@ interface Props {
 
 const { config } = Astro.props;
 const seo = config?.seo ?? null;
-const nav = (config?.nav ?? []).filter(item => item !== null);
+const nav = (config?.nav ?? []).filter(item => item !== null && item.title !== 'Home');
 const contactLinks = (config?.contactLinks ?? []).filter(
 	(item): item is CmsConfigContactLink => item !== null,
 );
@@ -21,8 +21,8 @@ const year = new Date().getFullYear();
 		<div class="footer-grid">
 
 			<!-- Left: Contact -->
-			<div class="footer-col footer-col--left">
-				<p class="footer-section-label">Get in touch</p>
+			<div class="footer-contact">
+				<p class="footer-label">Get in touch</p>
 				<div class="footer-social">
 					{contactLinks.map((link) => (
 						<a
@@ -41,33 +41,41 @@ const year = new Date().getFullYear();
 						</a>
 					))}
 				</div>
-			</div>
-
-			<!-- Centre: Logo + Nav -->
-			<div class="footer-col footer-col--center">
-				<img
-					src="/images/logo-stone.png"
-					alt={seo?.title ?? 'Family Church'}
-					class="footer-logo-stone"
-				/>
-				{nav.length > 0 && (
-					<nav class="footer-links" aria-label="Footer navigation">
-						{nav.map((item) => (
-							<a href={item.link} data-tina-field={tinaField(item, 'title')}>{item.title}</a>
-						))}
-					</nav>
-				)}
-			</div>
-
-			<!-- Right: Banking -->
-			<div class="footer-col footer-col--right">
-				<p class="footer-section-label">Banking Details</p>
 				<div class="footer-banking">
+					<p class="footer-label" style="margin-bottom:0.5rem">Banking</p>
 					<p>Standard Bank</p>
 					<p>Fourways Crossing Branch</p>
 					<p>Account: 10130327822</p>
 				</div>
 			</div>
+
+			<!-- Right: Nav table — one column per top-level item -->
+			{nav.length > 0 && (
+				<nav class="footer-nav" aria-label="Footer navigation">
+					{nav.map((item) => {
+						const children = ((item as any).children ?? []).filter(Boolean);
+						return (
+							<div class="footer-nav-col">
+								<p class="footer-label">
+									{item.link
+										? <a href={item.link} data-tina-field={tinaField(item, 'title')}>{item.title}</a>
+										: <span data-tina-field={tinaField(item, 'title')}>{item.title}</span>
+									}
+								</p>
+								{children.length > 0 && (
+									<ul>
+										{children.map((child: any) => (
+											<li>
+												<a href={child.link} data-tina-field={tinaField(child, 'title')}>{child.title}</a>
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+						);
+					})}
+				</nav>
+			)}
 
 		</div>
 
@@ -86,70 +94,35 @@ const year = new Date().getFullYear();
 	}
 
 	.footer-inner {
-		max-width: 64rem;
+		max-width: var(--content-width);
 		margin: 0 auto;
 	}
 
 	.footer-grid {
 		display: grid;
-		grid-template-columns: 1fr 1fr 1fr;
-		gap: 2rem;
+		grid-template-columns: 14rem 1fr;
+		gap: 0;
 		align-items: start;
 		margin-bottom: 2.5rem;
 	}
 
-	.footer-col {
+	/* Left column */
+	.footer-contact {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 1.75rem;
+		padding-right: 2rem;
+		border-right: 1px solid rgba(255, 255, 255, 0.1);
 	}
 
-	.footer-col--left {
-		align-items: flex-start;
-	}
-
-	.footer-col--center {
-		align-items: center;
-		text-align: center;
-	}
-
-	.footer-col--right {
-		align-items: flex-end;
-		text-align: right;
-	}
-
-	.footer-section-label {
+	.footer-label {
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
 		font-size: 10px;
 		font-weight: 600;
 		color: var(--olive);
-		margin: 0;
+		margin: 0 0 0.5rem;
 	}
-
-	.footer-logo-stone {
-		height: 3.25rem;
-		width: auto;
-		object-fit: contain;
-		filter: brightness(1.4) opacity(0.9);
-	}
-
-	.footer-links {
-		display: flex;
-		gap: 1.5rem;
-		flex-wrap: wrap;
-		justify-content: center;
-	}
-	.footer-links a {
-		color: rgba(255, 255, 255, 0.5);
-		text-decoration: none;
-		font-size: 11px;
-		font-weight: 600;
-		letter-spacing: 1px;
-		text-transform: uppercase;
-		transition: color 0.2s;
-	}
-	.footer-links a:hover { color: var(--green); }
 
 	.footer-social {
 		display: flex;
@@ -168,22 +141,53 @@ const year = new Date().getFullYear();
 		text-decoration: none;
 		transition: color 0.2s, border-color 0.2s;
 	}
-	.footer-social a:hover {
-		color: var(--green);
-		border-color: var(--green);
-	}
-	.footer-social svg {
-		width: 1.1rem;
-		height: 1.1rem;
-	}
+	.footer-social a:hover { color: var(--green); border-color: var(--green); }
+	.footer-social svg { width: 1.1rem; height: 1.1rem; }
 
 	.footer-banking {
 		color: rgba(255, 255, 255, 0.35);
 		font-size: 0.78rem;
-		line-height: 1.7;
+		line-height: 1.8;
 	}
 	.footer-banking p { margin: 0; }
 
+	/* Nav table */
+	.footer-nav {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
+		gap: 0.25rem;
+		align-items: start;
+		padding-left: 2rem;
+	}
+
+	.footer-nav-col ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.footer-nav-col .footer-label a,
+	.footer-nav-col .footer-label span {
+		color: var(--olive);
+		text-decoration: none;
+		transition: color 0.2s;
+	}
+	.footer-nav-col .footer-label a:hover { color: var(--green); }
+
+	.footer-nav-col ul a {
+		color: rgba(255, 255, 255, 0.45);
+		text-decoration: none;
+		font-size: 0.75rem;
+		font-weight: 500;
+		transition: color 0.2s;
+		display: block;
+	}
+	.footer-nav-col ul a:hover { color: rgba(255, 255, 255, 0.85); }
+
+	/* Copyright */
 	.footer-copy {
 		color: rgba(255, 255, 255, 0.2);
 		font-size: 11px;
@@ -203,14 +207,19 @@ const year = new Date().getFullYear();
 		border: 0;
 	}
 
-	@media (max-width: 640px) {
+	@media (max-width: 768px) {
 		.footer-grid {
 			grid-template-columns: 1fr;
+			gap: 2rem;
 		}
-		.footer-col--left,
-		.footer-col--right {
-			align-items: center;
-			text-align: center;
+		.footer-nav {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+
+	@media (max-width: 480px) {
+		.footer-nav {
+			grid-template-columns: 1fr 1fr;
 		}
 	}
 </style>

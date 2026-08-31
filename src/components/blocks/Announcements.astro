@@ -32,12 +32,12 @@ const active = (siteConfig.announcements ?? []).filter(
 ---
 
 {active.length > 0 && (
-	<section class="bg-[var(--background)] py-12">
+	<section class="bg-[var(--background)] pt-4 pb-12">
 		<div class="max-w-[var(--content-width)] mx-auto px-6 text-center">
 			{data.heading && (
 				<h2
 					data-tina-field={tinaField(data, 'heading')}
-					class="font-display text-3xl font-semibold text-[var(--ink)] dark:text-white tracking-tight mb-6"
+					class="font-display text-4xl font-semibold text-[var(--ink)] dark:text-white tracking-tight mb-6"
 				>{data.heading}</h2>
 			)}
 			<ul class="flex flex-col gap-4">
