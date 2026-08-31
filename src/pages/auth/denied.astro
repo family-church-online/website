@@ -5,6 +5,9 @@ import { getConfig } from '../../lib/data';
 
 const config = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
+const deniedPage = config?.auth?.deniedPage;
+const heading = deniedPage?.heading ?? 'Access Restricted';
+const body = deniedPage?.body ?? 'This content is available to church members only. If you believe you should have access, please contact us.';
 ---
 
 <Base
@@ -16,11 +19,10 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 			Members Only
 		</p>
 		<h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-4">
-			Access Restricted
+			{heading}
 		</h1>
 		<p class="text-base text-[var(--ink)]/65 dark:text-white/55 max-w-md mx-auto leading-relaxed mb-8">
-			This content is available to church members only. If you believe you should have access,
-			please contact us.
+			{body}
 		</p>
 		<div class="flex items-center justify-center gap-3 flex-wrap">
 			<a

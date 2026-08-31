@@ -5,6 +5,9 @@ import { getConfig } from '../../lib/data';
 
 const config = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
+const expiredPage = config?.auth?.expiredPage;
+const heading = expiredPage?.heading ?? 'Link expired';
+const body = expiredPage?.body ?? 'This sign-in link is no longer valid — links expire after 10 minutes. Please request a new one.';
 ---
 
 <Base
@@ -17,10 +20,10 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 			Sign in
 		</p>
 		<h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-4">
-			Link expired
+			{heading}
 		</h1>
 		<p class="text-base text-[var(--ink)]/65 dark:text-white/55 max-w-sm mx-auto leading-relaxed mb-8">
-			This sign-in link is no longer valid — links expire after 10 minutes. Please request a new one.
+			{body}
 		</p>
 		<div class="flex items-center justify-center gap-3 flex-wrap">
 			<a

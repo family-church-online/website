@@ -166,6 +166,107 @@ export const GlobalConfigCollection: Collection = {
         },
       ],
     },
+    {
+      name: "auth",
+      label: "Member Access",
+      description: "Messages shown on the sign-in and access pages, and in the magic-link email sent to members.",
+      type: "object",
+      fields: [
+        {
+          name: "email",
+          label: "Sign-in Email",
+          type: "object",
+          fields: [
+            {
+              name: "subject",
+              label: "Subject Line",
+              type: "string",
+            },
+            {
+              name: "intro",
+              label: "Intro Text",
+              type: "string",
+              description: "First line of the email body, before the sign-in link.",
+            },
+            {
+              name: "linkText",
+              label: "Link Button Text",
+              type: "string",
+            },
+            {
+              name: "footer",
+              label: "Footer Note",
+              type: "string",
+            },
+          ],
+        },
+        {
+          name: "loginPage",
+          label: "Sign-in Page",
+          type: "object",
+          fields: [
+            { name: "heading", label: "Heading", type: "string" },
+            { name: "body", label: "Body Text", type: "string" },
+            { name: "footer", label: "Footer Note", type: "string", description: "Small note shown below the form." },
+          ],
+        },
+        {
+          name: "checkEmailPage",
+          label: "Check Email Page",
+          type: "object",
+          fields: [
+            { name: "heading", label: "Heading", type: "string" },
+            { name: "body", label: "Body Text", type: "string" },
+          ],
+        },
+        {
+          name: "deniedPage",
+          label: "Access Denied Page",
+          type: "object",
+          fields: [
+            { name: "heading", label: "Heading", type: "string" },
+            { name: "body", label: "Body Text", type: "string" },
+          ],
+        },
+        {
+          name: "expiredPage",
+          label: "Link Expired Page",
+          type: "object",
+          fields: [
+            { name: "heading", label: "Heading", type: "string" },
+            { name: "body", label: "Body Text", type: "string" },
+          ],
+        },
+      ],
+    },
+    {
+      name: "announcements",
+      label: "Announcements",
+      description: "Notices displayed wherever you add an Announcements block on a page. Set an expiry date so old ones disappear automatically at the next build.",
+      type: "object",
+      list: true,
+      ui: {
+        itemProps: (item) => ({ label: item.title ?? 'Announcement' }),
+      },
+      fields: [
+        { name: "title", label: "Title", type: "string", required: true },
+        { name: "body", label: "Body", type: "string", ui: { component: "textarea" } },
+        { name: "link", label: "Link URL", type: "string" },
+        {
+          name: "linkLabel",
+          label: "Link Label",
+          type: "string",
+          description: 'Text for the link button, e.g. "Sign up" or "Find out more". Defaults to "Learn more".',
+        },
+        {
+          name: "expiryDate",
+          label: "Expiry Date",
+          type: "datetime",
+          description: "Announcement stops showing after this date (takes effect on next build). Leave blank to show indefinitely.",
+          ui: { dateFormat: "YYYY-MM-DD", timeFormat: false },
+        },
+      ],
+    },
     // Add other config fields here...
   ]
 }

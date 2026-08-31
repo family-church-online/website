@@ -12,6 +12,8 @@ import { timelineBlockSchema } from '../../src/components/blocks/timeline.templa
 import { liveStreamBlockSchema } from '../../src/components/blocks/live-stream.template';
 import { recentSermonsBlockSchema } from '../../src/components/blocks/recent-sermons.template';
 import { whatsAppButtonBlockSchema } from '../../src/components/blocks/whats-app-button.template';
+import { upcomingEventsBlockSchema } from '../../src/components/blocks/upcoming-events.template';
+import { announcementsBlockSchema } from '../../src/components/blocks/announcements.template';
 
 export const PageCollection: Collection = {
 	name: 'page',
@@ -52,6 +54,8 @@ export const PageCollection: Collection = {
 				timelineBlockSchema,
 				liveStreamBlockSchema,
 				recentSermonsBlockSchema,
+				upcomingEventsBlockSchema,
+				announcementsBlockSchema,
 				whatsAppButtonBlockSchema,
 			],
 		},

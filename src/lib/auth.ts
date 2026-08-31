@@ -104,8 +104,19 @@ export async function lookupPersonByEmail(
 
 // ── Magic link email via Resend ───────────────────────────────────────────────
 
-export async function sendMagicLink(to: string, verifyUrl: string): Promise<void> {
+export interface MagicLinkEmailConfig {
+	subject?: string | null;
+	intro?: string | null;
+	linkText?: string | null;
+	footer?: string | null;
+}
+
+export async function sendMagicLink(to: string, verifyUrl: string, emailConfig?: MagicLinkEmailConfig): Promise<void> {
 	const from = 'Family Church <noreply@familychurch.online>';
+	const subject = emailConfig?.subject ?? 'Your sign-in link for Family Church';
+	const intro = emailConfig?.intro ?? 'Click the link below to sign in. It expires in 10 minutes.';
+	const linkText = emailConfig?.linkText ?? 'Sign in to Family Church';
+	const footer = emailConfig?.footer ?? "If you didn't request this, you can ignore this email.";
 
 	const res = await fetch('https://api.resend.com/emails', {
 		method: 'POST',
@@ -116,13 +127,13 @@ export async function sendMagicLink(to: string, verifyUrl: string): Promise<void
 		body: JSON.stringify({
 			from,
 			to,
-			subject: 'Your sign-in link for Family Church',
+			subject,
 			html: `
-				<p>Click the link below to sign in. It expires in 10 minutes.</p>
-				<p><a href="${verifyUrl}" style="font-size:16px;font-weight:bold">Sign in to Family Church</a></p>
-				<p style="color:#666;font-size:13px">If you didn't request this, you can ignore this email.</p>
+				<p>${intro}</p>
+				<p><a href="${verifyUrl}" style="font-size:16px;font-weight:bold">${linkText}</a></p>
+				<p style="color:#666;font-size:13px">${footer}</p>
 			`,
-			text: `Sign in to Family Church:\n\n${verifyUrl}\n\nThis link expires in 10 minutes. If you didn't request this, ignore this email.`,
+			text: `${linkText}:\n\n${verifyUrl}\n\nThis link expires in 10 minutes. ${footer}`,
 		}),
 	});
 	if (!res.ok) {

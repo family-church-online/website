@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { lookupPersonByEmail, fetchListMemberships, getTrackedListIds, createSession, sendMagicLink } from '../../../lib/auth';
+import { getConfig } from '../../../lib/data';
 
 export const prerender = false;
 
@@ -33,6 +34,9 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 		return redirect(`/login?error=email&redirect=${encodeURIComponent(returnTo)}`);
 	}
 
+	const [siteConfig] = await Promise.all([getConfig()]);
+	const emailConfig = siteConfig.data?.config?.auth?.email ?? undefined;
+
 	// Always show the same response — don't leak whether email/list matched.
 	const sendAndRedirect = async () => {
 		try {
@@ -49,7 +53,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 			const origin = new URL(request.url).origin;
 			const verifyUrl = `${origin}/api/auth/verify?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(returnTo)}`;
 
-			await sendMagicLink(email, verifyUrl);
+			await sendMagicLink(email, verifyUrl, emailConfig);
 		} catch (err) {
 			console.error('[auth/login]', err);
 		}

@@ -5,6 +5,9 @@ import { getConfig } from '../../lib/data';
 
 const config = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
+const checkEmailPage = config?.auth?.checkEmailPage;
+const heading = checkEmailPage?.heading ?? 'Check your email';
+const body = checkEmailPage?.body ?? "If your email address is registered with our church, you'll receive a sign-in link shortly. The link expires in 10 minutes.";
 ---
 
 <Base
@@ -17,10 +20,10 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 			Sign in
 		</p>
 		<h1 class="text-3xl font-semibold lg:text-4xl text-balance mb-4">
-			Check your email
+			{heading}
 		</h1>
 		<p class="text-base text-[var(--ink)]/65 dark:text-white/55 max-w-sm mx-auto leading-relaxed mb-8">
-			If your email address is registered with our church, you'll receive a sign-in link shortly. The link expires in 10 minutes.
+			{body}
 		</p>
 		<a
 			href="/"

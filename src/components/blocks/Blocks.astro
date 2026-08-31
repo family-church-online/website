@@ -13,6 +13,8 @@ import Testimonial from './Testimonial.astro';
 import Timeline from './Timeline.astro';
 import Video from './Video.astro';
 import WhatsAppButton from './WhatsAppButton.astro';
+import UpcomingEvents from './UpcomingEvents.astro';
+import Announcements from './Announcements.astro';
 import type { CmsPage } from '../../lib/data';
 
 interface Props {
@@ -41,6 +43,10 @@ const blocks = (data?.blocks ?? []).filter(b => b !== null);
 			case 'PageBlocksRecentSermons': return <RecentSermons data={block as any} />;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			case 'PageBlocksWhatsAppButton': return <WhatsAppButton data={block as any} />;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			case 'PageBlocksUpcomingEvents': return <UpcomingEvents data={block as any} />;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			case 'PageBlocksAnnouncements': return <Announcements data={block as any} />;
 		}
 	})();
 	return <div class="reveal" data-tina-field={tinaField(block)}>{rendered}</div>;

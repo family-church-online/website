@@ -1,0 +1,120 @@
+---
+import { tinaField } from '@tinacms/astro/tina-field';
+
+interface EventFrontmatter {
+	title?: string;
+	date?: string;
+	endDate?: string | null;
+	location?: string | null;
+	image?: string | null;
+	description?: string | null;
+}
+
+interface Props {
+	data: {
+		heading?: string | null;
+		count?: number | null;
+		showViewAll?: boolean | null;
+	};
+}
+
+const { data } = Astro.props;
+const heading    = data.heading    ?? 'Upcoming Events';
+const count      = data.count      ?? 3;
+const showViewAll = data.showViewAll ?? true;
+
+const eventModules = import.meta.glob<{ frontmatter: EventFrontmatter }>(
+	'../../content/events/*.mdx',
+	{ eager: true },
+);
+
+const today = new Date().toISOString().split('T')[0];
+
+const upcoming = Object.entries(eventModules)
+	.map(([path, mod]) => ({
+		slug: path.replace('../../content/events/', '').replace('.mdx', ''),
+		...mod.frontmatter,
+	}))
+	.filter(e => (e.date ?? '') >= today)
+	.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+	.slice(0, count);
+
+function dateParts(iso: string) {
+	const d = new Date(iso);
+	return {
+		day:   d.toLocaleDateString('en-GB', { day: 'numeric',   timeZone: 'UTC' }),
+		month: d.toLocaleDateString('en-GB', { month: 'short',   timeZone: 'UTC' }).toUpperCase(),
+		full:  d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),
+		time:  d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }),
+	};
+}
+---
+
+{upcoming.length > 0 && (
+	<section class="bg-[var(--background)] py-16">
+		<div class="max-w-[var(--content-width)] mx-auto px-6">
+			<div class="flex items-end justify-between mb-8 gap-4">
+				<h2
+					data-tina-field={tinaField(data, 'heading')}
+					class="font-display text-2xl font-semibold text-[var(--ink)] dark:text-white uppercase tracking-wide"
+				>{heading}</h2>
+				{showViewAll && (
+					<a
+						href="/events"
+						class="shrink-0 text-sm font-medium text-[var(--navy)] dark:text-white/70 hover:text-[var(--green)] dark:hover:text-[var(--green)] transition-colors"
+					>All events →</a>
+				)}
+			</div>
+
+			<ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+				{upcoming.map((event, i) => {
+					const parts = event.date ? dateParts(event.date) : null;
+					return (
+						<li class="reveal" data-reveal-delay={String(i * 0.07)}>
+							<a
+								href={`/events/${event.slug}`}
+								class="group flex flex-col h-full bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden hover:shadow-md transition-shadow"
+							>
+								{event.image ? (
+									<div class="aspect-video overflow-hidden">
+										<img
+											src={event.image}
+											alt={event.title ?? ''}
+											class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+											loading="lazy"
+										/>
+									</div>
+								) : (
+									<div class="bg-[var(--navy)] px-5 pt-5 pb-4">
+										{parts && (
+											<div class="flex flex-col items-start">
+												<span class="text-[var(--green)] text-xs font-bold uppercase tracking-widest">{parts.month}</span>
+												<span class="text-white text-5xl font-bold leading-none">{parts.day}</span>
+											</div>
+										)}
+									</div>
+								)}
+								<div class="px-5 py-4 flex flex-col gap-1.5 flex-1">
+									{event.image && parts && (
+										<p class="text-xs font-semibold text-[var(--olive)] uppercase tracking-wide">
+											{parts.month} {parts.day}
+										</p>
+									)}
+									<h3 class="font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] dark:group-hover:text-[var(--green)] transition-colors leading-snug">
+										{event.title}
+									</h3>
+									{event.location && (
+										<p class="text-xs text-[var(--ink)]/55 dark:text-white/45">{event.location}</p>
+									)}
+									{event.description && (
+										<p class="text-sm text-[var(--ink)]/65 dark:text-white/55 line-clamp-2 mt-0.5">{event.description}</p>
+									)}
+								</div>
+							</a>
+						</li>
+					);
+				})}
+			</ul>
+		</div>
+	</section>
+)}

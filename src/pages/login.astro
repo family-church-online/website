@@ -5,6 +5,10 @@ import { getConfig } from '../lib/data';
 
 const config = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
+const loginPage = config?.auth?.loginPage;
+const heading = loginPage?.heading ?? 'Sign in';
+const body = loginPage?.body ?? "Enter your email address and we'll send you a sign-in link.";
+const footer = loginPage?.footer ?? 'Sign-in links are for church members only. If you need access, please contact us.';
 
 const redirect = Astro.url.searchParams.get('redirect') ?? '/courses';
 const error = Astro.url.searchParams.get('error');
@@ -20,10 +24,10 @@ const error = Astro.url.searchParams.get('error');
 			Members
 		</p>
 		<h1 class="text-3xl font-semibold lg:text-4xl text-balance text-center mb-3">
-			Sign in
+			{heading}
 		</h1>
 		<p class="text-base text-[var(--ink)]/65 dark:text-white/55 text-center max-w-sm mb-10 leading-relaxed">
-			Enter your email address and we'll send you a sign-in link.
+			{body}
 		</p>
 
 		<form
@@ -61,7 +65,7 @@ const error = Astro.url.searchParams.get('error');
 		</form>
 
 		<p class="mt-8 text-xs text-[var(--ink)]/45 dark:text-white/35 text-center max-w-xs">
-			Sign-in links are for church members only. If you need access, please contact us.
+			{footer}
 		</p>
 	</div>
 </Base>

@@ -1,0 +1,63 @@
+---
+import { tinaField } from '@tinacms/astro/tina-field';
+
+interface Announcement {
+	title?: string;
+	body?: string | null;
+	link?: string | null;
+	linkLabel?: string | null;
+	expiryDate?: string | null;
+}
+
+interface SiteConfig {
+	announcements?: Announcement[] | null;
+}
+
+interface Props {
+	data: {
+		heading?: string | null;
+	};
+}
+
+const { data } = Astro.props;
+
+const configs = import.meta.glob<SiteConfig>('../../content/config/config.json', { eager: true });
+const siteConfig: SiteConfig = Object.values(configs)[0] ?? {};
+
+const today = new Date().toISOString().split('T')[0];
+
+const active = (siteConfig.announcements ?? []).filter(
+	(a) => !a.expiryDate || a.expiryDate.slice(0, 10) >= today,
+);
+---
+
+{active.length > 0 && (
+	<section class="bg-[var(--background)] py-12">
+		<div class="max-w-[var(--content-width)] mx-auto px-6">
+			{data.heading && (
+				<h2
+					data-tina-field={tinaField(data, 'heading')}
+					class="font-display text-2xl font-semibold text-[var(--ink)] dark:text-white uppercase tracking-wide mb-6"
+				>{data.heading}</h2>
+			)}
+			<ul class="flex flex-col gap-4">
+				{active.map((item) => (
+					<li class="reveal flex flex-col gap-2 bg-white dark:bg-[var(--card)] rounded-xl px-5 py-4 ring-1 ring-[var(--navy)]/8 dark:ring-white/8 border-l-4 border-[var(--green)]">
+						<p class="font-semibold text-[var(--ink)] dark:text-white">{item.title}</p>
+						{item.body && (
+							<p class="text-sm text-[var(--ink)]/65 dark:text-white/55 leading-relaxed">{item.body}</p>
+						)}
+						{item.link && (
+							<a
+								href={item.link}
+								class="self-start text-sm font-semibold text-[var(--navy)] dark:text-white hover:text-[var(--green)] dark:hover:text-[var(--green)] transition-colors"
+							>
+								{item.linkLabel ?? 'Learn more'} →
+							</a>
+						)}
+					</li>
+				))}
+			</ul>
+		</div>
+	</section>
+)}

@@ -1,0 +1,115 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+interface EventFrontmatter {
+	title?: string;
+	date?: string;
+	endDate?: string | null;
+	location?: string | null;
+	image?: string | null;
+	description?: string | null;
+	registrationUrl?: string | null;
+}
+
+export function getStaticPaths() {
+	const mods = import.meta.glob<{ frontmatter: EventFrontmatter; default: any }>(
+		'../../content/events/*.mdx',
+		{ eager: true },
+	);
+
+	return Object.entries(mods).map(([path, mod]) => ({
+		params: { slug: path.replace('../../content/events/', '').replace('.mdx', '') },
+		props:  { frontmatter: mod.frontmatter, Content: mod.default },
+	}));
+}
+
+const { frontmatter: fm, Content } = Astro.props as {
+	frontmatter: EventFrontmatter;
+	Content: any;
+};
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+function fmtDateTime(iso: string) {
+	return new Date(iso).toLocaleDateString('en-GB', {
+		weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+	});
+}
+
+function fmtTime(iso: string) {
+	const t = new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+	return t === '00:00' ? null : t;
+}
+
+const startTime = fm.date ? fmtTime(fm.date) : null;
+const endTime   = fm.endDate ? fmtTime(fm.endDate) : null;
+---
+
+<Base
+	title={`${fm.title ?? 'Event'} · ${siteTitle}`}
+	description={fm.description ?? `An event at ${siteTitle}.`}
+>
+	<article>
+		{fm.image ? (
+			<div class="aspect-[3/1] max-h-72 overflow-hidden">
+				<img src={fm.image} alt={fm.title ?? ''} class="w-full h-full object-cover" />
+			</div>
+		) : (
+			<div class="bg-[var(--navy)] py-16" />
+		)}
+
+		<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-12">
+			<a
+				href="/events"
+				class="inline-flex items-center gap-1.5 text-sm text-[var(--ink)]/50 dark:text-white/40 hover:text-[var(--green)] transition-colors mb-8"
+			>
+				← All events
+			</a>
+
+			<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Event</p>
+			<h1 class="text-3xl font-semibold lg:text-4xl text-[var(--ink)] dark:text-white mb-6 text-balance">
+				{fm.title}
+			</h1>
+
+			<dl class="flex flex-col gap-2 mb-10 text-sm text-[var(--ink)]/70 dark:text-white/60">
+				{fm.date && (
+					<div class="flex gap-2">
+						<dt class="font-medium text-[var(--ink)]/40 dark:text-white/30 w-16 shrink-0">Date</dt>
+						<dd>
+							{fmtDateTime(fm.date)}
+							{startTime && ` · ${startTime}`}
+							{endTime && ` – ${endTime}`}
+						</dd>
+					</div>
+				)}
+				{fm.location && (
+					<div class="flex gap-2">
+						<dt class="font-medium text-[var(--ink)]/40 dark:text-white/30 w-16 shrink-0">Where</dt>
+						<dd>{fm.location}</dd>
+					</div>
+				)}
+			</dl>
+
+			{fm.registrationUrl && (
+				<a
+					href={fm.registrationUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-6 py-2.5 hover:bg-[var(--green)] transition-colors mb-10"
+				>
+					Register / More info
+				</a>
+			)}
+
+			{Content && (
+				<div class="prose dark:prose-invert max-w-none">
+					<Content />
+				</div>
+			)}
+		</div>
+	</article>
+</Base>

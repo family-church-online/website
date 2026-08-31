@@ -22,34 +22,40 @@
       ]
     },
     {
-      "title": "Live",
-      "link": "/video",
+      "title": "What's On",
+      "link": "",
       "children": [
         {
-          "title": "Video",
-          "link": "/video#video"
-        },
-        {
-          "title": "Audio",
-          "link": "/video#audio"
+          "title": "Live services",
+          "link": "/video"
         },
         {
           "title": "Catch up",
           "link": "/video#sermons"
+        },
+        {
+          "title": "Events",
+          "link": "/events"
         }
       ]
     },
     {
-      "title": "Courses",
-      "link": "/courses"
-    },
-    {
-      "title": "Guides",
-      "link": "/guides"
-    },
-    {
-      "title": "Sermons",
-      "link": "/sermons"
+      "title": "Resources",
+      "link": "",
+      "children": [
+        {
+          "title": "Courses",
+          "link": "/courses"
+        },
+        {
+          "title": "Guides",
+          "link": "/guides"
+        },
+        {
+          "title": "Sermons",
+          "link": "/sermons"
+        }
+      ]
     }
   ],
   "contactLinks": [
@@ -68,5 +74,39 @@
     "enabled": true,
     "text": "Today's Devotion and Reading Plan",
     "link": "/today"
-  }
+  },
+  "auth": {
+    "email": {
+      "subject": "Your sign-in link for Family Church",
+      "intro": "Click the link below to sign in. It expires in 10 minutes.",
+      "linkText": "Sign in to Family Church",
+      "footer": "If you didn't request this, you can ignore this email."
+    },
+    "loginPage": {
+      "heading": "Sign in",
+      "body": "Enter your email address and we'll send you a sign-in link.",
+      "footer": "You need to be registered before you can sign-in. If you need access, please contact us."
+    },
+    "checkEmailPage": {
+      "heading": "Check your email",
+      "body": "If your email address is registered with our church, you'll receive a sign-in link shortly. The link expires in 10 minutes."
+    },
+    "deniedPage": {
+      "heading": "Registration Required",
+      "body": "You need to be registered for this content. Please contact us to arrange access."
+    },
+    "expiredPage": {
+      "heading": "Link expired",
+      "body": "This sign-in link is no longer valid — links expire after 10 minutes. Please request a new one."
+    }
+  },
+  "announcements": [
+    {
+      "title": "New Website Launch",
+      "body": "We're excited to launch our new website for 2027. The changes help us to make the very most of our content and to provide it in different mediums for different applications.",
+      "link": "https://dev.familychurch.online",
+      "linkLabel": "Go there now",
+      "expiryDate": "2026-09-01T13:25:43.964Z"
+    }
+  ]
 }
