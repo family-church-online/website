@@ -1,0 +1,98 @@
+---
+import { tinaField } from '@tinacms/astro/tina-field';
+import Section from '../ui/Section.astro';
+
+interface Member {
+	photo?: string | null;
+	name?: string | null;
+	role?: string | null;
+	bio?: string | null;
+}
+
+interface Props {
+	data: {
+		title?: string | null;
+		description?: string | null;
+		members?: (Member | null)[] | null;
+	};
+}
+
+const { data } = Astro.props;
+const members = (data.members ?? []).filter(m => m !== null);
+---
+<Section id="our-people">
+	<div class="mx-auto max-w-[var(--content-width)]">
+
+		<div class="mb-12 text-center">
+			{data.title && (
+				<h2 data-tina-field={tinaField(data, 'title')}
+					class="text-4xl font-semibold lg:text-5xl">
+					{data.title}
+				</h2>
+			)}
+			{data.description && (
+				<p data-tina-field={tinaField(data, 'description')}
+					class="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
+					{data.description}
+				</p>
+			)}
+		</div>
+
+		{members.length === 1 && (() => {
+			const member = members[0];
+			return (
+				<div data-tina-field={tinaField(data, 'members')} class="mx-auto max-w-3xl">
+					<div data-tina-field={tinaField(member)} class="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+						{member.photo && (
+							<div data-tina-field={tinaField(member, 'photo')} class="overflow-hidden">
+								<img src={member.photo} alt={member.name ?? ''} class="w-full object-cover" />
+							</div>
+						)}
+						{(member.name || member.role || member.bio) && (
+							<div class="flex flex-col gap-1 p-5 text-center">
+								{member.name && (
+									<h3 data-tina-field={tinaField(member, 'name')} class="text-lg font-semibold">{member.name}</h3>
+								)}
+								{member.role && (
+									<p data-tina-field={tinaField(member, 'role')} class="text-sm font-medium text-[var(--olive)]">{member.role}</p>
+								)}
+								{member.bio && (
+									<p data-tina-field={tinaField(member, 'bio')} class="mt-2 text-sm leading-relaxed text-muted-foreground">{member.bio}</p>
+								)}
+							</div>
+						)}
+					</div>
+				</div>
+			);
+		})()}
+
+		{members.length > 1 && (
+			<ul data-tina-field={tinaField(data, 'members')}
+				class="grid gap-8"
+				style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
+				{members.map((member) => (
+					<li data-tina-field={tinaField(member)}
+						class="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+						{member.photo && (
+							<div data-tina-field={tinaField(member, 'photo')} class="overflow-hidden">
+								<img src={member.photo} alt={member.name ?? ''} class="aspect-[4/3] w-full object-cover" />
+							</div>
+						)}
+						<div class="flex flex-col gap-1 p-5">
+							{member.name && (
+								<h3 data-tina-field={tinaField(member, 'name')} class="text-lg font-semibold">{member.name}</h3>
+							)}
+							{member.role && (
+								<p data-tina-field={tinaField(member, 'role')} class="text-sm font-medium text-[var(--olive)]">{member.role}</p>
+							)}
+							{member.bio && (
+								<p data-tina-field={tinaField(member, 'bio')} class="mt-2 text-sm leading-relaxed text-muted-foreground">{member.bio}</p>
+							)}
+						</div>
+					</li>
+				))}
+			</ul>
+		)}
+
+	</div>
+</Section>

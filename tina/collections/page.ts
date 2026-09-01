@@ -14,6 +14,8 @@ import { recentSermonsBlockSchema } from '../../src/components/blocks/recent-ser
 import { whatsAppButtonBlockSchema } from '../../src/components/blocks/whats-app-button.template';
 import { upcomingEventsBlockSchema } from '../../src/components/blocks/upcoming-events.template';
 import { announcementsBlockSchema } from '../../src/components/blocks/announcements.template';
+import { pageHeaderBlockSchema } from '../../src/components/blocks/page-header.template';
+import { teamBlockSchema } from '../../src/components/blocks/team.template';
 
 export const PageCollection: Collection = {
 	name: 'page',
@@ -57,6 +59,8 @@ export const PageCollection: Collection = {
 				upcomingEventsBlockSchema,
 				announcementsBlockSchema,
 				whatsAppButtonBlockSchema,
+				pageHeaderBlockSchema,
+				teamBlockSchema,
 			],
 		},
 	],

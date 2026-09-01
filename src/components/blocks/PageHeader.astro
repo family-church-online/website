@@ -1,0 +1,36 @@
+---
+import { tinaField } from '@tinacms/astro/tina-field';
+import Section from '../ui/Section.astro';
+
+interface Props {
+	data: {
+		label?: string | null;
+		heading?: string | null;
+		intro?: string | null;
+	};
+}
+
+const { data } = Astro.props;
+---
+<Section>
+	<div class="mx-auto max-w-[var(--content-width)] text-center">
+		{data.label && (
+			<p data-tina-field={tinaField(data, 'label')}
+				class="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--olive)]">
+				{data.label}
+			</p>
+		)}
+		{data.heading && (
+			<h1 data-tina-field={tinaField(data, 'heading')}
+				class="text-balance text-4xl font-semibold lg:text-5xl">
+				{data.heading}
+			</h1>
+		)}
+		{data.intro && (
+			<p data-tina-field={tinaField(data, 'intro')}
+				class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+				{data.intro}
+			</p>
+		)}
+	</div>
+</Section>

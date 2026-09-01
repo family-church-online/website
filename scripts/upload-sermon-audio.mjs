@@ -22,13 +22,14 @@
 
 import { S3Client, PutObjectCommand }   from '@aws-sdk/client-s3';
 import { readFileSync, writeFileSync,
-         existsSync, mkdirSync,
+         existsSync, statSync,
          readdirSync }                   from 'fs';
 import { join, dirname }                 from 'path';
 import { fileURLToPath }                 from 'url';
 
 const __dirname    = dirname(fileURLToPath(import.meta.url));
 const ROOT         = join(__dirname, '..');
+const ORIGINAL_DIR = join(__dirname, 'audio');
 const ENCODED_DIR  = join(__dirname, 'audio-encoded');
 const SERMONS_DIR  = join(ROOT, 'src', 'content', 'sermons');
 const MANIFEST     = join(__dirname, 'r2-audio-manifest.json');
@@ -65,13 +66,32 @@ const loadManifest = () =>
 const saveManifest = m =>
   writeFileSync(MANIFEST, JSON.stringify(m, null, 2) + '\n', 'utf-8');
 
-/** List re-encoded MP3s, newest first. */
-function listEncoded() {
-  if (!existsSync(ENCODED_DIR)) return [];
-  return readdirSync(ENCODED_DIR)
-    .filter(f => f.endsWith('.mp3'))
-    .map(f => f.replace(/\.mp3$/, ''))
-    .sort((a, b) => b.localeCompare(a));
+/** Pick the smaller of the original and re-encoded file. Returns { path, source }. */
+function bestAudio(slug) {
+  const original = join(ORIGINAL_DIR, `${slug}.mp3`);
+  const encoded  = join(ENCODED_DIR,  `${slug}.mp3`);
+  const hasOrig  = existsSync(original);
+  const hasEnc   = existsSync(encoded);
+
+  if (hasOrig && hasEnc) {
+    const origSize = statSync(original).size;
+    const encSize  = statSync(encoded).size;
+    return encSize <= origSize
+      ? { path: encoded, source: 'encoded' }
+      : { path: original, source: 'original' };
+  }
+  if (hasEnc)  return { path: encoded,  source: 'encoded'  };
+  if (hasOrig) return { path: original, source: 'original' };
+  return null;
+}
+
+/** List all slugs that have at least one audio file, newest first. */
+function listSlugs() {
+  const all = new Set([
+    ...(existsSync(ENCODED_DIR)  ? readdirSync(ENCODED_DIR)  : []),
+    ...(existsSync(ORIGINAL_DIR) ? readdirSync(ORIGINAL_DIR) : []),
+  ].filter(f => f.endsWith('.mp3')).map(f => f.replace(/\.mp3$/, '')));
+  return [...all].sort((a, b) => b.localeCompare(a));
 }
 
 /** Find the MDX file for a slug (handles slugs with or without date prefix). */
@@ -83,10 +103,9 @@ function findMdx(slug) {
   return match ? join(SERMONS_DIR, match) : null;
 }
 
-async function uploadToR2(s3, slug) {
-  const localPath = join(ENCODED_DIR, `${slug}.mp3`);
-  const key       = `sermons/${slug}.mp3`;
-  const body      = readFileSync(localPath);
+async function uploadToR2(s3, localPath, slug) {
+  const key  = `sermons/${slug}.mp3`;
+  const body = readFileSync(localPath);
 
   await s3.send(new PutObjectCommand({
     Bucket:       process.env.R2_BUCKET,
@@ -138,18 +157,19 @@ Updates: src/content/sermons/{slug}.mdx  audioUrl field
   process.exit(0);
 }
 
-if (!existsSync(ENCODED_DIR) || readdirSync(ENCODED_DIR).length === 0) {
-  console.error(`\n${cross} No files in scripts/audio-encoded/ — run sermons:audio:reencode first.\n`);
+const manifest = loadManifest();
+let   slugs    = listSlugs();
+
+if (slugs.length === 0) {
+  console.error(`\n${cross} No audio files found in scripts/audio/ or scripts/audio-encoded/.\n`);
   process.exit(1);
 }
 
-const manifest = loadManifest();
-let   slugs    = listEncoded();
 if (latest) slugs = slugs.slice(0, 1);
 
 console.log(`\n${c.bold}Sermon Audio Upload → R2${c.reset}`);
 console.log('═'.repeat(60));
-console.log(`${c.dim}${slugs.length} re-encoded files found${c.reset}\n`);
+console.log(`${c.dim}${slugs.length} audio files found${c.reset}\n`);
 
 if (check) {
   let done = 0, pending = 0;
@@ -194,13 +214,20 @@ for (const slug of slugs) {
     continue;
   }
 
-  console.log(`  ${slug}`);
+  const best = bestAudio(slug);
+  if (!best) {
+    console.log(`${cross} ${c.yellow}no file${c.reset}   ${slug}`);
+    failed++;
+    continue;
+  }
+
+  console.log(`  ${slug} ${c.dim}(${best.source})${c.reset}`);
 
   // 1. Upload to R2
   process.stdout.write(`    ${c.dim}↑ uploading …${c.reset} `);
   let publicUrl;
   try {
-    publicUrl = await uploadToR2(s3, slug);
+    publicUrl = await uploadToR2(s3, best.path, slug);
     process.stdout.write(`${tick}\n`);
   } catch (err) {
     process.stdout.write(`${cross}\n`);
