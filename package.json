@@ -23,6 +23,8 @@
     "threeminutes:migrate-images:check": "node scripts/migrate-sermon-images.mjs --collection threeminutes --check",
     "devotion:migrate-images": "node scripts/migrate-sermon-images.mjs --collection devotion",
     "devotion:migrate-images:check": "node scripts/migrate-sermon-images.mjs --collection devotion --check",
+    "sermons:audio:download": "node scripts/download-sermon-audio.mjs",
+    "sermons:audio:download:check": "node scripts/download-sermon-audio.mjs --check",
     "sermons:audio": "node scripts/upload-audio.mjs",
     "sermons:audio:check": "node scripts/upload-audio.mjs --check",
     "sermons:check": "node scripts/import-sermons.mjs --check",
