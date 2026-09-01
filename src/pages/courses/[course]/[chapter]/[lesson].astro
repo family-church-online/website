@@ -425,6 +425,7 @@ function initCoursePage() {
   function showResults() {
     if (!resultsPanel || !resultsScore || !resultsLabel) return;
     resultsPanel.classList.remove('hidden');
+    resultsPanel.classList.add('is-visible');
     resultsScore.textContent = `${correct} / ${totalQuestions}`;
 
     const pct = correct / totalQuestions;
@@ -443,7 +444,7 @@ function initCoursePage() {
     correct = 0;
     updateScoreBar();
     if (resetBtn) resetBtn.classList.add('hidden');
-    if (resultsPanel) resultsPanel.classList.add('hidden');
+    if (resultsPanel) { resultsPanel.classList.add('hidden'); resultsPanel.classList.remove('is-visible'); }
 
     document.querySelectorAll('.mcq-block').forEach(block => {
       delete (block as HTMLElement).dataset.answered;
