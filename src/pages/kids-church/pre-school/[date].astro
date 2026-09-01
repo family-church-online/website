@@ -40,13 +40,16 @@ const { frontmatter: fm, Content, prev, next } = Astro.props as {
 	next: { date: string; title?: string } | null;
 };
 
-const config    = (await getConfig()).data?.config ?? null;
-const siteTitle = config?.seo?.title ?? 'Family Church';
+const config       = (await getConfig()).data?.config ?? null;
+const siteTitle    = config?.seo?.title ?? 'Family Church';
+const kc           = (config as any)?.kidsChurch ?? {};
+const ministryName = kc.ministryName ?? 'Kids Church';
+const groupLabel   = kc.preschoolLabel ?? 'Pre-School';
 ---
 
-<Base title={`${fm.title ?? 'Lesson'} · Kids Church Pre-School · ${siteTitle}`} description={fm.scripture ?? 'A weekly lesson for pre-school children from Family Church.'}>
+<Base title={`${fm.title ?? 'Lesson'} · ${ministryName} ${groupLabel} · ${siteTitle}`} description={fm.scripture ?? `A weekly lesson for ${groupLabel} children from Family Church.`}>
 	<LessonPage
-		label="Kids Church — Pre-School"
+		label={`${ministryName} — ${groupLabel}`}
 		baseRoute="/kids-church/pre-school"
 		{date}
 		frontmatter={fm}

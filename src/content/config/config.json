@@ -141,6 +141,15 @@
       "body": "This sign-in link is no longer valid — links expire after 10 minutes. Please request a new one."
     }
   },
+  "kidsChurch": {
+    "ministryName": "Kids Church",
+    "preschoolLabel": "Pre-School",
+    "preschoolAges": "Ages 3–5",
+    "juniorLabel": "Junior",
+    "juniorAges": "Ages 6–9",
+    "seniorLabel": "Senior",
+    "seniorAges": "Ages 10–12"
+  },
   "announcements": [
     {
       "title": "New Website Launch",

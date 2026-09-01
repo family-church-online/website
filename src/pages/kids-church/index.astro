@@ -6,34 +6,37 @@ import { getConfig } from '../../lib/data';
 
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
+const kc        = (config as any)?.kidsChurch ?? {};
+
+const ministryName = kc.ministryName ?? 'Kids Church';
 
 const groups = [
 	{
 		href: '/kids-church/pre-school',
-		label: 'Pre-School',
-		ages: 'Ages 3 – 5',
+		label: kc.preschoolLabel ?? 'Pre-School',
+		ages:  kc.preschoolAges  ?? '',
 		color: 'var(--green)',
 	},
 	{
 		href: '/kids-church/junior',
-		label: 'Junior',
-		ages: 'Ages 6 – 9',
+		label: kc.juniorLabel ?? 'Junior',
+		ages:  kc.juniorAges  ?? '',
 		color: 'var(--navy)',
 	},
 	{
 		href: '/kids-church/senior',
-		label: 'Senior',
-		ages: 'Ages 10 – 12',
+		label: kc.seniorLabel ?? 'Senior',
+		ages:  kc.seniorAges  ?? '',
 		color: 'var(--olive)',
 	},
 ];
 ---
 
-<Base title={`Kids Church · ${siteTitle}`} description="Weekly lessons for children at Family Church — Pre-School, Junior, and Senior groups.">
+<Base title={`${ministryName} · ${siteTitle}`} description={`Weekly lessons for children at Family Church — ${groups.map(g => g.label).join(', ')}.`}>
 
 	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-12 pb-4 text-center">
 		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">Ministry</p>
-		<h1 class="font-display text-4xl font-semibold mb-3">Kids Church</h1>
+		<h1 class="font-display text-4xl font-semibold mb-3">{ministryName}</h1>
 		<p class="text-[var(--ink)]/55 dark:text-white/50 text-sm max-w-sm mx-auto">
 			Weekly lessons for children. Choose your age group below.
 		</p>
@@ -56,7 +59,9 @@ const groups = [
 						<p class="font-display text-xl font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors">
 							{g.label}
 						</p>
-						<p class="text-xs text-[var(--ink)]/45 dark:text-white/40 mt-0.5">{g.ages}</p>
+						{g.ages && (
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40 mt-0.5">{g.ages}</p>
+						)}
 					</div>
 					<svg class="w-4 h-4 text-[var(--navy)]/25 group-hover:text-[var(--green)] transition-colors mt-1" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
 						<path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>

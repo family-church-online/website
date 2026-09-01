@@ -268,6 +268,56 @@ export const GlobalConfigCollection: Collection = {
         },
       ],
     },
+    {
+      name: 'kidsChurch',
+      label: 'Kids Church Ministry',
+      description: 'Names and age ranges shown on the Kids Church landing page and lesson headers.',
+      type: 'object',
+      fields: [
+        {
+          name: 'ministryName',
+          label: 'Ministry Name',
+          type: 'string',
+          description: 'e.g. "Bravehearts" or "Kids Church" — shown as the main heading.',
+        },
+        {
+          name: 'preschoolLabel',
+          label: 'Pre-School Group Name',
+          type: 'string',
+          description: 'e.g. "Tiny Tots" or "Pre-School"',
+        },
+        {
+          name: 'preschoolAges',
+          label: 'Pre-School Age Range',
+          type: 'string',
+          description: 'e.g. "Ages 3–5"',
+        },
+        {
+          name: 'juniorLabel',
+          label: 'Junior Group Name',
+          type: 'string',
+          description: 'e.g. "Explorers" or "Junior"',
+        },
+        {
+          name: 'juniorAges',
+          label: 'Junior Age Range',
+          type: 'string',
+          description: 'e.g. "Ages 6–9"',
+        },
+        {
+          name: 'seniorLabel',
+          label: 'Senior Group Name',
+          type: 'string',
+          description: 'e.g. "Champions" or "Senior"',
+        },
+        {
+          name: 'seniorAges',
+          label: 'Senior Age Range',
+          type: 'string',
+          description: 'e.g. "Ages 10–12"',
+        },
+      ],
+    },
     // Add other config fields here...
   ]
 }

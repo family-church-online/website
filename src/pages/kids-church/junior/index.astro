@@ -19,15 +19,19 @@ const lessons = Object.entries(mods)
 	}))
 	.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
 
-const config    = (await getConfig()).data?.config ?? null;
-const siteTitle = config?.seo?.title ?? 'Family Church';
+const config       = (await getConfig()).data?.config ?? null;
+const siteTitle    = config?.seo?.title ?? 'Family Church';
+const kc           = (config as any)?.kidsChurch ?? {};
+const ministryName = kc.ministryName ?? 'Kids Church';
+const groupLabel   = kc.juniorLabel ?? 'Junior';
+const groupAges    = kc.juniorAges ?? '';
 ---
 
-<Base title={`Kids Church — Junior · ${siteTitle}`} description="Weekly lessons for junior children from Family Church.">
+<Base title={`${ministryName} — ${groupLabel} · ${siteTitle}`} description={`Weekly lessons for ${groupLabel} children from Family Church.`}>
 	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-12 pb-4">
-		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">Kids Church</p>
-		<h1 class="font-display text-4xl font-semibold mb-1">Junior</h1>
-		<p class="text-[var(--ink)]/55 dark:text-white/50 text-sm">Weekly lessons for juniors</p>
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">{ministryName}</p>
+		<h1 class="font-display text-4xl font-semibold mb-1">{groupLabel}</h1>
+		{groupAges && <p class="text-[var(--ink)]/55 dark:text-white/50 text-sm">{groupAges}</p>}
 	</div>
 
 	<main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-8">
