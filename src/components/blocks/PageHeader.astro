@@ -30,7 +30,7 @@ const { data } = Astro.props;
 		)}
 		{data.body && (
 			<div data-tina-field={tinaField(data, 'body')}
-				class="prose prose-lg mt-6 max-w-none text-muted-foreground">
+				class="prose prose-lg mt-16 max-w-none text-muted-foreground">
 				<TinaMarkdown content={data.body} />
 			</div>
 		)}

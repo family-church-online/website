@@ -22,7 +22,7 @@ interface Props {
 const { data } = Astro.props;
 const members = (data.members ?? []).filter(m => m !== null);
 ---
-<Section id="our-people">
+<Section id="our-people" class="pt-6">
 	<div class="mx-auto max-w-[var(--content-width)]">
 
 		<div class="mb-12">
@@ -43,7 +43,7 @@ const members = (data.members ?? []).filter(m => m !== null);
 		{members.length === 1 && (() => {
 			const member = members[0];
 			return (
-				<div data-tina-field={tinaField(data, 'members')} class="mx-auto max-w-3xl">
+				<div data-tina-field={tinaField(data, 'members')}>
 					<div data-tina-field={tinaField(member)} class="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
 						{member.photo && (
 							<div data-tina-field={tinaField(member, 'photo')} class="overflow-hidden">
