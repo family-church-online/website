@@ -28,9 +28,9 @@ const groupAges    = kc.juniorAges ?? '';
 ---
 
 <Base title={`${ministryName} — ${groupLabel} · ${siteTitle}`} description={`Weekly lessons for ${groupLabel} children from Family Church.`}>
-	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-12 pb-4">
-		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">{ministryName}</p>
-		<h1 class="font-display text-4xl font-semibold mb-1">{groupLabel}</h1>
+	<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-4 text-center">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">{ministryName}</p>
+		<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-2">{groupLabel}</h1>
 		{groupAges && <p class="text-[var(--ink)]/55 dark:text-white/50 text-sm">{groupAges}</p>}
 	</div>
 

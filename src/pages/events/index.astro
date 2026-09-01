@@ -52,13 +52,12 @@ function dateParts(iso: string) {
 ---
 
 <Base title={`Events · ${siteTitle}`} description="Upcoming events at Family Church.">
-	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-16">
+	<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-4 text-center">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">What's On</p>
+		<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance">Events</h1>
+	</div>
 
-		<div class="mb-12">
-			<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">What's On</p>
-			<h1 class="font-display text-4xl font-semibold lg:text-5xl text-[var(--ink)] dark:text-white">Events</h1>
-		</div>
-
+	<main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10">
 		{upcoming.length > 0 ? (
 			<section class="mb-16">
 				<h2 class="text-sm font-semibold uppercase tracking-widest text-[var(--olive)] mb-6">Upcoming</h2>
@@ -141,5 +140,5 @@ function dateParts(iso: string) {
 			</section>
 		)}
 
-	</div>
+	</main>
 </Base>
