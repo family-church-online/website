@@ -71,7 +71,8 @@ export default defineConfig({
 				!page.includes('/auth/') &&
 				!page.includes('/login') &&
 				!page.includes('/today') &&
-				!page.includes('/courses/'),
+				!page.includes('/courses/') &&
+				!page.includes('/devotion/feed.xml'),
 		}),
 		icon(),
 		tina(),
