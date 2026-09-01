@@ -17,6 +17,8 @@
     "sermons:download:check": "node scripts/download-sermons.mjs --check",
     "sermons:images": "node scripts/download-images.mjs",
     "sermons:images:check": "node scripts/download-images.mjs --check",
+    "sermons:migrate-images": "node scripts/migrate-sermon-images.mjs",
+    "sermons:migrate-images:check": "node scripts/migrate-sermon-images.mjs --check",
     "sermons:audio": "node scripts/upload-audio.mjs",
     "sermons:audio:check": "node scripts/upload-audio.mjs --check",
     "sermons:check": "node scripts/import-sermons.mjs --check",
