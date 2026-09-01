@@ -27,6 +27,8 @@
     "sermons:audio:download:check": "node scripts/download-sermon-audio.mjs --check",
     "sermons:audio:reencode": "node scripts/reencode-audio.mjs",
     "sermons:audio:reencode:check": "node scripts/reencode-audio.mjs --check",
+    "sermons:audio:upload": "node scripts/upload-sermon-audio.mjs",
+    "sermons:audio:upload:check": "node scripts/upload-sermon-audio.mjs --check",
     "sermons:audio": "node scripts/upload-audio.mjs",
     "sermons:audio:check": "node scripts/upload-audio.mjs --check",
     "sermons:check": "node scripts/import-sermons.mjs --check",
