@@ -12,6 +12,7 @@ scripts/drive/comp-tax/
 scripts/drive/enriched/
 scripts/drive/sermon-blocks/
 scripts/audio/
+scripts/audio-encoded/
 scripts/.google-credentials.json
 scripts/.google-token.json
 
