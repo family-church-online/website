@@ -51,6 +51,7 @@ export const EventCollection: Collection = {
 			name: 'image',
 			label: 'Image',
 			type: 'image',
+			ui: { uploadDir: () => '/images/events' },
 		},
 		{
 			name: 'description',

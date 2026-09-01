@@ -80,6 +80,7 @@ export const SermonCollection: Collection = {
 			name: 'image',
 			label: 'Sermon Image',
 			type: 'image',
+			ui: { uploadDir: () => '/images/sermons' },
 		},
 		{
 			name: 'audioUrl',

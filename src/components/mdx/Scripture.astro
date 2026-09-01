@@ -1,12 +1,12 @@
 ---
-interface Props { ref?: string; }
-const { ref } = Astro.props;
+interface Props { ref?: string; text?: string; }
+const { ref, text } = Astro.props;
 ---
 <div class="my-6 bg-[var(--navy)]/5 dark:bg-white/5 border-l-4 border-[var(--green)] rounded-r-xl p-5">
 	{ref && (
 		<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">{ref}</p>
 	)}
 	<blockquote class="text-[var(--ink)]/80 dark:text-white/75 italic leading-relaxed">
-		<slot />
+		{text ? text : <slot />}
 	</blockquote>
 </div>
