@@ -6,7 +6,7 @@ export const pageHeaderBlockSchema: Template = {
 	fields: [
 		{ type: 'string', label: 'Label (small eyebrow)', name: 'label' },
 		{ type: 'string', label: 'Heading', name: 'heading' },
-		{ type: 'string', label: 'Intro paragraph', name: 'intro', ui: { component: 'textarea' } },
+		{ type: 'rich-text', label: 'Intro', name: 'intro' },
 	],
 	ui: {
 		defaultItem: {

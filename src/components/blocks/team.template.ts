@@ -5,7 +5,7 @@ export const teamBlockSchema: Template = {
 	label: 'Team / People',
 	fields: [
 		{ type: 'string', label: 'Heading', name: 'title' },
-		{ type: 'string', label: 'Description', name: 'description', ui: { component: 'textarea' } },
+		{ type: 'rich-text', label: 'Description', name: 'description' },
 		{
 			type: 'object', label: 'Members', name: 'members', list: true,
 			ui: {

@@ -1,5 +1,6 @@
 ---
 import { tinaField } from '@tinacms/astro/tina-field';
+import TinaMarkdown from '@tinacms/astro/TinaMarkdown.astro';
 import Section from '../ui/Section.astro';
 
 interface Member {
@@ -12,7 +13,8 @@ interface Member {
 interface Props {
 	data: {
 		title?: string | null;
-		description?: string | null;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		description?: any;
 		members?: (Member | null)[] | null;
 	};
 }
@@ -23,18 +25,18 @@ const members = (data.members ?? []).filter(m => m !== null);
 <Section id="our-people">
 	<div class="mx-auto max-w-[var(--content-width)]">
 
-		<div class="mb-12 text-center">
+		<div class="mb-12">
 			{data.title && (
 				<h2 data-tina-field={tinaField(data, 'title')}
-					class="text-4xl font-semibold lg:text-5xl">
+					class="text-center text-4xl font-semibold lg:text-5xl">
 					{data.title}
 				</h2>
 			)}
 			{data.description && (
-				<p data-tina-field={tinaField(data, 'description')}
-					class="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-					{data.description}
-				</p>
+				<div data-tina-field={tinaField(data, 'description')}
+					class="prose prose-lg mt-6 max-w-none text-muted-foreground">
+					<TinaMarkdown content={data.description} />
+				</div>
 			)}
 		</div>
 
