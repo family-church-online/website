@@ -38,6 +38,7 @@ export const GuideCollection: Collection = {
 			name: 'image',
 			label: 'Image',
 			type: 'image',
+			ui: { uploadDir: () => '/images/guides' },
 			description: 'Cover image shown on the listing page and at the top of the guide.',
 		},
 		{

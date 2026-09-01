@@ -31,9 +31,9 @@ export const ThreeMinutesCollection: Collection = {
 		},
 		{
 			name: 'image',
-			label: 'Image URL',
-			type: 'string',
-			description: 'Full URL of the article image.',
+			label: 'Image',
+			type: 'image',
+			ui: { uploadDir: () => '/images/three-minutes' },
 		},
 		{
 			name: 'description',

@@ -46,6 +46,7 @@ export const GlobalConfigCollection: Collection = {
           name: 'logo',
           label: 'Logo',
           type: 'image',
+          ui: { uploadDir: () => '/images/site' },
           description: 'Shown next to the Site Name in the header navigation.',
         },
         {
