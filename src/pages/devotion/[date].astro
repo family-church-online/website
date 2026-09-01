@@ -96,9 +96,28 @@ function prayerLines(text: string | null | undefined): string[] {
 
 const pageTitle = `${fm.title ?? 'Daily Devotion'} · ${siteTitle}`;
 const pageDesc  = fm.reflection ? paras(fm.reflection)[0]?.substring(0, 160) + '…' : 'A daily devotion from Family Church.';
+
+const siteUrl = new URL('/', Astro.site).toString().replace(/\/$/, '');
+const articleLd = {
+	'@context': 'https://schema.org',
+	'@type': 'Article',
+	headline: fm.title,
+	datePublished: date,
+	description: pageDesc,
+	...(fm.image && { image: fm.image.startsWith('http') ? fm.image : `${siteUrl}${fm.image}` }),
+	url: `${siteUrl}/devotion/${date}`,
+	author: { '@type': 'Organization', name: siteTitle, url: siteUrl },
+	publisher: {
+		'@type': 'Organization',
+		name: siteTitle,
+		url: siteUrl,
+		logo: { '@type': 'ImageObject', url: `${siteUrl}/images/logo-stone.png` },
+	},
+};
 ---
 
 <Base title={pageTitle} description={pageDesc} image={fm.image ?? undefined}>
+	<script slot="head" type="application/ld+json" set:html={JSON.stringify(articleLd)} />
 
   {/* ── PAGE HEADER ────────────────────────────────────────────────────────── */}
   <div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">

@@ -54,9 +54,28 @@ function fmtDate(dateStr: string) {
 
 const pageTitle = `${fm.title ?? 'Guide'} · ${siteTitle}`;
 const pageDesc = fm.excerpt ?? 'A guide from Family Church.';
+
+const siteUrl = new URL('/', Astro.site).toString().replace(/\/$/, '');
+const articleLd = {
+	'@context': 'https://schema.org',
+	'@type': 'Article',
+	headline: fm.title,
+	...(fm.date && { datePublished: fm.date }),
+	...(fm.excerpt && { description: fm.excerpt }),
+	...(fm.image && { image: fm.image.startsWith('http') ? fm.image : `${siteUrl}${fm.image}` }),
+	url: `${siteUrl}/guides/${Astro.params.slug}`,
+	author: { '@type': 'Organization', name: siteTitle, url: siteUrl },
+	publisher: {
+		'@type': 'Organization',
+		name: siteTitle,
+		url: siteUrl,
+		logo: { '@type': 'ImageObject', url: `${siteUrl}/images/logo-stone.png` },
+	},
+};
 ---
 
 <Base title={pageTitle} description={pageDesc} image={fm.image ?? undefined}>
+	<script slot="head" type="application/ld+json" set:html={JSON.stringify(articleLd)} />
 
 	{/* Page header */}
 	<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">

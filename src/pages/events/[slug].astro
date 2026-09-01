@@ -47,12 +47,37 @@ function fmtTime(iso: string) {
 
 const startTime = fm.date ? fmtTime(fm.date) : null;
 const endTime   = fm.endDate ? fmtTime(fm.endDate) : null;
+
+const siteUrl = new URL('/', Astro.site).toString().replace(/\/$/, '');
+const eventLd = {
+	'@context': 'https://schema.org',
+	'@type': 'Event',
+	name: fm.title,
+	...(fm.date && { startDate: fm.date }),
+	...(fm.endDate && { endDate: fm.endDate }),
+	...(fm.description && { description: fm.description }),
+	...(fm.image && { image: fm.image.startsWith('http') ? fm.image : `${siteUrl}${fm.image}` }),
+	...(fm.location && {
+		location: {
+			'@type': 'Place',
+			name: fm.location,
+		},
+	}),
+	organizer: {
+		'@type': 'Church',
+		name: config?.seo?.title ?? 'Family Church',
+		url: siteUrl,
+	},
+	eventStatus: 'https://schema.org/EventScheduled',
+	eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+};
 ---
 
 <Base
 	title={`${fm.title ?? 'Event'} · ${siteTitle}`}
 	description={fm.description ?? `An event at ${siteTitle}.`}
 >
+	<script slot="head" type="application/ld+json" set:html={JSON.stringify(eventLd)} />
 	<article>
 		{fm.image ? (
 			<div class="aspect-[3/1] max-h-72 overflow-hidden">
