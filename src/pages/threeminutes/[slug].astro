@@ -75,6 +75,7 @@ const articleLd = {
 	title={`${fm.title ?? 'Article'} · ${siteTitle}`}
 	description={fm.description ?? 'A Three Minutes article from Family Church.'}
 	image={fm.image ?? undefined}
+	ogType="article"
 >
 	<script slot="head" type="application/ld+json" set:html={JSON.stringify(articleLd)} />
 	<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">

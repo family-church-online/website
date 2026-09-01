@@ -66,7 +66,12 @@ export default defineConfig({
 				!page.includes('/sermons/feed.xml') &&
 				!page.match(/\/sermons\/?$/) &&
 				!page.includes('/404') &&
-				!page.includes('/tina-island'),
+				!page.includes('/tina-island') &&
+				!page.includes('/api/') &&
+				!page.includes('/auth/') &&
+				!page.includes('/login') &&
+				!page.includes('/today') &&
+				!page.includes('/courses/'),
 		}),
 		icon(),
 		tina(),

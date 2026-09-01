@@ -116,7 +116,7 @@ const articleLd = {
 };
 ---
 
-<Base title={pageTitle} description={pageDesc} image={fm.image ?? undefined}>
+<Base title={pageTitle} description={pageDesc} image={fm.image ?? undefined} ogType="article">
 	<script slot="head" type="application/ld+json" set:html={JSON.stringify(articleLd)} />
 
   {/* ── PAGE HEADER ────────────────────────────────────────────────────────── */}

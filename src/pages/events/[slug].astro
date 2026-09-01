@@ -76,6 +76,7 @@ const eventLd = {
 <Base
 	title={`${fm.title ?? 'Event'} · ${siteTitle}`}
 	description={fm.description ?? `An event at ${siteTitle}.`}
+	ogType="article"
 >
 	<script slot="head" type="application/ld+json" set:html={JSON.stringify(eventLd)} />
 	<article>
