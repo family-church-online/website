@@ -26,6 +26,24 @@
       ]
     },
     {
+      "title": "What's On",
+      "link": "",
+      "children": [
+        {
+          "title": "Live services",
+          "link": "/video"
+        },
+        {
+          "title": "Catch up",
+          "link": "/video#catchup"
+        },
+        {
+          "title": "Events",
+          "link": "/events"
+        }
+      ]
+    },
+    {
       "title": "Resources",
       "link": "",
       "children": [
@@ -77,24 +95,6 @@
         {
           "title": "Sports",
           "link": "/489"
-        }
-      ]
-    },
-    {
-      "title": "What's On",
-      "link": "",
-      "children": [
-        {
-          "title": "Live services",
-          "link": "/video"
-        },
-        {
-          "title": "Catch up",
-          "link": "/video#catchup"
-        },
-        {
-          "title": "Events",
-          "link": "/events"
         }
       ]
     }

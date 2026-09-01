@@ -1,0 +1,78 @@
+---
+import YouTube from '../mdx/YouTube.astro';
+import Scripture from '../mdx/Scripture.astro';
+import Download from '../mdx/Download.astro';
+import Timeline from '../mdx/Timeline.astro';
+import Step from '../mdx/Step.astro';
+
+interface LessonFrontmatter {
+	title?: string;
+	date?: string;
+	scripture?: string;
+}
+
+interface Props {
+	label: string;
+	baseRoute: string;
+	date: string;
+	frontmatter: LessonFrontmatter;
+	Content: any;
+	prev: { date: string; title?: string } | null;
+	next: { date: string; title?: string } | null;
+}
+
+const { label, baseRoute, date, frontmatter: fm, Content, prev, next } = Astro.props;
+
+function fmtDate(d: string) {
+	return new Date(d + 'T00:00:00Z').toLocaleDateString('en-ZA', {
+		weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+	});
+}
+---
+
+<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-4 text-center">
+	<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">{label}</p>
+	<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-3">
+		{fm.title ?? 'Lesson'}
+	</h1>
+	<time class="text-sm text-[var(--ink)]/50 dark:text-white/50" datetime={date}>{fmtDate(date)}</time>
+	{fm.scripture && (
+		<p class="mt-2 text-sm italic text-[var(--olive)]">{fm.scripture}</p>
+	)}
+</div>
+
+<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-8 prose prose-neutral dark:prose-invert max-w-none
+	prose-headings:font-display prose-headings:text-[var(--navy)] dark:prose-headings:text-white
+	prose-a:text-[var(--green)] prose-a:no-underline hover:prose-a:underline
+	prose-blockquote:not-italic prose-blockquote:border-[var(--green)]
+	prose-img:rounded-xl prose-img:shadow-md">
+	<Content components={{ YouTube, Scripture, Download, Timeline, Step }} />
+</div>
+
+{(prev || next) && (
+	<nav class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-12 flex items-stretch gap-3">
+		{prev ? (
+			<a href={`${baseRoute}/${prev.date}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow no-underline">
+				<svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+					<path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+				<div class="min-w-0">
+					<p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Previous</p>
+					<p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{prev.title}</p>
+				</div>
+			</a>
+		) : <div class="flex-1" />}
+
+		{next ? (
+			<a href={`${baseRoute}/${next.date}`} class="group flex-1 flex items-center justify-end gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow text-right no-underline">
+				<div class="min-w-0">
+					<p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Next</p>
+					<p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{next.title}</p>
+				</div>
+				<svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+					<path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</a>
+		) : <div class="flex-1" />}
+	</nav>
+)}

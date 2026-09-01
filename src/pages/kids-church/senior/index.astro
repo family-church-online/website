@@ -1,0 +1,44 @@
+---
+export const prerender = true;
+
+import Base from '../../../layouts/Base.astro';
+import LessonCard from '../../../components/ministry/LessonCard.astro';
+import { getConfig } from '../../../lib/data';
+
+interface Frontmatter { title?: string; date?: string; scripture?: string; }
+
+const mods = import.meta.glob<{ frontmatter: Frontmatter }>(
+	'../../../content/kids/senior/*.mdx',
+	{ eager: true },
+);
+
+const lessons = Object.entries(mods)
+	.map(([path, mod]) => ({
+		date: path.replace('../../../content/kids/senior/', '').replace('.mdx', ''),
+		...mod.frontmatter,
+	}))
+	.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+---
+
+<Base title={`Kids Church — Senior · ${siteTitle}`} description="Weekly lessons for senior children from Family Church.">
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-12 pb-4">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">Kids Church</p>
+		<h1 class="font-display text-4xl font-semibold mb-1">Senior</h1>
+		<p class="text-[var(--ink)]/55 dark:text-white/50 text-sm">Weekly lessons for seniors</p>
+	</div>
+
+	<main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-8">
+		{lessons.length === 0 ? (
+			<p class="text-[var(--ink)]/50 dark:text-white/40 text-sm">No lessons published yet.</p>
+		) : (
+			<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+				{lessons.map(l => (
+					<LessonCard href={`/kids-church/senior/${l.date}`} date={l.date} title={l.title} scripture={l.scripture} />
+				))}
+			</div>
+		)}
+	</main>
+</Base>
