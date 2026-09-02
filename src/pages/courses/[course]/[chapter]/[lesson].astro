@@ -145,7 +145,6 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
         <div class="flex items-baseline justify-between mb-2">
           <span class="text-xs font-bold uppercase tracking-widest text-[var(--olive)]">Progress</span>
           <div class="flex items-center gap-3">
-            <span id="prev-score" class="hidden text-xs text-[var(--ink)]/40 dark:text-white/30 tabular-nums"></span>
             <span id="score-text" class="text-sm font-semibold text-[var(--navy)] dark:text-white tabular-nums">
               0 / {sections.reduce((n, s) => n + (s.questions?.length ?? 0), 0)}
             </span>
@@ -405,13 +404,6 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
 </style>
 
 <script>
-interface LessonProgress {
-  score: number;
-  total: number;
-  durationSecs: number;
-  completedAt: string;
-}
-
 let _courseAbort: AbortController | null = null;
 
 function initCoursePage() {
@@ -426,7 +418,6 @@ function initCoursePage() {
 
   const scoreText    = document.getElementById('score-text');
   const scoreFill    = document.getElementById('score-fill');
-  const prevScore    = document.getElementById('prev-score');
   const resetBtn     = document.getElementById('reset-btn');
   const resultsPanel = document.getElementById('results-panel');
   const resultsScore = document.getElementById('results-score');
@@ -435,19 +426,6 @@ function initCoursePage() {
 
   // Extract lesson identity from URL: /courses/{course}/{chapter}/{lesson}
   const [,, course, chapter, lesson] = location.pathname.split('/');
-
-  // ── Fetch previous completion (non-blocking) ──────────────────────────────
-  if (course && chapter && lesson) {
-    fetch(`/api/courses/progress?course=${course}&chapter=${chapter}&lesson=${lesson}`, { signal })
-      .then(r => r.json() as Promise<LessonProgress | null>)
-      .then(prev => {
-        if (prev && prevScore) {
-          prevScore.textContent = `Best: ${prev.score}/${prev.total}`;
-          prevScore.classList.remove('hidden');
-        }
-      })
-      .catch(() => {/* KV unavailable in dev, or aborted — ignore */});
-  }
 
   function updateScoreBar() {
     if (scoreText) scoreText.textContent = `${correct} / ${totalQuestions}`;
@@ -482,12 +460,6 @@ function initCoursePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ course, chapter, lesson, score: correct, total: totalQuestions, durationSecs }),
       })
-        .then(() => {
-          if (prevScore) {
-            prevScore.textContent = `Best: ${correct}/${totalQuestions}`;
-            prevScore.classList.remove('hidden');
-          }
-        })
         .catch(() => {/* ignore */});
     }
   }

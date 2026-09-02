@@ -17,6 +17,11 @@ interface LessonFrontmatter {
 	pointNumber?: number;
 }
 
+interface LessonProgress {
+	score: number;
+	total: number;
+}
+
 const { course } = Astro.params;
 
 const registryMods = import.meta.glob<CourseRegistry>(
@@ -43,6 +48,7 @@ interface LessonEntry {
 	lesson: string;
 	pointNumber: number | null;
 	href: string;
+	progress: LessonProgress | null;
 }
 
 const lessons: LessonEntry[] = Object.entries(allLessonMods)
@@ -59,9 +65,27 @@ const lessons: LessonEntry[] = Object.entries(allLessonMods)
 			lesson:      mod.frontmatter.lesson ?? lessonSlug,
 			pointNumber: mod.frontmatter.pointNumber ?? null,
 			href:        `/courses/${course}/${chapterSlug}/${lessonSlug}`,
+			progress:    null,
 		};
 	})
 	.sort((a, b) => (a.pointNumber ?? 99) - (b.pointNumber ?? 99));
+
+// Fetch completion records from KV for all lessons in this course
+const user = Astro.locals.user;
+if (user) {
+	let kv: KVNamespace | null = null;
+	try {
+		const { env } = await import('cloudflare:workers');
+		kv = (env as unknown as CloudflareEnv).LESSON_PROGRESS ?? null;
+	} catch { /* local dev without Wrangler */ }
+	if (kv) {
+		await Promise.all(lessons.map(async (l) => {
+			const key = `lesson:${user.email}:${course}:${l.chapterSlug}:${l.lessonSlug}`;
+			const raw = await kv!.get(key);
+			if (raw) l.progress = JSON.parse(raw) as LessonProgress;
+		}));
+	}
+}
 
 const chapters = (registry.chapters ?? []).map(ch => ({
 	...ch,
@@ -154,12 +178,25 @@ const pageDesc  = registry.description ?? `A course from ${siteTitle}.`;
                   href={lesson.href}
                   class="group flex items-center gap-4 px-6 py-4 hover:bg-[var(--navy)]/[0.03] dark:hover:bg-white/[0.03] transition-colors"
                 >
-                  <span class="shrink-0 w-7 h-7 rounded-full border border-[var(--navy)]/15 dark:border-white/15 group-hover:border-[var(--green)] group-hover:bg-[var(--green)] flex items-center justify-center text-xs font-bold text-[var(--navy)]/50 dark:text-white/40 group-hover:text-white transition-all tabular-nums">
-                    {li + 1}
-                  </span>
+                  {lesson.progress ? (
+                    <span class="shrink-0 w-7 h-7 rounded-full bg-[var(--green)] flex items-center justify-center transition-all">
+                      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="2.5" aria-hidden="true">
+                        <path d="M4 10l4.5 4.5L16 7" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </span>
+                  ) : (
+                    <span class="shrink-0 w-7 h-7 rounded-full border border-[var(--navy)]/15 dark:border-white/15 group-hover:border-[var(--green)] group-hover:bg-[var(--green)] flex items-center justify-center text-xs font-bold text-[var(--navy)]/50 dark:text-white/40 group-hover:text-white transition-all tabular-nums">
+                      {li + 1}
+                    </span>
+                  )}
                   <span class="flex-1 min-w-0 text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">
                     {lesson.lesson}
                   </span>
+                  {lesson.progress && (
+                    <span class="shrink-0 text-xs font-semibold text-[var(--green)] bg-[var(--green)]/10 rounded-full px-2.5 py-0.5 tabular-nums">
+                      {lesson.progress.score} / {lesson.progress.total}
+                    </span>
+                  )}
                   {lesson.pointNumber && (
                     <span class="shrink-0 text-xs font-semibold text-[var(--olive)] bg-[var(--olive)]/10 rounded-full px-2.5 py-0.5">
                       Point {lesson.pointNumber}
