@@ -193,7 +193,7 @@ const pageDesc  = registry.description ?? `A course from ${siteTitle}.`;
                     {lesson.lesson}
                   </span>
                   {lesson.progress && (
-                    <span class="shrink-0 text-xs font-semibold text-[var(--green)] bg-[var(--green)]/10 rounded-full px-2.5 py-0.5 tabular-nums">
+                    <span class={`shrink-0 text-xs font-semibold rounded-full px-2.5 py-0.5 tabular-nums ${lesson.progress.score === lesson.progress.total ? 'text-[var(--green)] bg-[var(--green)]/10' : 'text-[var(--olive)] bg-[var(--olive)]/10'}`}>
                       {lesson.progress.score} / {lesson.progress.total}
                     </span>
                   )}
