@@ -144,9 +144,12 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
       <div class="flex-1">
         <div class="flex items-baseline justify-between mb-2">
           <span class="text-xs font-bold uppercase tracking-widest text-[var(--olive)]">Progress</span>
-          <span id="score-text" class="text-sm font-semibold text-[var(--navy)] dark:text-white tabular-nums">
-            0 / {sections.reduce((n, s) => n + (s.questions?.length ?? 0), 0)}
-          </span>
+          <div class="flex items-center gap-3">
+            <span id="prev-score" class="hidden text-xs text-[var(--ink)]/40 dark:text-white/30 tabular-nums"></span>
+            <span id="score-text" class="text-sm font-semibold text-[var(--navy)] dark:text-white tabular-nums">
+              0 / {sections.reduce((n, s) => n + (s.questions?.length ?? 0), 0)}
+            </span>
+          </div>
         </div>
         <div class="h-2 rounded-full bg-[var(--navy)]/10 dark:bg-white/10 overflow-hidden">
           <div
@@ -402,18 +405,49 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
 </style>
 
 <script>
+interface LessonProgress {
+  score: number;
+  total: number;
+  durationSecs: number;
+  completedAt: string;
+}
+
+let _courseAbort: AbortController | null = null;
+
 function initCoursePage() {
+  _courseAbort?.abort();
+  _courseAbort = new AbortController();
+  const { signal } = _courseAbort;
+
   const totalQuestions = document.querySelectorAll('.mcq-block').length;
   let answered = 0;
-  let correct = 0;
+  let correct  = 0;
+  let firstAnswerAt: number | null = null;
 
-  const scoreText = document.getElementById('score-text');
-  const scoreFill = document.getElementById('score-fill');
-  const resetBtn  = document.getElementById('reset-btn');
+  const scoreText    = document.getElementById('score-text');
+  const scoreFill    = document.getElementById('score-fill');
+  const prevScore    = document.getElementById('prev-score');
+  const resetBtn     = document.getElementById('reset-btn');
   const resultsPanel = document.getElementById('results-panel');
   const resultsScore = document.getElementById('results-score');
   const resultsLabel = document.getElementById('results-label');
   const resultsReset = document.getElementById('results-reset');
+
+  // Extract lesson identity from URL: /courses/{course}/{chapter}/{lesson}
+  const [,, course, chapter, lesson] = location.pathname.split('/');
+
+  // ── Fetch previous completion (non-blocking) ──────────────────────────────
+  if (course && chapter && lesson) {
+    fetch(`/api/courses/progress?course=${course}&chapter=${chapter}&lesson=${lesson}`, { signal })
+      .then(r => r.json() as Promise<LessonProgress | null>)
+      .then(prev => {
+        if (prev && prevScore) {
+          prevScore.textContent = `Best: ${prev.score}/${prev.total}`;
+          prevScore.classList.remove('hidden');
+        }
+      })
+      .catch(() => {/* KV unavailable in dev, or aborted — ignore */});
+  }
 
   function updateScoreBar() {
     if (scoreText) scoreText.textContent = `${correct} / ${totalQuestions}`;
@@ -429,23 +463,45 @@ function initCoursePage() {
     resultsScore.textContent = `${correct} / ${totalQuestions}`;
 
     const pct = correct / totalQuestions;
-    let label = 'Keep studying — you\'ll get there!';
-    if (pct === 1) label = 'Perfect score — outstanding!';
+    let label = "Keep studying — you'll get there!";
+    if (pct === 1)        label = 'Perfect score — outstanding!';
     else if (pct >= 0.875) label = 'Excellent work!';
     else if (pct >= 0.75) label = 'Well done — nearly there!';
-    else if (pct >= 0.5) label = 'Good effort — review the sections you missed.';
+    else if (pct >= 0.5)  label = 'Good effort — review the sections you missed.';
     resultsLabel.textContent = label;
 
     resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // ── Save completion to KV (one write per lesson completion) ──────────────
+    if (course && chapter && lesson) {
+      const durationSecs = firstAnswerAt
+        ? Math.round((Date.now() - firstAnswerAt) / 1000)
+        : 0;
+      fetch('/api/courses/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course, chapter, lesson, score: correct, total: totalQuestions, durationSecs }),
+      })
+        .then(() => {
+          if (prevScore) {
+            prevScore.textContent = `Best: ${correct}/${totalQuestions}`;
+            prevScore.classList.remove('hidden');
+          }
+        })
+        .catch(() => {/* ignore */});
+    }
   }
 
   function reset() {
-    answered = 0;
-    correct = 0;
+    answered      = 0;
+    correct       = 0;
+    firstAnswerAt = null;
     updateScoreBar();
     if (resetBtn) resetBtn.classList.add('hidden');
-    if (resultsPanel) { resultsPanel.classList.add('hidden'); resultsPanel.classList.remove('is-visible'); }
-
+    if (resultsPanel) {
+      resultsPanel.classList.add('hidden');
+      resultsPanel.classList.remove('is-visible');
+    }
     document.querySelectorAll('.mcq-block').forEach(block => {
       delete (block as HTMLElement).dataset.answered;
       block.querySelectorAll('.mcq-option').forEach(btn => {
@@ -458,8 +514,8 @@ function initCoursePage() {
     });
   }
 
-  resetBtn?.addEventListener('click', reset);
-  resultsReset?.addEventListener('click', reset);
+  resetBtn?.addEventListener('click', reset, { signal });
+  resultsReset?.addEventListener('click', reset, { signal });
 
   document.querySelectorAll('.mcq-block').forEach(block => {
     const el = block as HTMLElement;
@@ -470,6 +526,8 @@ function initCoursePage() {
         if (el.dataset.answered) return;
         el.dataset.answered = 'true';
 
+        if (firstAnswerAt === null) firstAnswerAt = Date.now();
+
         const b = btn as HTMLButtonElement;
         const chosen = b.dataset.label ?? '';
         const isCorrect = chosen === correctAnswer;
@@ -477,20 +535,14 @@ function initCoursePage() {
         if (isCorrect) correct++;
         answered++;
 
-        // Style every option in this block
         el.querySelectorAll('.mcq-option').forEach(opt => {
           const ob = opt as HTMLButtonElement;
           ob.disabled = true;
-          if (ob.dataset.label === correctAnswer) {
-            ob.classList.add('is-correct');
-          } else if (ob === b) {
-            ob.classList.add('is-wrong');
-          } else {
-            ob.classList.add('is-dimmed');
-          }
+          if (ob.dataset.label === correctAnswer) ob.classList.add('is-correct');
+          else if (ob === b)                       ob.classList.add('is-wrong');
+          else                                     ob.classList.add('is-dimmed');
         });
 
-        // Feedback line
         const fb = el.querySelector('.mcq-feedback') as HTMLElement | null;
         if (fb) {
           fb.classList.remove('hidden');
@@ -501,10 +553,11 @@ function initCoursePage() {
 
         updateScoreBar();
         if (answered === totalQuestions) showResults();
-      });
+      }, { signal });
     });
   });
 }
 
+initCoursePage();
 document.addEventListener('astro:page-load', initCoursePage);
 </script>

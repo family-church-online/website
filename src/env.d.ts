@@ -1,7 +1,9 @@
 /// <reference types="astro/client" />
 /// <reference types="@astrojs/cloudflare" />
 
-interface CloudflareEnv {}
+interface CloudflareEnv {
+	LESSON_PROGRESS: KVNamespace;
+}
 
 declare namespace App {
 	interface Locals {

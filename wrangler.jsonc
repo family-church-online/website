@@ -6,6 +6,14 @@
 	"compatibility_date": "2026-06-01",
 	"compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
 	"keep_vars": true,
+	"kv_namespaces": [
+		{
+			// Run: npx wrangler kv namespace create LESSON_PROGRESS
+			// then paste the returned id here (and the preview_id for dev).
+			"binding": "LESSON_PROGRESS",
+			"id": "REPLACE_WITH_KV_NAMESPACE_ID"
+		}
+	],
 	"observability": {
 		"enabled": false,
 		"head_sampling_rate": 1,
