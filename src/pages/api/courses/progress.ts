@@ -8,6 +8,7 @@ export interface LessonProgress {
 	total: number;
 	durationSecs: number;
 	completedAt: string;
+	pcoId: string;
 }
 
 function kvKey(email: string, course: string, chapter: string, lesson: string) {
@@ -66,10 +67,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	}
 
 	const record: LessonProgress = {
-		score:       body.score,
-		total:       body.total,
+		score:        body.score,
+		total:        body.total,
 		durationSecs: body.durationSecs,
-		completedAt: new Date().toISOString(),
+		completedAt:  new Date().toISOString(),
+		pcoId:        user.sub,
 	};
 
 	await kv.put(
