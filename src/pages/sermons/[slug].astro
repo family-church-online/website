@@ -408,10 +408,10 @@ const ldJsonVideo = vimeoId ? {
             aria-label="Play"
             class="shrink-0 w-11 h-11 rounded-full bg-[var(--green)] hover:bg-[#a3d63a] transition-colors flex items-center justify-center shadow"
           >
-            <svg id="icon-play" class="w-5 h-5 text-[var(--ink)] ml-0.5" viewBox="0 0 20 20" fill="currentColor">
+            <svg id="icon-play" class="w-5 h-5 text-[var(--ink)] ml-0.5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
               <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.84z"/>
             </svg>
-            <svg id="icon-pause" class="w-5 h-5 text-[var(--ink)] hidden" viewBox="0 0 20 20" fill="currentColor">
+            <svg id="icon-pause" class="w-5 h-5 text-[var(--ink)] hidden pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M5.75 3a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-1.5 0V3.75A.75.75 0 0 1 5.75 3zm8.5 0a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-1.5 0V3.75a.75.75 0 0 1 .75-.75z" clip-rule="evenodd"/>
             </svg>
           </button>
@@ -683,9 +683,12 @@ function initSermonPage() {
 
     playBtn.addEventListener('click', () => {
       if (audio.paused) {
-        audio.play();
         iconPlay?.classList.add('hidden');
         iconPause?.classList.remove('hidden');
+        audio.play().catch(() => {
+          iconPlay?.classList.remove('hidden');
+          iconPause?.classList.add('hidden');
+        });
       } else {
         audio.pause();
         iconPlay?.classList.remove('hidden');
