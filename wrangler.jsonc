@@ -4,15 +4,13 @@
 	// which the Tina visual-editing island route (AsyncLocalStorage) needs.
 	"name": "family-church-website",
 	"compatibility_date": "2026-06-01",
-	"compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
+	"compatibility_flags": [
+		"nodejs_compat",
+		"nodejs_compat_populate_process_env"
+	],
 	"keep_vars": true,
 	"kv_namespaces": [
-		{
-			// Run: npx wrangler kv namespace create LESSON_PROGRESS
-			// then paste the returned id here (and the preview_id for dev).
-			"binding": "LESSON_PROGRESS",
-			"id": "REPLACE_WITH_KV_NAMESPACE_ID"
-		}
+		{ "binding": "LESSON_PROGRESS", "id": "56984b88d58641dbb252b1e40fd897da", "remote": true }
 	],
 	"observability": {
 		"enabled": false,
