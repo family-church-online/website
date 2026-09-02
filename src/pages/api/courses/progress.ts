@@ -1,6 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export interface LessonProgress {
 	score: number;
@@ -13,8 +14,12 @@ function kvKey(email: string, course: string, chapter: string, lesson: string) {
 	return `lesson:${email}:${course}:${chapter}:${lesson}`;
 }
 
-function getKV(locals: App.Locals): KVNamespace | null {
-	return locals.runtime?.env?.LESSON_PROGRESS ?? null;
+function getKV(): KVNamespace | null {
+	try {
+		return (env as unknown as CloudflareEnv).LESSON_PROGRESS ?? null;
+	} catch {
+		return null;
+	}
 }
 
 // GET /api/courses/progress?course=X&chapter=Y&lesson=Z
@@ -30,7 +35,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
 		return new Response('Missing params', { status: 400 });
 	}
 
-	const kv = getKV(locals);
+	const kv = getKV();
 	if (!kv) return json(null); // dev mode without wrangler — degrade gracefully
 
 	const raw = await kv.get(kvKey(user.email, course, chapter, lesson));
@@ -44,7 +49,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	const user = locals.user;
 	if (!user) return new Response('Unauthorized', { status: 401 });
 
-	const kv = getKV(locals);
+	const kv = getKV();
 	if (!kv) return new Response('KV unavailable', { status: 503 });
 
 	const body = await request.json() as {

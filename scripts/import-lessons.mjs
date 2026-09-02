@@ -1,30 +1,128 @@
 #!/usr/bin/env node
 /**
- * Interactive lesson importer.
+ * Lesson importer — two modes:
  *
- * Scans a directory for .md files, asks you to pick a course and chapter
- * (from those defined in TinaCMS), then prompts for each lesson name.
- * Course and chapter are retained across all files in the batch.
+ * Interactive (default):
+ *   Scans a directory for .md files, asks you to pick a course and chapter
+ *   (from those defined in TinaCMS), then prompts for each lesson name.
+ *   Course and chapter are retained across all files in the batch.
  *
- * Usage:  pnpm lesson:import [source-directory]
- *         pnpm lesson:import --force   (re-import already-imported lessons)
+ *   Usage:  pnpm lesson:import [source-directory]
+ *           pnpm lesson:import --force   (re-import already-imported lessons)
+ *
+ * Manifest (non-interactive):
+ *   Reads lesson definitions from scripts/lesson-manifest.json and imports
+ *   them all without prompts. Good for re-importing or adding a prepared batch.
+ *
+ *   Usage:  pnpm lesson:import --manifest
+ *           pnpm lesson:import --manifest path/to/other-manifest.json
+ *           pnpm lesson:import --manifest --force
+ *
+ * Manifest format:
+ *   {
+ *     "sourceDir": "~/Downloads",
+ *     "lessons": [
+ *       {
+ *         "file": "Statement_4_Point_1_MCQ.md",
+ *         "course": "truth-and-grace",
+ *         "chapter": "the-son-of-god",
+ *         "lesson": "Perfect Man, Perfect Time",
+ *         "point": 1,
+ *         "statementNumber": 4
+ *       }
+ *     ]
+ *   }
  */
 
-import { createInterface }             from 'node:readline/promises';
-import { readdirSync, readFileSync, existsSync } from 'node:fs';
-import { execFileSync }                          from 'node:child_process';
-import { join, resolve, dirname } from 'node:path';
-import { homedir }                     from 'node:os';
-import { fileURLToPath }               from 'node:url';
+import { createInterface }                          from 'node:readline/promises';
+import { readdirSync, readFileSync, existsSync }    from 'node:fs';
+import { execFileSync }                             from 'node:child_process';
+import { join, resolve, dirname }                   from 'node:path';
+import { homedir }                                  from 'node:os';
+import { fileURLToPath }                            from 'node:url';
 
 const ROOT      = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CONVERTER = join(ROOT, 'scripts', 'convert-lesson.mjs');
 
 const args    = process.argv.slice(2);
 const force   = args.includes('--force');
-const dirArg  = args.find(a => !a.startsWith('--'));
 
-// ── Readline helpers ──────────────────────────────────────────────────────────
+// ── Manifest mode ─────────────────────────────────────────────────────────────
+
+const manifestIdx  = args.indexOf('--manifest');
+const manifestMode = manifestIdx >= 0;
+
+if (manifestMode) {
+  const nextArg    = args[manifestIdx + 1];
+  const manifestPath = (nextArg && !nextArg.startsWith('--'))
+    ? resolve(nextArg)
+    : join(ROOT, 'scripts', 'lesson-manifest.json');
+
+  if (!existsSync(manifestPath)) {
+    console.error(`Manifest not found: ${manifestPath}`);
+    process.exit(1);
+  }
+
+  const manifest   = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const sourceDir  = resolve((manifest.sourceDir ?? '~/Downloads').replace(/^~/, homedir()));
+  const lessons    = manifest.lessons ?? [];
+
+  if (lessons.length === 0) {
+    console.log('No lessons defined in manifest.');
+    process.exit(0);
+  }
+
+  console.log(`Importing ${lessons.length} lesson${lessons.length === 1 ? '' : 's'} from manifest…\n`);
+
+  let imported = 0, skipped = 0, failed = 0;
+
+  for (const entry of lessons) {
+    const filePath   = join(sourceDir, entry.file);
+    const lessonSlug = slugify(entry.lesson);
+    const outFile    = join(ROOT, 'src', 'content', 'courses',
+                            entry.course, entry.chapter, `${lessonSlug}.mdx`);
+    const label      = `${entry.course}/${entry.chapter}/${lessonSlug}`;
+
+    if (!existsSync(filePath)) {
+      console.error(`✗  missing    ${entry.file}`);
+      failed++;
+      continue;
+    }
+
+    if (!force && existsSync(outFile)) {
+      console.log(`⟳  skipped   ${label}`);
+      skipped++;
+      continue;
+    }
+
+    const converterArgs = [
+      CONVERTER,
+      filePath,
+      '--course',  entry.course,
+      '--chapter', entry.chapter,
+      '--lesson',  entry.lesson,
+      ...(entry.point           ? ['--point',            String(entry.point)]           : []),
+      ...(entry.statementNumber ? ['--statement-number', String(entry.statementNumber)] : []),
+    ];
+
+    try {
+      execFileSync(process.execPath, converterArgs, { stdio: 'inherit' });
+      console.log(`✓  imported  ${label}`);
+      imported++;
+    } catch {
+      console.error(`✗  failed    ${label}`);
+      failed++;
+    }
+  }
+
+  console.log(`\n${imported} imported  ${skipped} skipped  ${failed} failed`);
+  if (failed > 0) process.exit(1);
+  process.exit(0);
+}
+
+// ── Interactive mode ──────────────────────────────────────────────────────────
+
+const dirArg = args.find(a => !a.startsWith('--'));
 
 const rl = createInterface({ input: process.stdin, output: process.stdout });
 
