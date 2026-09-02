@@ -608,7 +608,15 @@ const ldJsonVideo = vimeoId ? {
 </style>
 
 <script>
+let _sermonAbort: AbortController | null = null;
+
 function initSermonPage() {
+  // Abort any listeners from a previous init (handles the case where both
+  // the direct call and the astro:page-load event both fire on initial load).
+  _sermonAbort?.abort();
+  _sermonAbort = new AbortController();
+  const { signal } = _sermonAbort;
+
   // ── Tab switching ────────────────────────────────────────────────────────
   const tabBtns   = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
   const tabPanels = document.querySelectorAll<HTMLElement>('.tab-panel');
@@ -622,7 +630,7 @@ function initSermonPage() {
         p.hidden = !show;
         p.classList.toggle('hidden', !show);
       });
-    });
+    }, { signal });
   });
 
   // ── Transcript: style timestamps ─────────────────────────────────────────
@@ -660,14 +668,18 @@ function initSermonPage() {
   if (audio && playBtn) {
     audio.addEventListener('loadedmetadata', () => {
       if (timeTotal) timeTotal.textContent = fmt(audio.duration);
-    });
+    }, { signal });
+    // Metadata may already be loaded (cached audio / fast network)
+    if (audio.readyState >= 1 && timeTotal) {
+      timeTotal.textContent = fmt(audio.duration);
+    }
 
-    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('timeupdate', updateProgress, { signal });
 
     audio.addEventListener('ended', () => {
       iconPlay?.classList.remove('hidden');
       iconPause?.classList.add('hidden');
-    });
+    }, { signal });
 
     playBtn.addEventListener('click', () => {
       if (audio.paused) {
@@ -679,15 +691,16 @@ function initSermonPage() {
         iconPlay?.classList.remove('hidden');
         iconPause?.classList.add('hidden');
       }
-    });
+    }, { signal });
 
     progress?.addEventListener('input', () => {
       if (audio.duration) {
         audio.currentTime = (Number(progress.value) / 100) * audio.duration;
       }
-    });
+    }, { signal });
   }
 }
 
+initSermonPage();
 document.addEventListener('astro:page-load', initSermonPage);
 </script>
