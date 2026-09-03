@@ -116,7 +116,6 @@ import { DevotionCollection }       from '../tina/collections/devotion.ts';
 import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
 import { EventCollection }          from '../tina/collections/event.ts';
 import { GuideCollection }          from '../tina/collections/guide.ts';
-import { ministryLessonCollection } from '../tina/collections/ministry-lesson.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = resolve(__dirname, '..');
@@ -297,14 +296,6 @@ function translateFields(tinaFields: TinaField[], collectionName: string): Svelt
 
 const editor = { preview: false };
 
-// Shared fields for the four ministry-lesson collections.
-// ministryLessonCollection() is a factory — opts affect routing/naming only,
-// not the field definitions, so we call it with placeholder values.
-const lessonFields = translateFields(
-  (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[],
-  'lesson',
-);
-
 const folderCollections = [
   {
     name: 'announcement',
@@ -365,56 +356,6 @@ const folderCollections = [
     slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
     editor,
     fields: translateFields(GuideCollection.fields as TinaField[], 'guide'),
-  },
-  // Ministry lesson collections — four instances of the same field template.
-  // create: true because teachers create their own lessons.
-  {
-    name: 'amplify',
-    label: 'Amplify — Teens',
-    folder: 'src/content/amplify',
-    format: 'frontmatter',
-    extension: 'mdx',
-    create: true,
-    identifier_field: 'title',
-    slug: '{{year}}-{{month}}-{{day}}',
-    editor,
-    fields: lessonFields,
-  },
-  {
-    name: 'kids-preschool',
-    label: 'Kids Church — Pre-School',
-    folder: 'src/content/kids/preschool',
-    format: 'frontmatter',
-    extension: 'mdx',
-    create: true,
-    identifier_field: 'title',
-    slug: '{{year}}-{{month}}-{{day}}',
-    editor,
-    fields: lessonFields,
-  },
-  {
-    name: 'kids-junior',
-    label: 'Kids Church — Junior',
-    folder: 'src/content/kids/junior',
-    format: 'frontmatter',
-    extension: 'mdx',
-    create: true,
-    identifier_field: 'title',
-    slug: '{{year}}-{{month}}-{{day}}',
-    editor,
-    fields: lessonFields,
-  },
-  {
-    name: 'kids-senior',
-    label: 'Kids Church — Senior',
-    folder: 'src/content/kids/senior',
-    format: 'frontmatter',
-    extension: 'mdx',
-    create: true,
-    identifier_field: 'title',
-    slug: '{{year}}-{{month}}-{{day}}',
-    editor,
-    fields: lessonFields,
   },
 ];
 
