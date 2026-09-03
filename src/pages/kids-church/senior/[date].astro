@@ -1,0 +1,60 @@
+---
+export const prerender = true;
+
+import Base from '../../../layouts/Base.astro';
+import LessonPage from '../../../components/ministry/LessonPage.astro';
+import { getConfig } from '../../../lib/data';
+
+interface Frontmatter { title?: string; date?: string; scripture?: string; }
+
+export function getStaticPaths() {
+	const mods = import.meta.glob<{ frontmatter: Frontmatter; default: any }>(
+		'../../../content/kids/senior/*.mdx',
+		{ eager: true },
+	);
+
+	const all = Object.entries(mods)
+		.map(([path, mod]) => ({
+			date: path.replace('../../../content/kids/senior/', '').replace('.mdx', ''),
+			frontmatter: mod.frontmatter,
+			Content: mod.default,
+		}))
+		.sort((a, b) => a.date.localeCompare(b.date));
+
+	return all.map((entry, i) => ({
+		params: { date: entry.date },
+		props: {
+			frontmatter: entry.frontmatter,
+			Content: entry.Content,
+			prev: i > 0 ? { date: all[i - 1].date, title: all[i - 1].frontmatter.title } : null,
+			next: i < all.length - 1 ? { date: all[i + 1].date, title: all[i + 1].frontmatter.title } : null,
+		},
+	}));
+}
+
+const { date } = Astro.params;
+const { frontmatter: fm, Content, prev, next } = Astro.props as {
+	frontmatter: Frontmatter;
+	Content: any;
+	prev: { date: string; title?: string } | null;
+	next: { date: string; title?: string } | null;
+};
+
+const config       = (await getConfig()).data?.config ?? null;
+const siteTitle    = config?.seo?.title ?? 'Family Church';
+const kc           = (config as any)?.kidsChurch ?? {};
+const ministryName = kc.ministryName ?? 'Kids Church';
+const groupLabel   = kc.seniorLabel ?? 'Senior';
+---
+
+<Base title={`${fm.title ?? 'Lesson'} · ${ministryName} ${groupLabel} · ${siteTitle}`} description={fm.scripture ?? `A weekly lesson for ${groupLabel} children from Family Church.`}>
+	<LessonPage
+		label={`${ministryName} — ${groupLabel}`}
+		baseRoute="/kids-church/senior"
+		{date}
+		frontmatter={fm}
+		{Content}
+		{prev}
+		{next}
+	/>
+</Base>

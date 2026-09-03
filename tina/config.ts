@@ -10,6 +10,7 @@ import { LiveVideoCollection } from "./collections/live-video";
 import { CourseCollection } from "./collections/course";
 import { EventCollection } from "./collections/event";
 import { ThreeMinutesCollection } from "./collections/three-minutes";
+import { ministryLessonCollection } from "./collections/ministry-lesson";
 
 // Your hosting provider likely exposes this as an environment variable
 const branch =
@@ -68,6 +69,10 @@ export default defineConfig({
       CourseCollection,
       EventCollection,
       ThreeMinutesCollection,
+      ministryLessonCollection({ name: 'amplify',       label: 'Amplify — Teens',       path: 'src/content/amplify',         route: '/amplify' }),
+      ministryLessonCollection({ name: 'kidsPreschool', label: 'Kids — Pre-School',      path: 'src/content/kids/preschool',  route: '/kids-church/pre-school' }),
+      ministryLessonCollection({ name: 'kidsJunior',    label: 'Kids — Junior',           path: 'src/content/kids/junior',     route: '/kids-church/junior' }),
+      ministryLessonCollection({ name: 'kidsSenior',    label: 'Kids — Senior',           path: 'src/content/kids/senior',     route: '/kids-church/senior' }),
       GlobalConfigCollection,
     ],
   },

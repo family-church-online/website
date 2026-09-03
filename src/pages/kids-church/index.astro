@@ -1,0 +1,74 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+const kc        = (config as any)?.kidsChurch ?? {};
+
+const ministryName = kc.ministryName ?? 'Kids Church';
+
+const groups = [
+	{
+		href: '/kids-church/pre-school',
+		label: kc.preschoolLabel ?? 'Pre-School',
+		ages:  kc.preschoolAges  ?? '',
+		color: 'var(--green)',
+	},
+	{
+		href: '/kids-church/junior',
+		label: kc.juniorLabel ?? 'Junior',
+		ages:  kc.juniorAges  ?? '',
+		color: 'var(--navy)',
+	},
+	{
+		href: '/kids-church/senior',
+		label: kc.seniorLabel ?? 'Senior',
+		ages:  kc.seniorAges  ?? '',
+		color: 'var(--olive)',
+	},
+];
+---
+
+<Base title={`${ministryName} · ${siteTitle}`} description={`Weekly lessons for children at Family Church — ${groups.map(g => g.label).join(', ')}.`}>
+
+	<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-4 text-center">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Ministry</p>
+		<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-3">{ministryName}</h1>
+		<p class="text-[var(--ink)]/55 dark:text-white/50 text-sm max-w-sm mx-auto">
+			Weekly lessons for children. Choose your age group below.
+		</p>
+	</div>
+
+	<main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10">
+		<div class="grid gap-4 sm:grid-cols-3">
+			{groups.map(g => (
+				<a
+					href={g.href}
+					class="group flex flex-col items-center justify-center gap-3 rounded-2xl px-6 py-10 bg-white dark:bg-[var(--card)] shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 hover:shadow-lg transition-all no-underline"
+				>
+					<div
+						class="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-sm"
+						style={`background: ${g.color}`}
+					>
+						{g.label[0]}
+					</div>
+					<div class="text-center">
+						<p class="font-display text-xl font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors">
+							{g.label}
+						</p>
+						{g.ages && (
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40 mt-0.5">{g.ages}</p>
+						)}
+					</div>
+					<svg class="w-4 h-4 text-[var(--navy)]/25 group-hover:text-[var(--green)] transition-colors mt-1" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+						<path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+				</a>
+			))}
+		</div>
+	</main>
+
+</Base>
