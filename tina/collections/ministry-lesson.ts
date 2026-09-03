@@ -52,7 +52,7 @@ export function ministryLessonCollection(opts: {
 				type: 'object',
 				list: true,
 				fields: [
-					{ name: 'content', label: 'Content', type: 'rich-text' },
+					{ name: 'content', label: 'Content', type: 'string', ui: { component: 'textarea' } },
 				],
 			},
 			{
