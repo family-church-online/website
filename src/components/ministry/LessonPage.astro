@@ -1,14 +1,15 @@
 ---
-import YouTube from '../mdx/YouTube.astro';
-import Scripture from '../mdx/Scripture.astro';
-import Download from '../mdx/Download.astro';
-import Timeline from '../mdx/Timeline.astro';
-import Step from '../mdx/Step.astro';
+import Carousel from './Carousel.astro';
 
 interface LessonFrontmatter {
 	title?: string;
 	date?: string;
 	scripture?: string;
+	image?: string;
+	scriptures?: Array<{ ref?: string; text?: string }>;
+	paragraphs?: Array<{ heading?: string; content?: string }>;
+	images?: Array<{ image?: string; description?: string }>;
+	videos?: Array<{ url?: string; description?: string }>;
 }
 
 interface Props {
@@ -16,21 +17,26 @@ interface Props {
 	baseRoute: string;
 	date: string;
 	frontmatter: LessonFrontmatter;
-	Content: any;
 	prev: { date: string; title?: string } | null;
 	next: { date: string; title?: string } | null;
 }
 
-const { label, baseRoute, date, frontmatter: fm, Content, prev, next } = Astro.props;
+const { label, baseRoute, date, frontmatter: fm, prev, next } = Astro.props;
 
 function fmtDate(d: string) {
 	return new Date(d + 'T00:00:00Z').toLocaleDateString('en-ZA', {
 		weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
 	});
 }
+
+const scriptures = (fm.scriptures ?? []).filter(s => s?.ref || s?.text);
+const paragraphs = (fm.paragraphs ?? []).filter(p => p?.heading || p?.content);
+const images     = (fm.images ?? []).filter(img => img?.image).map(img => ({ image: img.image, description: img.description }));
+const videos     = (fm.videos ?? []).filter(v => v?.url).map(v => ({ url: v.url, description: v.description }));
 ---
 
-<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-4 text-center">
+<!-- Header -->
+<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-6 text-center">
 	<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">{label}</p>
 	<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-3">
 		{fm.title ?? 'Lesson'}
@@ -41,14 +47,68 @@ function fmtDate(d: string) {
 	)}
 </div>
 
-<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-8 prose prose-neutral dark:prose-invert max-w-none
-	prose-headings:font-display prose-headings:text-[var(--navy)] dark:prose-headings:text-white
-	prose-a:text-[var(--green)] prose-a:no-underline hover:prose-a:underline
-	prose-blockquote:not-italic prose-blockquote:border-[var(--green)]
-	prose-img:rounded-xl prose-img:shadow-md">
-	<Content components={{ YouTube, Scripture, Download, Timeline, Step }} />
+<!-- Hero image -->
+{fm.image && (
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 mb-8">
+		<img
+			src={fm.image}
+			alt={fm.title ?? 'Lesson image'}
+			class="w-full rounded-xl object-cover max-h-80 shadow-md"
+		/>
+	</div>
+)}
+
+<!-- Content sections -->
+<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-8 space-y-10">
+
+	<!-- Scriptures -->
+	{scriptures.length > 0 && (
+		<section>
+			<h3 class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">Scriptures</h3>
+			<div class="space-y-3">
+				{scriptures.map(s => (
+					<div class="rounded-xl border border-[var(--navy)]/10 dark:border-white/10 px-5 py-4 bg-white dark:bg-[var(--card)]">
+						{s.ref && <p class="text-xs font-bold uppercase tracking-widest text-[var(--green)] mb-1">{s.ref}</p>}
+						{s.text && <p class="text-sm text-[var(--ink)]/80 dark:text-white/80 leading-relaxed">{s.text}</p>}
+					</div>
+				))}
+			</div>
+		</section>
+	)}
+
+	<!-- Paragraphs -->
+	{paragraphs.length > 0 && (
+		<section class="space-y-6">
+			{paragraphs.map(p => (
+				<div>
+					{p.heading && (
+						<h3 class="font-display text-xl font-semibold text-[var(--navy)] dark:text-white mb-2">{p.heading}</h3>
+					)}
+					{p.content && (
+						<p class="text-[var(--ink)]/80 dark:text-white/80 leading-relaxed">{p.content}</p>
+					)}
+				</div>
+			))}
+		</section>
+	)}
+
+	<!-- Images carousel -->
+	{images.length > 0 && (
+		<section>
+			<Carousel slides={images} heading="Images" />
+		</section>
+	)}
+
+	<!-- Videos carousel -->
+	{videos.length > 0 && (
+		<section>
+			<Carousel slides={videos} heading="Videos" />
+		</section>
+	)}
+
 </div>
 
+<!-- Prev / Next navigation -->
 {(prev || next) && (
 	<nav class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-12 flex items-stretch gap-3">
 		{prev ? (
