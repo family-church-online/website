@@ -40,6 +40,13 @@ const year = new Date().getFullYear();
 							<span class="sr-only">{link.title}</span>
 						</a>
 					))}
+					<button
+						id="wa-share-btn"
+						title="Share this page on WhatsApp"
+						aria-label="Share this page on WhatsApp"
+					>
+						<Icon name="tabler:share" />
+					</button>
 				</div>
 				<div class="footer-banking">
 					<p class="footer-label" style="margin-bottom:0.5rem">Banking</p>
@@ -129,7 +136,8 @@ const year = new Date().getFullYear();
 		gap: 0.75rem;
 		flex-wrap: wrap;
 	}
-	.footer-social a {
+	.footer-social a,
+	.footer-social button {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -139,9 +147,12 @@ const year = new Date().getFullYear();
 		border: 1px solid rgba(255, 255, 255, 0.15);
 		color: rgba(255, 255, 255, 0.5);
 		text-decoration: none;
+		background: none;
+		cursor: pointer;
 		transition: color 0.2s, border-color 0.2s;
 	}
-	.footer-social a:hover { color: var(--green); border-color: var(--green); }
+	.footer-social a:hover,
+	.footer-social button:hover { color: var(--green); border-color: var(--green); }
 	.footer-social svg { width: 1.1rem; height: 1.1rem; }
 
 	.footer-banking {
@@ -233,3 +244,9 @@ const year = new Date().getFullYear();
 		}
 	}
 </style>
+
+<script>
+	document.getElementById('wa-share-btn')?.addEventListener('click', () => {
+		window.open('https://wa.me/?text=' + encodeURIComponent(window.location.href), '_blank');
+	});
+</script>
