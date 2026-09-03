@@ -426,7 +426,7 @@ const guideFields = [
 // Timeline). Those were not Sveltia-compatible.
 // The new schema replaces them with four structured arrays:
 //   scriptures → list of { ref, text } objects
-//   paragraphs → list of { content: markdown } (plain rich-text, no templates)
+//   paragraphs → list of { heading?: string, content: string } (plain text + optional heading)
 //   images     → list of { image, description } (uploads to /images/lessons/)
 //   videos     → list of { url, description }
 const ministryLessonFields = [
@@ -441,10 +441,11 @@ const ministryLessonFields = [
   },
   {
     name: 'paragraphs', label: 'Paragraphs', widget: 'list', required: false,
-    // Each item is a standalone rich-text block with no embedded components.
-    // Sveltia's markdown widget is fully compatible with this pattern.
+    // TinaCloud does not allow rich-text inside object list items, so content
+    // is a plain string (textarea). An optional heading allows section breaks.
     fields: [
-      { name: 'content', label: 'Content', widget: 'markdown' },
+      { name: 'heading', label: 'Heading', widget: 'string', required: false },
+      { name: 'content', label: 'Content', widget: 'text' },
     ],
   },
   {
