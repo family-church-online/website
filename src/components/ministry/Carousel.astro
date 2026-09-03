@@ -16,7 +16,8 @@ const processed = slides
 	.filter(s => s.image || s.url)
 	.map(s => ({
 		...s,
-		ytId: s.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)?.[1] ?? null,
+		ytId:     s.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)?.[1] ?? null,
+		vimeoId:  s.url?.match(/(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)/)?.[1] ?? null,
 	}));
 ---
 
@@ -46,6 +47,16 @@ const processed = slides
 										src={`https://www.youtube.com/embed/${slide.ytId}`}
 										title={slide.description ?? 'Video'}
 										allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+										allowfullscreen
+										class="w-full h-full"
+									/>
+								</div>
+							) : slide.vimeoId ? (
+								<div class="aspect-video">
+									<iframe
+										src={`https://player.vimeo.com/video/${slide.vimeoId}`}
+										title={slide.description ?? 'Video'}
+										allow="autoplay; fullscreen; picture-in-picture"
 										allowfullscreen
 										class="w-full h-full"
 									/>
