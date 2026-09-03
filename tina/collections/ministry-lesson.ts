@@ -51,7 +51,9 @@ export function ministryLessonCollection(opts: {
 				label: 'Paragraphs',
 				type: 'object',
 				list: true,
+				ui: { itemProps: (item: { heading?: string }) => ({ label: item.heading ?? 'Paragraph' }) },
 				fields: [
+					{ name: 'heading', label: 'Heading', type: 'string', description: 'Optional heading shown above this paragraph.' },
 					{ name: 'content', label: 'Content', type: 'string', ui: { component: 'textarea' } },
 				],
 			},
