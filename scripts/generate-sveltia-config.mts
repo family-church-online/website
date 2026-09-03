@@ -117,9 +117,6 @@ import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
 import { EventCollection }          from '../tina/collections/event.ts';
 import { GuideCollection }          from '../tina/collections/guide.ts';
 import { ministryLessonCollection } from '../tina/collections/ministry-lesson.ts';
-import { StatementOfFaithCollection } from '../tina/collections/statement-of-faith.ts';
-import { LiveVideoCollection }      from '../tina/collections/live-video.ts';
-import { GlobalConfigCollection }   from '../tina/collections/global-config.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = resolve(__dirname, '..');
@@ -428,51 +425,10 @@ const folderCollections = [
   },
 ];
 
-// Files collections (single JSON files; no create or delete).
-// TinaCMS marks these with allowedActions: { create: false, delete: false }
-// or global: true. Sveltia models them as files: collections.
-const filesCollections = [
-  {
-    name: 'statement-of-faith',
-    label: 'Statement of Faith',
-    editor,
-    files: [
-      {
-        name: 'statement-of-faith',
-        label: 'Statement of Faith',
-        file: 'src/content/statement-of-faith/index.json',
-        fields: translateFields(StatementOfFaithCollection.fields as TinaField[], 'statementOfFaith'),
-      },
-    ],
-  },
-  {
-    name: 'live-video',
-    label: 'Live Video',
-    editor,
-    files: [
-      {
-        name: 'live-video',
-        label: 'Live Video',
-        // NOTE: create src/content/live-video/live.json when this feature is used
-        file: 'src/content/live-video/live.json',
-        fields: translateFields(LiveVideoCollection.fields as TinaField[], 'liveVideo'),
-      },
-    ],
-  },
-  {
-    name: 'global-config',
-    label: 'Global Config',
-    editor,
-    files: [
-      {
-        name: 'config',
-        label: 'Global Config',
-        file: 'src/content/config/config.json',
-        fields: translateFields(GlobalConfigCollection.fields as TinaField[], 'config'),
-      },
-    ],
-  },
-];
+// No files collections currently — global-config, statement-of-faith, and
+// live-video are TinaCMS-only. Add entries here if single-file collections
+// ever need Sveltia access.
+const filesCollections: unknown[] = [];
 
 // ── WRITE OUTPUT ──────────────────────────────────────────────────────────────
 
