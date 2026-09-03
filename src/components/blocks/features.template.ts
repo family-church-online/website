@@ -13,7 +13,7 @@ export const featuresBlockSchema: Template = {
 			fields: [
 				{ type: 'string', label: 'Icon (Tabler name)', name: 'icon' },
 				{ type: 'string', label: 'Title', name: 'title' },
-				{ type: 'rich-text', label: 'Text', name: 'text' },
+				{ type: 'string', label: 'Text', name: 'text', ui: { component: 'textarea' } },
 			],
 		},
 	],

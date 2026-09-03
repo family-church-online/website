@@ -1,8 +1,6 @@
 ---
 import { tinaField } from '@tinacms/astro/tina-field';
-import TinaMarkdown from '@tinacms/astro/TinaMarkdown.astro';
 import Section from '../ui/Section.astro';
-import { mdxComponents } from '../mdx/components';
 import Card from '../ui/Card.astro';
 import CardHeader from '../ui/CardHeader.astro';
 import CardContent from '../ui/CardContent.astro';
@@ -34,9 +32,7 @@ const items = (data.items ?? []).filter(it => it !== null);
 						<h3 data-tina-field={tinaField(item, 'title')} class="mt-6 font-medium">{item.title}</h3>
 					</CardHeader>
 					<CardContent class="text-sm pb-8 text-muted-foreground">
-						<div data-tina-field={tinaField(item, 'text')}>
-							<TinaMarkdown content={item.text} components={mdxComponents} />
-						</div>
+						<p data-tina-field={tinaField(item, 'text')}>{item.text}</p>
 					</CardContent>
 				</div>
 			))}
