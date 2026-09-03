@@ -466,7 +466,7 @@ const configObj = {
     base_url: 'https://sveltia-auth.familychurch.online',
   },
   site_url:      'https://familychurch.online',
-  logo_url:      '/NavyLogo_xSmall.png',
+  logo_url:      '/NavyLogo.png',
   // Sveltia uploads go to public/images/ in the repo, committed via GitHub API.
   // Keep upload dirs consistent with TinaCMS uploadDir values in tina/collections/*.ts.
   media_folder:  'public/images/uploads',
