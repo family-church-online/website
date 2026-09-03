@@ -116,6 +116,7 @@ import { DevotionCollection }       from '../tina/collections/devotion.ts';
 import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
 import { EventCollection }          from '../tina/collections/event.ts';
 import { GuideCollection }          from '../tina/collections/guide.ts';
+import { ministryLessonCollection } from '../tina/collections/ministry-lesson.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = resolve(__dirname, '..');
@@ -356,6 +357,66 @@ const folderCollections = [
     slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
     editor,
     fields: translateFields(GuideCollection.fields as TinaField[], 'guide'),
+  },
+  {
+    name: 'amplify',
+    label: 'Amplify — Teens',
+    folder: 'src/content/amplify',
+    format: 'frontmatter',
+    extension: 'mdx',
+    create: true,
+    identifier_field: 'title',
+    slug: '{{year}}-{{month}}-{{day}}',
+    editor,
+    fields: translateFields(
+      (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[],
+      'lesson',
+    ),
+  },
+  {
+    name: 'kids-preschool',
+    label: 'Kids Church — Pre-School',
+    folder: 'src/content/kids/preschool',
+    format: 'frontmatter',
+    extension: 'mdx',
+    create: true,
+    identifier_field: 'title',
+    slug: '{{year}}-{{month}}-{{day}}',
+    editor,
+    fields: translateFields(
+      (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[],
+      'lesson',
+    ),
+  },
+  {
+    name: 'kids-junior',
+    label: 'Kids Church — Junior',
+    folder: 'src/content/kids/junior',
+    format: 'frontmatter',
+    extension: 'mdx',
+    create: true,
+    identifier_field: 'title',
+    slug: '{{year}}-{{month}}-{{day}}',
+    editor,
+    fields: translateFields(
+      (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[],
+      'lesson',
+    ),
+  },
+  {
+    name: 'kids-senior',
+    label: 'Kids Church — Senior',
+    folder: 'src/content/kids/senior',
+    format: 'frontmatter',
+    extension: 'mdx',
+    create: true,
+    identifier_field: 'title',
+    slug: '{{year}}-{{month}}-{{day}}',
+    editor,
+    fields: translateFields(
+      (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[],
+      'lesson',
+    ),
   },
 ];
 
