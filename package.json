@@ -8,8 +8,9 @@
   "scripts": {
     "dev": "tinacms dev -c \"astro dev\"",
     "dev:mobile": "node scripts/proxy-tina.mjs & TINA_HOST=$(hostname -I | awk '{print $1}') tinacms dev -c \"astro dev\"",
-    "build": "tinacms build --content=local -c \"astro build\" && node scripts/patch-wrangler.mjs",
-    "build:local": "tinacms build --local --skip-cloud-checks -c \"astro build\"",
+    "build": "node scripts/generate-sveltia-config.mjs && tinacms build --content=local -c \"astro build\" && node scripts/patch-wrangler.mjs",
+    "build:local": "node scripts/generate-sveltia-config.mjs && tinacms build --local --skip-cloud-checks -c \"astro build\"",
+    "sveltia:config": "node scripts/generate-sveltia-config.mjs",
     "build:search": "tinacms search-index",
     "preview": "astro preview",
     "astro": "astro",
@@ -64,6 +65,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@aws-sdk/client-s3": "^3.1117.0",
+    "@sveltia/cms": "^0.205.0",
     "@tinacms/cli": "^2.5.3",
     "@types/node": "^25.9.1",
     "googleapis": "^176.0.0",

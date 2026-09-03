@@ -192,16 +192,15 @@ const pageDesc  = registry.description ?? `A course from ${siteTitle}.`;
                   <span class="flex-1 min-w-0 text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">
                     {lesson.lesson}
                   </span>
-                  {lesson.progress && (
+                  {lesson.progress ? (
                     <span class={`shrink-0 text-xs font-semibold rounded-full px-2.5 py-0.5 tabular-nums ${lesson.progress.score === lesson.progress.total ? 'text-[var(--green)] bg-[var(--green)]/10' : 'text-[var(--olive)] bg-[var(--olive)]/10'}`}>
                       {lesson.progress.score} / {lesson.progress.total}
                     </span>
-                  )}
-                  {lesson.pointNumber && (
+                  ) : lesson.pointNumber ? (
                     <span class="shrink-0 text-xs font-semibold text-[var(--olive)] bg-[var(--olive)]/10 rounded-full px-2.5 py-0.5">
                       Point {lesson.pointNumber}
                     </span>
-                  )}
+                  ) : null}
                   <svg
                     class="shrink-0 w-4 h-4 text-[var(--navy)]/20 dark:text-white/20 group-hover:text-[var(--green)] transition-colors"
                     viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"

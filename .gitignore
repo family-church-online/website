@@ -24,6 +24,11 @@ scripts/.google-token.json
 # TinaCMS generated output (also covered by tina/.gitignore)
 tina/__generated__
 
+# Sveltia CMS — generated at build time by scripts/generate-sveltia-config.mjs
+# index.html and the auth setup notes in config.yml are tracked; these are not
+public/edit/sveltia-cms.js
+public/edit/config.yml
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
