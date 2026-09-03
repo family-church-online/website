@@ -241,34 +241,6 @@ export const GlobalConfigCollection: Collection = {
       ],
     },
     {
-      name: "announcements",
-      label: "Announcements",
-      description: "Notices displayed wherever you add an Announcements block on a page. Set an expiry date so old ones disappear automatically at the next build.",
-      type: "object",
-      list: true,
-      ui: {
-        itemProps: (item) => ({ label: item.title ?? 'Announcement' }),
-      },
-      fields: [
-        { name: "title", label: "Title", type: "string", required: true },
-        { name: "body", label: "Body", type: "string", ui: { component: "textarea" } },
-        { name: "link", label: "Link URL", type: "string" },
-        {
-          name: "linkLabel",
-          label: "Link Label",
-          type: "string",
-          description: 'Text for the link button, e.g. "Sign up" or "Find out more". Defaults to "Learn more".',
-        },
-        {
-          name: "expiryDate",
-          label: "Expiry Date",
-          type: "datetime",
-          description: "Announcement stops showing after this date (takes effect on next build). Leave blank to show indefinitely.",
-          ui: { dateFormat: "YYYY-MM-DD", timeFormat: false },
-        },
-      ],
-    },
-    {
       name: 'kidsChurch',
       label: 'Kids Church Ministry',
       description: 'Names and age ranges shown on the Kids Church landing page and lesson headers.',

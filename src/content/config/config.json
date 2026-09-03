@@ -145,15 +145,6 @@
       "body": "This sign-in link is no longer valid — links expire after 10 minutes. Please request a new one."
     }
   },
-  "announcements": [
-    {
-      "title": "New Website Launch",
-      "body": "We're excited to launch our new website for 2027. The changes help us to make the very most of our content and to provide it in different mediums for different applications.",
-      "link": "https://dev.familychurch.online",
-      "linkLabel": "Go there now",
-      "expiryDate": "2026-09-01T13:25:43.964Z"
-    }
-  ],
   "kidsChurch": {
     "ministryName": "Kids Church",
     "preschoolLabel": "Pre-School",

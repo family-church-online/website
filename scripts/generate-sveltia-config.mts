@@ -111,6 +111,7 @@ import { fileURLToPath } from 'node:url';
 // annotations at runtime via --experimental-strip-types, so .ts files load
 // without any compile step. The `import type { Collection }` in each file
 // is a type-only import that is completely removed at runtime.
+import { AnnouncementCollection }   from '../tina/collections/announcement.ts';
 import { DevotionCollection }       from '../tina/collections/devotion.ts';
 import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
 import { EventCollection }          from '../tina/collections/event.ts';
@@ -305,6 +306,18 @@ const lessonFields = translateFields(
 );
 
 const folderCollections = [
+  {
+    name: 'announcement',
+    label: 'Announcements',
+    folder: 'src/content/announcements',
+    format: 'frontmatter',
+    extension: 'mdx',
+    create: true,
+    identifier_field: 'title',
+    slug: '{{slug}}',
+    editor,
+    fields: translateFields(AnnouncementCollection.fields as TinaField[], 'announcement'),
+  },
   {
     name: 'devotion',
     label: 'Devotions',

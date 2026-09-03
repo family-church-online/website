@@ -18,6 +18,13 @@ import client from '../../tina/__generated__/client';
 export const getConfig = () =>
 	requestWithMetadata(client.queries.config({ relativePath: 'config.json' }));
 
+export async function listAnnouncements() {
+	const result = await client.queries.announcementConnection();
+	return (result.data.announcementConnection.edges ?? [])
+		.flatMap((edge) => (edge?.node ? [edge.node] : []));
+}
+export type CmsAnnouncement = Awaited<ReturnType<typeof listAnnouncements>>[number];
+
 export const getStatementOfFaith = () =>
 	requestWithMetadata(client.queries.statementOfFaith({ relativePath: 'index.json' }));
 

@@ -1,4 +1,5 @@
 import { defineConfig } from "tinacms";
+import { AnnouncementCollection } from "./collections/announcement";
 import { GlobalConfigCollection } from "./collections/global-config";
 import { PageCollection } from "./collections/page";
 import { SermonCollection } from "./collections/sermon";
@@ -58,6 +59,7 @@ export default defineConfig({
   // See docs on content modeling for more info on how to setup new content models: https://tina.io/docs/schema/
   schema: {
     collections: [
+      AnnouncementCollection,
       PageCollection,
       SermonCollection,
       DevotionCollection,
