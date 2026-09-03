@@ -215,7 +215,11 @@ type SveltiaField = Record<string, unknown>;
  * Add an entry here when Sveltia should render a field differently from what
  * the TinaCMS type would normally produce.
  */
-const FIELD_OVERRIDES: Record<string, SveltiaField | null> = {};
+const FIELD_OVERRIDES: Record<string, SveltiaField | null> = {
+  // pdfs[].file is type:image in TinaCMS (only upload type available) but must
+  // be widget:file in Sveltia so editors can actually pick PDF files.
+  'lesson.file': { name: 'file', label: 'File', widget: 'file', media_folder: '/images/lessons', required: false },
+};
 
 function translateField(field: TinaField, collectionName: string): SveltiaField | null {
   const overrideKey = `${collectionName}.${field.name}`;

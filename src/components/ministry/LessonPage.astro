@@ -10,6 +10,7 @@ interface LessonFrontmatter {
 	paragraphs?: Array<{ heading?: string; content?: string }>;
 	images?: Array<{ image?: string; description?: string }>;
 	videos?: Array<{ url?: string; description?: string }>;
+	pdfs?: Array<{ file?: string; label?: string }>;
 }
 
 interface Props {
@@ -33,6 +34,7 @@ const scriptures = (fm.scriptures ?? []).filter(s => s?.ref || s?.text);
 const paragraphs = (fm.paragraphs ?? []).filter(p => p?.heading || p?.content);
 const images     = (fm.images ?? []).filter(img => img?.image).map(img => ({ image: img.image, description: img.description }));
 const videos     = (fm.videos ?? []).filter(v => v?.url).map(v => ({ url: v.url, description: v.description }));
+const pdfs       = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.file!, label: p.label || 'Download PDF' }));
 ---
 
 <!-- Header -->
@@ -103,6 +105,27 @@ const videos     = (fm.videos ?? []).filter(v => v?.url).map(v => ({ url: v.url,
 	{videos.length > 0 && (
 		<section>
 			<Carousel slides={videos} heading="Videos" />
+		</section>
+	)}
+
+	<!-- PDFs -->
+	{pdfs.length > 0 && (
+		<section>
+			<h3 class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">Downloads</h3>
+			<div class="flex flex-wrap gap-3">
+				{pdfs.map(p => (
+					<a
+						href={p.file}
+						download
+						class="inline-flex items-center gap-2 rounded-lg bg-white dark:bg-[var(--card)] ring-1 ring-[var(--navy)]/10 dark:ring-white/10 px-4 py-3 text-sm font-semibold text-[var(--navy)] dark:text-white hover:ring-[var(--green)]/50 hover:text-[var(--green)] transition-all no-underline shadow-sm"
+					>
+						<svg class="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+							<path d="M10 3v10m0 0l-3-3m3 3l3-3M4 17h12" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+						{p.label}
+					</a>
+				))}
+			</div>
 		</section>
 	)}
 

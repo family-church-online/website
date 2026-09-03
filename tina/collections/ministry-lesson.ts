@@ -99,6 +99,19 @@ export function ministryLessonCollection(opts: {
 					{ name: 'description', label: 'Description', type: 'string', ui: { component: 'textarea' } },
 				],
 			},
+			{
+				name: 'pdfs',
+				label: 'PDFs',
+				type: 'object',
+				list: true,
+				ui: {
+					itemProps: (item: { label?: string }) => ({ label: item.label || 'PDF' }),
+				},
+				fields: [
+					{ name: 'file', label: 'File', type: 'image', ui: { uploadDir: () => '/images/lessons' } },
+					{ name: 'label', label: 'Label', type: 'string', description: 'e.g. "Activity Sheet"' },
+				],
+			},
 		],
 	};
 }
