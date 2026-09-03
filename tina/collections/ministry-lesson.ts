@@ -48,6 +48,58 @@ export function ministryLessonCollection(opts: {
 				ui: { uploadDir: () => '/images/lessons' },
 			},
 			{
+				name: 'scriptures',
+				label: 'Scriptures',
+				type: 'object',
+				list: true,
+				ui: {
+					itemProps: (item: { ref?: string }) => ({ label: item.ref || 'Scripture' }),
+				},
+				fields: [
+					{ name: 'ref', label: 'Reference', type: 'string', description: 'e.g. "John 3:16"' },
+					{ name: 'text', label: 'Text', type: 'string', ui: { component: 'textarea' } },
+				],
+			},
+			{
+				name: 'paragraphs',
+				label: 'Paragraphs',
+				type: 'object',
+				list: true,
+				ui: {
+					itemProps: (item: { heading?: string }) => ({ label: item.heading || 'Paragraph' }),
+				},
+				fields: [
+					{ name: 'heading', label: 'Heading', type: 'string' },
+					{ name: 'content', label: 'Content', type: 'string', ui: { component: 'textarea' } },
+				],
+			},
+			{
+				name: 'images',
+				label: 'Images',
+				type: 'object',
+				list: true,
+				ui: {
+					itemProps: (item: { description?: string }) => ({ label: item.description || 'Image' }),
+				},
+				fields: [
+					{ name: 'image', label: 'Image', type: 'image', ui: { uploadDir: () => '/images/lessons' } },
+					{ name: 'description', label: 'Description', type: 'string' },
+				],
+			},
+			{
+				name: 'videos',
+				label: 'Videos',
+				type: 'object',
+				list: true,
+				ui: {
+					itemProps: (item: { url?: string; description?: string }) => ({ label: item.description || item.url || 'Video' }),
+				},
+				fields: [
+					{ name: 'url', label: 'URL', type: 'string' },
+					{ name: 'description', label: 'Description', type: 'string', ui: { component: 'textarea' } },
+				],
+			},
+			{
 				name: 'body',
 				label: 'Content',
 				type: 'rich-text',
