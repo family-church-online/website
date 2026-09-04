@@ -133,107 +133,102 @@ const processed = slides
 
 	const registry: { el: HTMLElement; go: (n: number) => void; cur: () => number }[] = [];
 
-	for (const el of document.querySelectorAll<HTMLElement>('[data-carousel]')) {
-		const viewport = el.querySelector<HTMLElement>('[data-carousel-viewport]')!;
-		const slides   = Array.from(el.querySelectorAll<HTMLElement>('[data-carousel-slide]'));
-		const dots     = Array.from(el.querySelectorAll<HTMLButtonElement>('[data-dot]'));
-		const total    = slides.length;
-		let cur        = 0;
-		let animating  = false;
+	function initCarousels() {
+		registry.length = 0;
 
-		if (total < 2) continue;
+		for (const el of document.querySelectorAll<HTMLElement>('[data-carousel]')) {
+			const viewport = el.querySelector<HTMLElement>('[data-carousel-viewport]')!;
+			const slides   = Array.from(el.querySelectorAll<HTMLElement>('[data-carousel-slide]'));
+			const dots     = Array.from(el.querySelectorAll<HTMLButtonElement>('[data-dot]'));
+			const total    = slides.length;
+			let cur        = 0;
+			let animating  = false;
 
-		const setDots = (n: number) =>
-			dots.forEach((d, i) => {
-				d.style.background = i === n
-					? 'var(--green)'
-					: 'color-mix(in srgb, var(--navy) 20%, transparent)';
+			if (total < 2) continue;
+
+			const setDots = (n: number) =>
+				dots.forEach((d, i) => {
+					d.style.background = i === n
+						? 'var(--green)'
+						: 'color-mix(in srgb, var(--navy) 20%, transparent)';
+				});
+
+			const go = (n: number) => {
+				if (animating) return;
+				const next = ((n % total) + total) % total;
+				if (next === cur) return;
+				animating = true;
+
+				const dir       = n >= cur ? 1 : -1;
+				const fromSlide = slides[cur];
+				const toSlide   = slides[next];
+
+				gsap.set(viewport, { height: viewport.offsetHeight });
+				gsap.set(fromSlide, { position: 'absolute', top: 0, left: 0, width: '100%' });
+				gsap.set(toSlide, { position: 'relative', opacity: 0, pointerEvents: 'none' });
+				const targetH = Math.max(toSlide.scrollHeight || toSlide.offsetHeight, 40);
+				gsap.set(toSlide, { position: 'absolute', top: 0, left: 0, width: '100%' });
+
+				setDots(next);
+
+				gsap.timeline({
+					onComplete: () => {
+						gsap.set(fromSlide, { position: 'absolute', top: 0, left: 0, width: '100%', opacity: 0, pointerEvents: 'none' });
+						gsap.set(toSlide,   { position: 'relative', opacity: 1, pointerEvents: 'auto' });
+						toSlide.style.top   = '';
+						toSlide.style.left  = '';
+						toSlide.style.width = '';
+						gsap.set(viewport, { clearProps: 'height' });
+						cur = next;
+						animating = false;
+					},
+				})
+					.to(viewport,   { height: targetH,     duration: 0.45, ease: 'power3.inOut'  }, 0)
+					.to(fromSlide,  { opacity: 0, x: dir * -24, duration: 0.3,  ease: 'power2.in'    }, 0)
+					.fromTo(toSlide,
+						{ opacity: 0, x: dir * 24 },
+						{ opacity: 1, x: 0,         duration: 0.35, ease: 'power2.out'   },
+						0.18
+					);
+			};
+
+			el.querySelector('[data-carousel-prev]')?.addEventListener('click', () => go(cur - 1));
+			el.querySelector('[data-carousel-next]')?.addEventListener('click', () => go(cur + 1));
+			dots.forEach((d, i) => d.addEventListener('click', () => go(i)));
+
+			for (const btn of el.querySelectorAll<HTMLElement>('.carousel-nav-btn')) {
+				btn.addEventListener('mouseenter', () =>
+					gsap.to(btn, { scale: 1.15, duration: 0.2, ease: 'back.out(2)' })
+				);
+				btn.addEventListener('mouseleave', () =>
+					gsap.to(btn, { scale: 1, duration: 0.15, ease: 'power2.in' })
+				);
+			}
+
+			for (const dot of dots) {
+				dot.addEventListener('mouseenter', () =>
+					gsap.to(dot, { scale: 1.6, duration: 0.2, ease: 'back.out(2)' })
+				);
+				dot.addEventListener('mouseleave', () =>
+					gsap.to(dot, { scale: 1, duration: 0.15 })
+				);
+			}
+
+			let startX = 0;
+			viewport.addEventListener('pointerdown', e => { startX = e.clientX; });
+			viewport.addEventListener('pointerup',   e => {
+				const dx = e.clientX - startX;
+				if (Math.abs(dx) > 50) go(dx < 0 ? cur + 1 : cur - 1);
 			});
 
-		const go = (n: number) => {
-			if (animating) return;
-			const next = ((n % total) + total) % total;
-			if (next === cur) return;
-			animating = true;
-
-			const dir       = n >= cur ? 1 : -1;
-			const fromSlide = slides[cur];
-			const toSlide   = slides[next];
-
-			// Freeze viewport at its current pixel height so rearranging positions doesn't snap
-			gsap.set(viewport, { height: viewport.offsetHeight });
-
-			// Pull the current slide out of normal flow
-			gsap.set(fromSlide, { position: 'absolute', top: 0, left: 0, width: '100%' });
-
-			// Temporarily put next slide in flow (invisible) to measure its natural height
-			gsap.set(toSlide, { position: 'relative', opacity: 0, pointerEvents: 'none' });
-			const targetH = Math.max(toSlide.scrollHeight || toSlide.offsetHeight, 40);
-
-			// Return next slide to absolute for the animation start
-			gsap.set(toSlide, { position: 'absolute', top: 0, left: 0, width: '100%' });
-
-			setDots(next);
-
-			gsap.timeline({
-				onComplete: () => {
-					// Settle: next is back in flow, previous is parked out of the way
-					gsap.set(fromSlide, { position: 'absolute', top: 0, left: 0, width: '100%', opacity: 0, pointerEvents: 'none' });
-					gsap.set(toSlide,   { position: 'relative', opacity: 1, pointerEvents: 'auto' });
-					toSlide.style.top   = '';
-					toSlide.style.left  = '';
-					toSlide.style.width = '';
-					// Release explicit height so viewport breathes naturally again
-					gsap.set(viewport, { clearProps: 'height' });
-					cur = next;
-					animating = false;
-				},
-			})
-				.to(viewport,   { height: targetH,     duration: 0.45, ease: 'power3.inOut'  }, 0)
-				.to(fromSlide,  { opacity: 0, x: dir * -24, duration: 0.3,  ease: 'power2.in'    }, 0)
-				.fromTo(toSlide,
-					{ opacity: 0, x: dir * 24 },
-					{ opacity: 1, x: 0,         duration: 0.35, ease: 'power2.out'   },
-					0.18
-				);
-		};
-
-		el.querySelector('[data-carousel-prev]')?.addEventListener('click', () => go(cur - 1));
-		el.querySelector('[data-carousel-next]')?.addEventListener('click', () => go(cur + 1));
-		dots.forEach((d, i) => d.addEventListener('click', () => go(i)));
-
-		// GSAP hover — nav buttons
-		for (const btn of el.querySelectorAll<HTMLElement>('.carousel-nav-btn')) {
-			btn.addEventListener('mouseenter', () =>
-				gsap.to(btn, { scale: 1.15, duration: 0.2, ease: 'back.out(2)' })
-			);
-			btn.addEventListener('mouseleave', () =>
-				gsap.to(btn, { scale: 1, duration: 0.15, ease: 'power2.in' })
-			);
+			registry.push({ el, go, cur: () => cur });
 		}
-
-		// GSAP hover — dots
-		for (const dot of dots) {
-			dot.addEventListener('mouseenter', () =>
-				gsap.to(dot, { scale: 1.6, duration: 0.2, ease: 'back.out(2)' })
-			);
-			dot.addEventListener('mouseleave', () =>
-				gsap.to(dot, { scale: 1, duration: 0.15 })
-			);
-		}
-
-		// Swipe support
-		let startX = 0;
-		viewport.addEventListener('pointerdown', e => { startX = e.clientX; });
-		viewport.addEventListener('pointerup',   e => {
-			const dx = e.clientX - startX;
-			if (Math.abs(dx) > 50) go(dx < 0 ? cur + 1 : cur - 1);
-		});
-
-		registry.push({ el, go, cur: () => cur });
 	}
 
-	// Arrow key navigation — routes to whichever carousel contains the focused element
+	// Re-initialise on every View Transitions navigation (and the initial page load)
+	document.addEventListener('astro:page-load', initCarousels);
+
+	// Arrow key navigation — added once, always references the current registry
 	document.addEventListener('keydown', e => {
 		if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
 		const active = registry.find(c => c.el.contains(document.activeElement));
