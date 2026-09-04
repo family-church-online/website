@@ -218,7 +218,7 @@ type SveltiaField = Record<string, unknown>;
 const FIELD_OVERRIDES: Record<string, SveltiaField | null> = {
   // pdfs[].file is type:image in TinaCMS (only upload type available) but must
   // be widget:file in Sveltia so editors can actually pick PDF files.
-  'lesson.file': { name: 'file', label: 'File', widget: 'file', media_folder: '/images/lessons', required: false },
+  'lesson.file': { name: 'file', label: 'File', widget: 'file', media_folder: 'public/images/lessons', required: false },
 };
 
 function translateField(field: TinaField, collectionName: string): SveltiaField | null {
@@ -262,7 +262,8 @@ function translateField(field: TinaField, collectionName: string): SveltiaField 
       const uploadDir = typeof ui.uploadDir === 'function'
         ? (ui.uploadDir as () => string)()
         : '/images/uploads';
-      return { ...base, widget: 'image', media_folder: uploadDir };
+      const sveltiaMediaFolder = uploadDir.startsWith('/') ? `public${uploadDir}` : `public/${uploadDir}`;
+      return { ...base, widget: 'image', media_folder: sveltiaMediaFolder };
     }
 
     case 'rich-text':
