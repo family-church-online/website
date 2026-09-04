@@ -1,0 +1,33 @@
+{
+  "title": "Dinosaurs",
+  "slug": "dinasours",
+  "date": "2024-06-23",
+  "squarespaceUrl": "https://familychurch.online/pre-school-church/dinasours",
+  "mainScripture": null,
+  "mainScriptureLabel": null,
+  "scriptures": [],
+  "assets": {
+    "thumbnail": "2024-06-23-dinosaurs-thumbnail.jpg",
+    "images": [
+      "2024-06-23-dinosaurs-thumbnail.jpg",
+      "2024-06-23-dinosaurs-01.jpg",
+      "2024-06-23-dinosaurs-02.jpg",
+      "2024-06-23-dinosaurs-03.jpg",
+      "2024-06-23-dinosaurs-04.jpg"
+    ],
+    "videos": [
+      {
+        "provider": "youtube",
+        "id": "teu7BCZTgDs",
+        "url": "https://www.youtube.com/watch?v=teu7BCZTgDs",
+        "playerUrl": null,
+        "title": "Creation (Genesis 1-2)"
+      }
+    ],
+    "docs": []
+  },
+  "textBlocks": [
+    "God made everything!\nIT IS CALLED CREATION\nand \nHe created everything \nin 1 week!",
+    "So when do you think He made \nDinosaurs!???\n\nOn DAY 5 &6"
+  ]
+}

@@ -93,7 +93,7 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 	.hero-section {
 		display: flex;
 		align-items: center;
-		justify-content: center;
+		justify-content: flex-start;
 	}
 
 	.hero-content {
@@ -252,9 +252,39 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 
 <script>
 	import gsap from 'gsap';
-	gsap.timeline({ delay: 0.1 })
-		.from('#hero .hero-tagline',  { opacity: 0, y: 16, duration: 0.7, ease: 'power3.out' })
-		.from('#hero .hero-service',  { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' }, '-=0.3')
-		.from('#hero .hero-eyebrow',  { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' }, '-=0.25')
-		.from('#hero .hero-cta',      { opacity: 0, y: 12, duration: 0.5, ease: 'power2.out' }, '-=0.2');
+
+	// Split tagline into per-word spans for staggered entrance.
+	// We do this in JS so the data-tina-field attribute on the <p> is untouched.
+	const tagline = document.querySelector<HTMLElement>('#hero .hero-tagline');
+	if (tagline) {
+		const words = tagline.textContent?.trim().split(/\s+/) ?? [];
+		tagline.innerHTML = words
+			.map(w => `<span class="hw" style="display:inline-block">${w}</span>`)
+			.join(' ');
+	}
+
+	const tl = gsap.timeline({ delay: 0.05 });
+
+	// Background: ease down from a slight zoom as the page loads
+	tl.from('#hero .hero-bg', {
+		scale: 1.08,
+		duration: 2.0,
+		ease: 'power2.out',
+	}, 0);
+
+	// Tagline words: stagger up and fade in
+	if (tagline) {
+		tl.from('#hero .hw', {
+			opacity: 0,
+			y: 20,
+			stagger: 0.08,
+			duration: 0.65,
+			ease: 'power3.out',
+		}, 0.1);
+	}
+
+	// Remaining elements follow after the words settle
+	tl.from('#hero .hero-service', { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' }, '-=0.35')
+	  .from('#hero .hero-eyebrow', { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' }, '-=0.25')
+	  .from('#hero .hero-cta',     { opacity: 0, y: 12, duration: 0.5, ease: 'power2.out' }, '-=0.2');
 </script>

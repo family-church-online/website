@@ -38,7 +38,13 @@
     "lesson:import": "node scripts/import-lessons.mjs",
     "lesson:manifest": "node scripts/import-lessons.mjs --manifest",
     "lesson:convert": "node scripts/convert-lesson.mjs",
-    "lesson:list-courses": "node scripts/list-courses.mjs"
+    "lesson:list-courses": "node scripts/list-courses.mjs",
+    "kids:download": "node scripts/download-kids-lessons.mjs",
+    "kids:download:check": "node scripts/download-kids-lessons.mjs --check",
+    "kids:download:force": "node scripts/download-kids-lessons.mjs --force",
+    "kids:download:preschool": "node scripts/download-kids-lessons.mjs --collection pre-school",
+    "kids:download:junior": "node scripts/download-kids-lessons.mjs --collection junior",
+    "kids:download:senior": "node scripts/download-kids-lessons.mjs --collection senior"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.7.0",

@@ -1,0 +1,35 @@
+{
+  "title": "Lazarus",
+  "slug": "lazarus",
+  "date": "2024-10-27",
+  "squarespaceUrl": "https://familychurch.online/pre-school-church/lazarus",
+  "mainScripture": "John 11:45",
+  "mainScriptureLabel": null,
+  "scriptures": [
+    "John 11:45"
+  ],
+  "assets": {
+    "thumbnail": "2024-10-27-lazarus-thumbnail.jpg",
+    "images": [
+      "2024-10-27-lazarus-thumbnail.jpg",
+      "2024-10-27-lazarus-01.jpg",
+      "2024-10-27-lazarus-02.jpg",
+      "2024-10-27-lazarus-03.jpg",
+      "2024-10-27-lazarus-04.jpg"
+    ],
+    "videos": [
+      {
+        "provider": "youtube",
+        "id": "Dca8SSxXCmM",
+        "url": "https://www.youtube.com/watch?v=Dca8SSxXCmM",
+        "playerUrl": null,
+        "title": "Jesus Raises Lazarus from the Dead"
+      }
+    ],
+    "docs": []
+  },
+  "textBlocks": [
+    "Miracles of Jesus\nJesus hears that his friend, Lazarus is sick.\nBut Jesus waits for Lazarus to die before he goes to him.\n\nSO THAT THE MIRACLE WAS AMAZING!\nSo that people would know that He was the Son of God. That He had power of death.",
+    "John 11:45 …many Jews who came to Mary and saw what He did believed in Him"
+  ]
+}

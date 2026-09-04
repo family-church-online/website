@@ -1,0 +1,27 @@
+{
+  "title": "David",
+  "slug": "david-2",
+  "date": "2022-07-10",
+  "squarespaceUrl": "https://familychurch.online/pre-school-church/david-2",
+  "mainScripture": null,
+  "mainScriptureLabel": null,
+  "scriptures": [],
+  "assets": {
+    "thumbnail": "2022-07-10-david-thumbnail.jpg",
+    "images": [
+      "2022-07-10-david-thumbnail.jpg",
+      "2022-07-10-david-01.jpg"
+    ],
+    "videos": [],
+    "docs": [
+      {
+        "filename": "2022-07-10-david-01-PuzzleWorksheetJun.pdf",
+        "originalHref": "/s/PuzzleWorksheetJun.pdf"
+      }
+    ]
+  },
+  "textBlocks": [
+    "David\nTHE SHEPHERD KING",
+    "Download, print and have fun"
+  ]
+}

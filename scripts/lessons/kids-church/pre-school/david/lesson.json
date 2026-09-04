@@ -1,0 +1,45 @@
+{
+  "title": "David",
+  "slug": "david",
+  "date": "2022-03-27",
+  "squarespaceUrl": "https://familychurch.online/pre-school-church/david",
+  "mainScripture": null,
+  "mainScriptureLabel": null,
+  "scriptures": [],
+  "assets": {
+    "thumbnail": "2022-03-27-david-thumbnail.jpg",
+    "images": [
+      "2022-03-27-david-thumbnail.jpg",
+      "2022-03-27-david-01.jpg",
+      "2022-03-27-david-02.jpeg",
+      "2022-03-27-david-03.jpeg",
+      "2022-03-27-david-04.jpeg",
+      "2022-03-27-david-05.jpg",
+      "2022-03-27-david-06.jpeg",
+      "2022-03-27-david-07.jpeg",
+      "2022-03-27-david-08.jpeg",
+      "2022-03-27-david-09.jpeg",
+      "2022-03-27-david-10.jpg",
+      "2022-03-27-david-11.jpg"
+    ],
+    "videos": [
+      {
+        "provider": "vimeo",
+        "id": "692256241",
+        "url": "https://vimeo.com/692256241",
+        "playerUrl": "https://player.vimeo.com/video/692256241?h=08067ffcce&app_id=122963",
+        "title": "David&rsquo;s Heart.mov"
+      }
+    ],
+    "docs": []
+  },
+  "textBlocks": [
+    "Hello Bravehearts\nIn today’s true Bible story, \nyou will see that it is \nWHAT IS ON THE INSIDE\nthat matters!",
+    "Go to the house of Jesse and the Lord will tell him which son to choose",
+    "The Lord rejected all 7 of Jesse’s sons!",
+    "Samuel was confused. \nDo you have another son?",
+    "Send for him. We won’t eat till he gets here.\nWhen David arrived he was healthy looking, \nhe had beautiful eyes and a handsome appearance",
+    "BUT THE LORD WOULD MAKE HIM \nKING \nBECAUSE THE LORD COULD SEE HIS \nHEART",
+    "Look what God can see"
+  ]
+}

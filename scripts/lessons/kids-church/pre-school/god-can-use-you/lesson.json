@@ -1,0 +1,48 @@
+{
+  "title": "Ready to Work",
+  "slug": "god-can-use-you",
+  "date": "2020-11-15",
+  "squarespaceUrl": "https://familychurch.online/pre-school-church/god-can-use-you",
+  "mainScripture": null,
+  "mainScriptureLabel": null,
+  "scriptures": [],
+  "assets": {
+    "thumbnail": "2020-11-15-ready-to-work-thumbnail.jpg",
+    "images": [
+      "2020-11-15-ready-to-work-thumbnail.jpg",
+      "2020-11-15-ready-to-work-01.png",
+      "2020-11-15-ready-to-work-02.png"
+    ],
+    "videos": [
+      {
+        "provider": "vimeo",
+        "id": "479273937",
+        "url": "https://vimeo.com/479273937",
+        "playerUrl": "https://player.vimeo.com/video/479273937?app_id=122963&wmode=opaque",
+        "title": "Details"
+      },
+      {
+        "provider": "youtube",
+        "id": "ifB4jBTDuKA",
+        "url": "https://www.youtube.com/watch?v=ifB4jBTDuKA",
+        "playerUrl": null,
+        "title": ""
+      },
+      {
+        "provider": "youtube",
+        "id": "AS0Dgv-iJPo",
+        "url": "https://www.youtube.com/watch?v=AS0Dgv-iJPo",
+        "playerUrl": null,
+        "title": ""
+      }
+    ],
+    "docs": []
+  },
+  "textBlocks": [
+    "Hello Bravehearts\nIn today’s lesson we see that \nGod gave the craftsmen\nspecial SKILLS,\nneeded to build His special tent!",
+    "VIDEO TIME",
+    "GAME TIME - LET’S PLAY",
+    "SONG TIME",
+    "PRAYER TIME\nDear Lord Jesus\nThank you for making me me\nThank you for giving me skills\nPlease keep my heart soft\nAmen"
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "title": "RestDay",
+  "slug": "sundays",
+  "date": "2020-09-06",
+  "squarespaceUrl": "https://familychurch.online/pre-school-church/sundays",
+  "mainScripture": null,
+  "mainScriptureLabel": null,
+  "scriptures": [],
+  "assets": {
+    "thumbnail": "2020-09-06-restday-thumbnail.jpg",
+    "images": [
+      "2020-09-06-restday-thumbnail.jpg",
+      "2020-09-06-restday-01.jpg",
+      "2020-09-06-restday-02.jpg",
+      "2020-09-06-restday-03.jpg",
+      "2020-09-06-restday-04.jpg",
+      "2020-09-06-restday-05.jpg",
+      "2020-09-06-restday-06.png",
+      "2020-09-06-restday-07.jpg"
+    ],
+    "videos": [
+      {
+        "provider": "vimeo",
+        "id": "454390939",
+        "url": "https://vimeo.com/454390939",
+        "playerUrl": "https://player.vimeo.com/video/454390939?app_id=122963&wmode=opaque",
+        "title": "RESTDAY"
+      },
+      {
+        "provider": "vimeo",
+        "id": "454392718",
+        "url": "https://vimeo.com/454392718",
+        "playerUrl": "https://player.vimeo.com/video/454392718?app_id=122963&wmode=opaque",
+        "title": "How to make a MUG cake"
+      },
+      {
+        "provider": "youtube",
+        "id": "WKeug-flqX4",
+        "url": "https://www.youtube.com/watch?v=WKeug-flqX4",
+        "playerUrl": null,
+        "title": ""
+      }
+    ],
+    "docs": []
+  },
+  "textBlocks": [
+    "Rule Number 4\nThe Lord told Moses\nthat His people must REST\nThey must only work for SIX days of the week",
+    "Do you guys know the days of the week?",
+    "VIDEO",
+    "Now Moses had been UP on the MOUNTAIN for 40 days!\nGetting All these instructions.",
+    "And then the Lord did something amazing\nHE WROTE ON THE 2 STONE TABLETS\n- THE 10 COMMANDMENTS -",
+    "CAKE TIME\nNow today we going to bake a MUG CAKE\nBut for it to work - we must follow instructions\nAsk you mom or dad to help you",
+    "COLOUR IN TIME",
+    "SONG TIME",
+    "PRAYER TIME\nDear Lord Jesus \nThank you for giving us rules to keep us safe\nThank you for giving us a day to rest\nA day to enjoy you dear Lord\nAmen",
+    "SEE YOU NEXT TIME \nxxx"
+  ]
+}

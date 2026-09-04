@@ -1,0 +1,43 @@
+{
+  "title": "God made us",
+  "slug": "god-made-us",
+  "date": "2024-07-28",
+  "squarespaceUrl": "https://familychurch.online/pre-school-church/god-made-us",
+  "mainScripture": null,
+  "mainScriptureLabel": null,
+  "scriptures": [],
+  "assets": {
+    "thumbnail": "2024-07-28-god-made-us-thumbnail.jpg",
+    "images": [
+      "2024-07-28-god-made-us-thumbnail.jpg",
+      "2024-07-28-god-made-us-01.jpg",
+      "2024-07-28-god-made-us-02.jpg",
+      "2024-07-28-god-made-us-03.jpg",
+      "2024-07-28-god-made-us-04.jpg",
+      "2024-07-28-god-made-us-05.jpg",
+      "2024-07-28-god-made-us-06.jpg",
+      "2024-07-28-god-made-us-07.jpg",
+      "2024-07-28-god-made-us-08.jpg"
+    ],
+    "videos": [
+      {
+        "provider": "youtube",
+        "id": "teu7BCZTgDs",
+        "url": "https://www.youtube.com/watch?v=teu7BCZTgDs",
+        "playerUrl": null,
+        "title": "Creation (Genesis 1-2)"
+      },
+      {
+        "provider": "youtube",
+        "id": "N8ZvssEUa94",
+        "url": "https://www.youtube.com/watch?v=N8ZvssEUa94",
+        "playerUrl": null,
+        "title": "Go Fish - The B-I-B-L-E - Great Music For Kids!"
+      }
+    ],
+    "docs": []
+  },
+  "textBlocks": [
+    "God made us\nThe first human beings that God made were \nADAM & EVE"
+  ]
+}
