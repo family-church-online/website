@@ -40,6 +40,12 @@ export default defineConfig({
   // Get this from tina.io
   token: process.env.TINA_TOKEN,
 
+  media: {
+    tina: {
+      mediaRoot: "",
+      publicFolder: "public",
+    },
+  },
   build: {
     outputFolder: "admin",
     publicFolder: "public",
