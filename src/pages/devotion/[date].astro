@@ -3,6 +3,7 @@ export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
 import { getConfig } from '../../lib/data';
+import Icon from '../../components/Icon.astro';
 
 interface ReadingLink { ref?: string; url?: string; }
 
@@ -127,9 +128,7 @@ const articleLd = {
     {fm.sermonUrl && (
       <div class="mt-3">
         <a href={fm.sermonUrl} class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[var(--green)] transition-colors">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M10 3v10m0 0l-3-3m3 3l3-3M3 17h14" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <Icon name="download" class="w-3.5 h-3.5" />
           View full sermon
         </a>
       </div>
@@ -315,9 +314,7 @@ const articleLd = {
       <nav class="reveal flex items-stretch gap-3 mt-2 mb-8">
         {prev ? (
           <a href={`/devotion/${prev.date}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow">
-            <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <Icon name="caret-left" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
             <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Prev</p>
               <p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{prev.title}</p>
@@ -331,9 +328,7 @@ const articleLd = {
               <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Next</p>
               <p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{next.title}</p>
             </div>
-            <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <Icon name="caret-right" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
           </a>
         ) : isLatest ? (
           <a href="/today" class="group flex-1 flex items-center justify-end gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow text-right">
@@ -341,9 +336,7 @@ const articleLd = {
               <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Today</p>
               <p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">Today's devotion →</p>
             </div>
-            <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <Icon name="caret-right" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
           </a>
         ) : <div class="flex-1" />}
       </nav>

@@ -1,4 +1,6 @@
 ---
+import Icon from '../Icon.astro';
+
 interface Slide {
 	image?: string | null;
 	url?: string | null;
@@ -70,9 +72,7 @@ const processed = slides
 										class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--green)] text-white font-semibold text-sm hover:opacity-90 transition-opacity"
 									>
 										Watch video
-										<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-											<path d="M5 10h10M13 7l3 3-3 3"/>
-										</svg>
+										<Icon name="arrow-right" class="w-3.5 h-3.5" />
 									</a>
 								</div>
 							) : null}
@@ -94,18 +94,14 @@ const processed = slides
 						aria-label="Previous"
 						class="absolute left-2 top-1/2 -translate-y-1/2 z-10 size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 shadow text-[var(--navy)] dark:text-white hover:bg-[var(--green)] hover:text-white transition-colors"
 					>
-						<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M13 5l-5 5 5 5"/>
-						</svg>
+						<Icon name="caret-left" class="w-3.5 h-3.5" />
 					</button>
 					<button
 						data-carousel-next
 						aria-label="Next"
 						class="absolute right-2 top-1/2 -translate-y-1/2 z-10 size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 shadow text-[var(--navy)] dark:text-white hover:bg-[var(--green)] hover:text-white transition-colors"
 					>
-						<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M7 5l5 5-5 5"/>
-						</svg>
+						<Icon name="caret-right" class="w-3.5 h-3.5" />
 					</button>
 				</>
 			)}

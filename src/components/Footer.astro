@@ -1,6 +1,7 @@
 ---
 import { tinaField } from "@tinacms/astro/tina-field";
 import { Icon } from 'astro-icon/components';
+import SiteIcon from './Icon.astro';
 import type { CmsConfig, CmsConfigContactLink } from '../lib/data';
 
 interface Props {
@@ -45,7 +46,7 @@ const year = new Date().getFullYear();
 						title="Share this page on WhatsApp"
 						aria-label="Share this page on WhatsApp"
 					>
-						<Icon name="tabler:share" />
+						<SiteIcon name="share" />
 					</button>
 				</div>
 				<div class="footer-banking">

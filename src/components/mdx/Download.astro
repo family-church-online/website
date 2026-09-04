@@ -1,4 +1,5 @@
 ---
+import Icon from '../Icon.astro';
 interface Props { url: string; label?: string; }
 const { url, label = 'Download' } = Astro.props;
 ---
@@ -8,8 +9,6 @@ const { url, label = 'Download' } = Astro.props;
 	rel="noopener noreferrer"
 	class="inline-flex items-center gap-2.5 my-2 px-5 py-3 bg-white dark:bg-white/8 rounded-xl ring-1 ring-[var(--navy)]/10 dark:ring-white/10 shadow-sm hover:shadow-md hover:ring-[var(--green)] dark:hover:ring-[var(--green)] transition-all group no-underline"
 >
-	<svg class="w-5 h-5 shrink-0 text-[var(--green)]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-		<path d="M10 3v9m0 0l-3-3m3 3l3-3M3 17h14" stroke-linecap="round" stroke-linejoin="round"/>
-	</svg>
+	<Icon name="download" class="w-5 h-5 shrink-0 text-[var(--green)]" />
 	<span class="font-semibold text-sm text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors">{label}</span>
 </a>

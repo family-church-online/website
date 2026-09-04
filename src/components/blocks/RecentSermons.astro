@@ -1,5 +1,6 @@
 ---
 import { tinaField } from '@tinacms/astro/tina-field';
+import Icon from '../Icon.astro';
 
 interface SermonFrontmatter {
 	title?: string;
@@ -61,7 +62,7 @@ function fmtDate(dateStr: string) {
 				style="scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;"
 			>
 				{recentSermons.map((s, i) => (
-					<li class="scroll-snap-start shrink-0 w-[52vw] max-w-[180px] sm:w-[22%] reveal" data-reveal-delay={String((i % 5) * 0.07)}>
+					<li class="sermon-card scroll-snap-start shrink-0 w-[52vw] max-w-[180px] sm:w-[22%]">
 						<a
 							href={`/sermons/${s.slug}`}
 							class="group flex flex-col bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden hover:shadow-md transition-shadow h-full"
@@ -76,9 +77,7 @@ function fmtDate(dateStr: string) {
 									/>
 								) : (
 									<div class="w-full h-full flex items-center justify-center">
-										<svg class="w-10 h-10 text-[var(--navy)]/25 dark:text-white/20" viewBox="0 0 24 24" fill="currentColor">
-											<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
-										</svg>
+										<Icon name="music-note" class="w-10 h-10 text-[var(--navy)]/25 dark:text-white/20" />
 									</div>
 								)}
 							</div>
@@ -97,14 +96,10 @@ function fmtDate(dateStr: string) {
 			</ul>
 
 			<button id="recent-sermon-prev" aria-label="Previous" class="carousel-btn left-1">
-				<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-5 h-5">
-					<path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
-				</svg>
+				<Icon name="caret-left" class="w-5 h-5" />
 			</button>
 			<button id="recent-sermon-next" aria-label="Next" class="carousel-btn right-1">
-				<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-5 h-5">
-					<path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
-				</svg>
+				<Icon name="caret-right" class="w-5 h-5" />
 			</button>
 		</div>
 
@@ -115,6 +110,12 @@ function fmtDate(dateStr: string) {
 .scrollbar-hide { scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scroll-snap-start { scroll-snap-align: start; }
+
+/* Cards start invisible; GSAP animates them in */
+.sermon-card { opacity: 0; transform: translateX(32px); }
+@media (prefers-reduced-motion: reduce) {
+	.sermon-card { opacity: 1; transform: none; }
+}
 
 .carousel-btn {
 	display: none;
@@ -143,7 +144,12 @@ function fmtDate(dateStr: string) {
 </style>
 
 <script>
+import gsap from 'gsap';
+import ScrollTrigger from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
+
 document.addEventListener('astro:page-load', () => {
+	// ── Carousel controls ─────────────────────────────────────────────────────
 	const track = document.getElementById('recent-sermon-carousel');
 	const prev  = document.getElementById('recent-sermon-prev') as HTMLButtonElement | null;
 	const next  = document.getElementById('recent-sermon-next') as HTMLButtonElement | null;
@@ -164,5 +170,22 @@ document.addEventListener('astro:page-load', () => {
 
 	track.addEventListener('scroll', updateButtons, { passive: true });
 	updateButtons();
+
+	// ── Card entrance animation ───────────────────────────────────────────────
+	const cards = track.querySelectorAll<HTMLElement>('.sermon-card');
+	if (!cards.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+	gsap.to(cards, {
+		opacity: 1,
+		x: 0,
+		duration: 0.55,
+		ease: 'power3.out',
+		stagger: 0.08,
+		scrollTrigger: {
+			trigger: track,
+			start: 'top 85%',
+			once: true,
+		},
+	});
 });
 </script>

@@ -4,6 +4,7 @@ export const prerender = false;
 import Base from '../../../../layouts/Base.astro';
 import { getConfig } from '../../../../lib/data';
 import { requireAuth } from '../../../../lib/auth';
+import Icon from '../../../../components/Icon.astro';
 
 interface QuestionOption {
   label: string;
@@ -280,9 +281,7 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
           href={`/courses/${course}/${chapter}/${prevLesson.slug}`}
           class="group flex items-center gap-2 text-sm font-semibold text-[var(--navy)]/60 dark:text-white/50 hover:text-[var(--green)] transition-colors min-w-0"
         >
-          <svg class="shrink-0 w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <Icon name="caret-left" class="shrink-0 w-4 h-4" />
           <span class="truncate">{prevLesson.lesson}</span>
         </a>
       ) : (
@@ -290,9 +289,7 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
           href={`/courses/${course}`}
           class="group flex items-center gap-2 text-sm font-semibold text-[var(--navy)]/60 dark:text-white/50 hover:text-[var(--green)] transition-colors"
         >
-          <svg class="shrink-0 w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <Icon name="caret-left" class="shrink-0 w-4 h-4" />
           <span>All lessons</span>
         </a>
       )}
@@ -303,9 +300,7 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
           class="group flex items-center gap-2 text-sm font-semibold text-[var(--navy)]/60 dark:text-white/50 hover:text-[var(--green)] transition-colors min-w-0"
         >
           <span class="truncate">{nextLesson.lesson}</span>
-          <svg class="shrink-0 w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <Icon name="caret-right" class="shrink-0 w-4 h-4" />
         </a>
       )}
 

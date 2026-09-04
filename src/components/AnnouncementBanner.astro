@@ -1,4 +1,5 @@
 ---
+import Icon from './Icon.astro';
 interface Props {
 	text: string;
 	link?: string | null;
@@ -6,11 +7,7 @@ interface Props {
 const { text, link } = Astro.props;
 ---
 <div class="announcement-banner">
-	<svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" class="banner-icon">
-		<rect x="3" y="4" width="14" height="14" rx="2"/>
-		<path d="M3 8h14" stroke-linecap="round"/>
-		<path d="M7 2v4M13 2v4" stroke-linecap="round"/>
-	</svg>
+	<Icon name="calendar" class="banner-icon" width="13" height="13" />
 	{link
 		? <a href={link} class="banner-inner">{text}</a>
 		: <span class="banner-inner">{text}</span>

@@ -34,6 +34,8 @@ async function bestPoster(videoId: string): Promise<string> {
 if (!posterCache.has(id)) posterCache.set(id, bestPoster(id));
 const poster = await posterCache.get(id);
 ---
+import Icon from '../Icon.astro';
+---
 <button
 	type="button"
 	class="yt-facade group absolute inset-0 flex h-full w-full cursor-pointer items-center justify-center border-0 bg-cover bg-center p-0"
@@ -43,7 +45,7 @@ const poster = await posterCache.get(id);
 	style={`background-image:url(${poster})`}
 >
 	<span class="flex size-16 items-center justify-center rounded-full bg-black/70 text-white transition group-hover:scale-110 group-hover:bg-black/80">
-		<svg viewBox="0 0 24 24" fill="currentColor" class="size-7 translate-x-0.5" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+		<Icon name="play" class="size-7 translate-x-0.5" />
 	</span>
 </button>
 

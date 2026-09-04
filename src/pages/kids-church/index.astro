@@ -3,6 +3,7 @@ export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
 import { getConfig } from '../../lib/data';
+import Icon from '../../components/Icon.astro';
 
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
@@ -63,9 +64,7 @@ const groups = [
 							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40 mt-0.5">{g.ages}</p>
 						)}
 					</div>
-					<svg class="w-4 h-4 text-[var(--navy)]/25 group-hover:text-[var(--green)] transition-colors mt-1" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-						<path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
-					</svg>
+					<Icon name="caret-right" class="w-4 h-4 text-[var(--navy)]/25 group-hover:text-[var(--green)] transition-colors mt-1" />
 				</a>
 			))}
 		</div>

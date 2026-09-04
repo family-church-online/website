@@ -3,6 +3,7 @@ export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
 import { getConfig } from '../../lib/data';
+import Icon from '../../components/Icon.astro';
 
 interface SermonFrontmatter {
   title?: string;
@@ -161,9 +162,7 @@ const ldJsonVideo = vimeoId ? {
       {fm.durationMinutes && <span class="opacity-30">·</span>}
       {fm.durationMinutes && (
         <span class="flex items-center gap-1">
-          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <circle cx="10" cy="10" r="8"/><path d="M10 6v4l2.5 2.5" stroke-linecap="round"/>
-          </svg>
+          <Icon name="clock" class="w-3 h-3" />
           {fmtDuration(fm.durationMinutes)}
         </span>
       )}
@@ -408,12 +407,8 @@ const ldJsonVideo = vimeoId ? {
             aria-label="Play"
             class="shrink-0 w-11 h-11 rounded-full bg-[var(--green)] hover:bg-[#a3d63a] transition-colors flex items-center justify-center shadow"
           >
-            <svg id="icon-play" class="w-5 h-5 text-[var(--ink)] ml-0.5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.84z"/>
-            </svg>
-            <svg id="icon-pause" class="w-5 h-5 text-[var(--ink)] hidden pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M5.75 3a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-1.5 0V3.75A.75.75 0 0 1 5.75 3zm8.5 0a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-1.5 0V3.75a.75.75 0 0 1 .75-.75z" clip-rule="evenodd"/>
-            </svg>
+            <Icon name="play" id="icon-play" class="w-5 h-5 text-[var(--ink)] ml-0.5 pointer-events-none" />
+            <Icon name="pause" id="icon-pause" class="w-5 h-5 text-[var(--ink)] hidden pointer-events-none" />
           </button>
 
           {/* Track info */}
@@ -438,9 +433,7 @@ const ldJsonVideo = vimeoId ? {
             aria-label="Download MP3"
             class="shrink-0 text-white/40 hover:text-white transition-colors"
           >
-            <svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M10 3v10m-4-4 4 4 4-4M3 17h14" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <Icon name="download" class="w-4 h-4" />
           </a>
         </div>
 
@@ -479,9 +472,7 @@ const ldJsonVideo = vimeoId ? {
       <nav class="reveal flex items-stretch gap-3 mt-2 mb-8">
         {prev ? (
           <a href={`/sermons/${prev.slug}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/10 px-5 py-4 hover:shadow-md transition-shadow">
-            <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 dark:text-white/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <Icon name="caret-left" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 dark:text-white/40 group-hover:text-[var(--green)] transition-colors" />
             <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/35 mb-0.5">Prev</p>
               <p class="text-sm font-semibold text-[var(--navy)] dark:text-[#8bbcde] group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{prev.title}</p>
@@ -495,9 +486,7 @@ const ldJsonVideo = vimeoId ? {
               <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/35 mb-0.5">Next</p>
               <p class="text-sm font-semibold text-[var(--navy)] dark:text-[#8bbcde] group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{next.title}</p>
             </div>
-            <svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 dark:text-white/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <Icon name="caret-right" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 dark:text-white/40 group-hover:text-[var(--green)] transition-colors" />
           </a>
         ) : <div class="flex-1" />}
       </nav>

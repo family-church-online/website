@@ -1,5 +1,6 @@
 ---
 import { Icon } from 'astro-icon/components';
+import SiteIcon from './Icon.astro';
 import { tinaField } from "@tinacms/astro/tina-field";
 import type { CmsConfig } from '../lib/data';
 import ThemeToggle from './ThemeToggle.astro';
@@ -35,9 +36,7 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 					<li class="nav-has-dropdown">
 						<button class="nav-link nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false" data-tina-field={tinaField(item, 'title')}>
 							{item.title}
-							<svg class="nav-chevron" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-								<path d="M2 4l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
-							</svg>
+							<SiteIcon name="caret-down" class="nav-chevron w-2.5 h-2.5" />
 						</button>
 						<div class="nav-dropdown" role="menu">
 							{children.map((child: any) => (
@@ -83,9 +82,7 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 					<div class="mobile-submenu-wrap border-b border-white/8 last:border-b-0">
 						<button class="mobile-submenu-toggle py-3 w-full flex items-center justify-between" data-tina-field={tinaField(item, 'title')}>
 							<span class="mobile-nav-link">{item.title}</span>
-							<svg class="mobile-chevron w-4 h-4" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-								<path d="M2 4l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
-							</svg>
+							<SiteIcon name="caret-down" class="mobile-chevron w-4 h-4" />
 						</button>
 						<div class="mobile-submenu hidden pl-4 pb-2 flex-col gap-0">
 							{children.map((child: any) => (

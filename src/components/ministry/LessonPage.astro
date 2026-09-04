@@ -1,5 +1,6 @@
 ---
 import Carousel from './Carousel.astro';
+import Icon from '../Icon.astro';
 
 interface LessonFrontmatter {
 	title?: string;
@@ -119,9 +120,7 @@ const pdfs       = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.file
 						download
 						class="inline-flex items-center gap-2 rounded-lg bg-white dark:bg-[var(--card)] ring-1 ring-[var(--navy)]/10 dark:ring-white/10 px-4 py-3 text-sm font-semibold text-[var(--navy)] dark:text-white hover:ring-[var(--green)]/50 hover:text-[var(--green)] transition-all no-underline shadow-sm"
 					>
-						<svg class="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-							<path d="M10 3v10m0 0l-3-3m3 3l3-3M4 17h12" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
+						<Icon name="download" class="w-4 h-4 shrink-0" />
 						{p.label}
 					</a>
 				))}
@@ -136,9 +135,7 @@ const pdfs       = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.file
 	<nav class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-12 flex items-stretch gap-3">
 		{prev ? (
 			<a href={`${baseRoute}/${prev.date}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow no-underline">
-				<svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-					<path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
-				</svg>
+				<Icon name="caret-left" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
 				<div class="min-w-0">
 					<p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Previous</p>
 					<p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{prev.title}</p>
@@ -152,9 +149,7 @@ const pdfs       = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.file
 					<p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Next</p>
 					<p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{next.title}</p>
 				</div>
-				<svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-					<path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
-				</svg>
+				<Icon name="caret-right" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
 			</a>
 		) : <div class="flex-1" />}
 	</nav>

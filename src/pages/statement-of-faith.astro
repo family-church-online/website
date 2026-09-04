@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { getConfig, getStatementOfFaith } from '../lib/data';
+import Icon from '../components/Icon.astro';
 
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
@@ -55,13 +56,7 @@ const articles  = (sofData?.articles ?? []).filter(Boolean) as Array<{
               </div>
 
               {/* Chevron */}
-              <svg
-                class="shrink-0 mt-1.5 w-4 h-4 text-[var(--navy)]/30 dark:text-white/30 transition-transform duration-200 group-open:rotate-180 group-open:text-[var(--green)]"
-                viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
-                aria-hidden="true"
-              >
-                <path d="M5 8l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <Icon name="caret-down" class="shrink-0 mt-1.5 w-4 h-4 text-[var(--navy)]/30 dark:text-white/30 transition-transform duration-200 group-open:rotate-180 group-open:text-[var(--green)]" />
             </summary>
 
             {/* Full statement — separate card */}

@@ -3,6 +3,7 @@ export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
 import { getConfig } from '../../lib/data';
+import Icon from '../../components/Icon.astro';
 
 interface GuideFrontmatter {
 	title?: string;
@@ -107,9 +108,7 @@ const articleLd = {
 			<nav class="reveal flex items-stretch gap-3 mt-12 mb-8">
 				{prev ? (
 					<a href={`/guides/${prev.slug}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow">
-						<svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-							<path d="M13 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
+						<Icon name="caret-left" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
 						<div class="min-w-0">
 							<p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Prev</p>
 							<p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{prev.title}</p>
@@ -123,9 +122,7 @@ const articleLd = {
 							<p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Next</p>
 							<p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{next.title}</p>
 						</div>
-						<svg class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-							<path d="M7 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
+						<Icon name="caret-right" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
 					</a>
 				) : <div class="flex-1" />}
 			</nav>
