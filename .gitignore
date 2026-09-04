@@ -7,6 +7,9 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
+# Kids/lesson pipeline — downloaded raw data, not committed
+scripts/lessons/
+
 # Sermon pipeline cache and credentials
 scripts/drive/comp-tax/
 scripts/drive/enriched/
