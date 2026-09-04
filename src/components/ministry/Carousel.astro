@@ -18,8 +18,8 @@ const processed = slides
 	.filter(s => s.image || s.url)
 	.map(s => ({
 		...s,
-		ytId:     s.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)?.[1] ?? null,
-		vimeoId:  s.url?.match(/(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)/)?.[1] ?? null,
+		ytId:    s.url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)?.[1] ?? null,
+		vimeoId: s.url?.match(/(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)/)?.[1] ?? null,
 	}));
 ---
 
@@ -29,119 +29,216 @@ const processed = slides
 			<h3 class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">{heading}</h3>
 		)}
 
-		<div class="relative" data-carousel>
-			<!-- Track wrapper: clips adjacent slides -->
-			<div class="overflow-hidden rounded-xl shadow-md">
-				<div class="flex" style="transition: transform .3s ease" data-carousel-track>
-					{processed.map((slide) => (
-						<div class="min-w-full flex-shrink-0 bg-white dark:bg-[var(--card)]">
-							{slide.image && (
-								<img
-									src={slide.image}
-									alt={slide.description ?? ''}
-									class="w-full object-cover max-h-80"
-									loading="lazy"
+		<div data-carousel>
+			<!-- Viewport: reference element for absolutely-stacked slides and nav buttons -->
+			<div data-carousel-viewport tabindex="0" class="relative overflow-hidden rounded-xl shadow-md bg-white dark:bg-[var(--card)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--green)]">
+
+				{processed.map((slide, i) => (
+					<div
+						data-carousel-slide
+						class="w-full"
+						style={i === 0
+							? 'position:relative'
+							: 'position:absolute;top:0;left:0;width:100%;opacity:0;pointer-events:none'}
+					>
+						{slide.image && (
+							<img
+								src={slide.image}
+								alt={slide.description ?? ''}
+								class="w-full h-auto block"
+								loading="eager"
+							/>
+						)}
+						{slide.ytId ? (
+							<div class="aspect-video">
+								<iframe
+									src={`https://www.youtube.com/embed/${slide.ytId}`}
+									title={slide.description ?? 'Video'}
+									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+									allowfullscreen
+									class="w-full h-full"
 								/>
-							)}
-							{slide.ytId ? (
-								<div class="aspect-video">
-									<iframe
-										src={`https://www.youtube.com/embed/${slide.ytId}`}
-										title={slide.description ?? 'Video'}
-										allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-										allowfullscreen
-										class="w-full h-full"
-									/>
-								</div>
-							) : slide.vimeoId ? (
-								<div class="aspect-video">
-									<iframe
-										src={`https://player.vimeo.com/video/${slide.vimeoId}`}
-										title={slide.description ?? 'Video'}
-										allow="autoplay; fullscreen; picture-in-picture"
-										allowfullscreen
-										class="w-full h-full"
-									/>
-								</div>
-							) : slide.url && !slide.image ? (
-								<div class="flex items-center justify-center h-48 bg-[var(--navy)]/5 dark:bg-white/5">
-									<a
-										href={slide.url}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--green)] text-white font-semibold text-sm hover:opacity-90 transition-opacity"
-									>
-										Watch video
-										<Icon name="arrow-right" class="w-3.5 h-3.5" />
-									</a>
-								</div>
-							) : null}
-							{slide.description && (
-								<p class="px-4 py-3 text-sm text-[var(--ink)]/70 dark:text-white/60 border-t border-[var(--navy)]/8 dark:border-white/8">
-									{slide.description}
-								</p>
-							)}
-						</div>
+							</div>
+						) : slide.vimeoId ? (
+							<div class="aspect-video">
+								<iframe
+									src={`https://player.vimeo.com/video/${slide.vimeoId}`}
+									title={slide.description ?? 'Video'}
+									allow="autoplay; fullscreen; picture-in-picture"
+									allowfullscreen
+									class="w-full h-full"
+								/>
+							</div>
+						) : slide.url && !slide.image ? (
+							<div class="flex items-center justify-center h-48 bg-[var(--navy)]/5 dark:bg-white/5">
+								<a
+									href={slide.url}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--green)] text-white font-semibold text-sm hover:opacity-90 transition-opacity"
+								>
+									Watch video
+									<Icon name="arrow-right" class="w-3.5 h-3.5" />
+								</a>
+							</div>
+						) : null}
+						{slide.description && (
+							<p class="px-4 py-3 text-sm text-[var(--ink)]/70 dark:text-white/60 border-t border-[var(--navy)]/8 dark:border-white/8">
+								{slide.description}
+							</p>
+						)}
+					</div>
+				))}
+
+				<!-- Nav buttons live inside the viewport so they stay centred as height animates -->
+				{processed.length > 1 && (
+					<>
+						<button
+							data-carousel-prev
+							aria-label="Previous"
+							class="carousel-nav-btn absolute left-2 top-1/2 -translate-y-1/2 z-10 size-9 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 shadow text-[var(--navy)] dark:text-white"
+						>
+							<Icon name="caret-left" class="w-3.5 h-3.5" />
+						</button>
+						<button
+							data-carousel-next
+							aria-label="Next"
+							class="carousel-nav-btn absolute right-2 top-1/2 -translate-y-1/2 z-10 size-9 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 shadow text-[var(--navy)] dark:text-white"
+						>
+							<Icon name="caret-right" class="w-3.5 h-3.5" />
+						</button>
+					</>
+				)}
+			</div>
+
+			<!-- Dots -->
+			{processed.length > 1 && (
+				<div class="flex justify-center gap-2 mt-3" data-carousel-dots>
+					{processed.map((_, i) => (
+						<button
+							data-dot={i}
+							aria-label={`Slide ${i + 1}`}
+							class="carousel-dot size-2 rounded-full"
+							style={i === 0 ? 'background:var(--green)' : 'background:color-mix(in srgb,var(--navy) 20%,transparent)'}
+						/>
 					))}
 				</div>
-			</div>
-
-			<!-- Prev / Next — outside overflow:hidden so they're never clipped -->
-			{processed.length > 1 && (
-				<>
-					<button
-						data-carousel-prev
-						aria-label="Previous"
-						class="absolute left-2 top-1/2 -translate-y-1/2 z-10 size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 shadow text-[var(--navy)] dark:text-white hover:bg-[var(--green)] hover:text-white transition-colors"
-					>
-						<Icon name="caret-left" class="w-3.5 h-3.5" />
-					</button>
-					<button
-						data-carousel-next
-						aria-label="Next"
-						class="absolute right-2 top-1/2 -translate-y-1/2 z-10 size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 shadow text-[var(--navy)] dark:text-white hover:bg-[var(--green)] hover:text-white transition-colors"
-					>
-						<Icon name="caret-right" class="w-3.5 h-3.5" />
-					</button>
-				</>
 			)}
 		</div>
-
-		<!-- Dots — below the carousel, outside overflow -->
-		{processed.length > 1 && (
-			<div class="flex justify-center gap-2 mt-3" data-carousel-dots>
-				{processed.map((_, i) => (
-					<button
-						data-dot={i}
-						aria-label={`Slide ${i + 1}`}
-						class="size-2 rounded-full transition-colors"
-						style={i === 0 ? 'background:var(--green)' : 'background:color-mix(in srgb,var(--navy) 20%,transparent)'}
-					/>
-				))}
-			</div>
-		)}
 	</div>
 )}
 
 <script>
-	for (const el of document.querySelectorAll('[data-carousel]')) {
-		const track = el.querySelector<HTMLElement>('[data-carousel-track]')!;
-		const dots  = el.querySelectorAll<HTMLButtonElement>('[data-dot]');
-		const total = track.children.length;
-		let cur = 0;
+	import { gsap } from 'gsap';
 
-		const go = (n: number) => {
-			cur = ((n % total) + total) % total;
-			track.style.transform = `translateX(-${cur * 100}%)`;
+	const registry: { el: HTMLElement; go: (n: number) => void; cur: () => number }[] = [];
+
+	for (const el of document.querySelectorAll<HTMLElement>('[data-carousel]')) {
+		const viewport = el.querySelector<HTMLElement>('[data-carousel-viewport]')!;
+		const slides   = Array.from(el.querySelectorAll<HTMLElement>('[data-carousel-slide]'));
+		const dots     = Array.from(el.querySelectorAll<HTMLButtonElement>('[data-dot]'));
+		const total    = slides.length;
+		let cur        = 0;
+		let animating  = false;
+
+		if (total < 2) continue;
+
+		const setDots = (n: number) =>
 			dots.forEach((d, i) => {
-				d.style.background = i === cur
+				d.style.background = i === n
 					? 'var(--green)'
 					: 'color-mix(in srgb, var(--navy) 20%, transparent)';
 			});
+
+		const go = (n: number) => {
+			if (animating) return;
+			const next = ((n % total) + total) % total;
+			if (next === cur) return;
+			animating = true;
+
+			const dir       = n >= cur ? 1 : -1;
+			const fromSlide = slides[cur];
+			const toSlide   = slides[next];
+
+			// Freeze viewport at its current pixel height so rearranging positions doesn't snap
+			gsap.set(viewport, { height: viewport.offsetHeight });
+
+			// Pull the current slide out of normal flow
+			gsap.set(fromSlide, { position: 'absolute', top: 0, left: 0, width: '100%' });
+
+			// Temporarily put next slide in flow (invisible) to measure its natural height
+			gsap.set(toSlide, { position: 'relative', opacity: 0, pointerEvents: 'none' });
+			const targetH = Math.max(toSlide.scrollHeight || toSlide.offsetHeight, 40);
+
+			// Return next slide to absolute for the animation start
+			gsap.set(toSlide, { position: 'absolute', top: 0, left: 0, width: '100%' });
+
+			setDots(next);
+
+			gsap.timeline({
+				onComplete: () => {
+					// Settle: next is back in flow, previous is parked out of the way
+					gsap.set(fromSlide, { position: 'absolute', top: 0, left: 0, width: '100%', opacity: 0, pointerEvents: 'none' });
+					gsap.set(toSlide,   { position: 'relative', opacity: 1, pointerEvents: 'auto' });
+					toSlide.style.top   = '';
+					toSlide.style.left  = '';
+					toSlide.style.width = '';
+					// Release explicit height so viewport breathes naturally again
+					gsap.set(viewport, { clearProps: 'height' });
+					cur = next;
+					animating = false;
+				},
+			})
+				.to(viewport,   { height: targetH,     duration: 0.45, ease: 'power3.inOut'  }, 0)
+				.to(fromSlide,  { opacity: 0, x: dir * -24, duration: 0.3,  ease: 'power2.in'    }, 0)
+				.fromTo(toSlide,
+					{ opacity: 0, x: dir * 24 },
+					{ opacity: 1, x: 0,         duration: 0.35, ease: 'power2.out'   },
+					0.18
+				);
 		};
 
 		el.querySelector('[data-carousel-prev]')?.addEventListener('click', () => go(cur - 1));
 		el.querySelector('[data-carousel-next]')?.addEventListener('click', () => go(cur + 1));
 		dots.forEach((d, i) => d.addEventListener('click', () => go(i)));
+
+		// GSAP hover — nav buttons
+		for (const btn of el.querySelectorAll<HTMLElement>('.carousel-nav-btn')) {
+			btn.addEventListener('mouseenter', () =>
+				gsap.to(btn, { scale: 1.15, duration: 0.2, ease: 'back.out(2)' })
+			);
+			btn.addEventListener('mouseleave', () =>
+				gsap.to(btn, { scale: 1, duration: 0.15, ease: 'power2.in' })
+			);
+		}
+
+		// GSAP hover — dots
+		for (const dot of dots) {
+			dot.addEventListener('mouseenter', () =>
+				gsap.to(dot, { scale: 1.6, duration: 0.2, ease: 'back.out(2)' })
+			);
+			dot.addEventListener('mouseleave', () =>
+				gsap.to(dot, { scale: 1, duration: 0.15 })
+			);
+		}
+
+		// Swipe support
+		let startX = 0;
+		viewport.addEventListener('pointerdown', e => { startX = e.clientX; });
+		viewport.addEventListener('pointerup',   e => {
+			const dx = e.clientX - startX;
+			if (Math.abs(dx) > 50) go(dx < 0 ? cur + 1 : cur - 1);
+		});
+
+		registry.push({ el, go, cur: () => cur });
 	}
+
+	// Arrow key navigation — routes to whichever carousel contains the focused element
+	document.addEventListener('keydown', e => {
+		if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+		const active = registry.find(c => c.el.contains(document.activeElement));
+		if (!active) return;
+		e.preventDefault();
+		active.go(e.key === 'ArrowLeft' ? active.cur() - 1 : active.cur() + 1);
+	});
 </script>

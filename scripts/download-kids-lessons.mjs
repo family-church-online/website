@@ -23,9 +23,9 @@
  *   node scripts/download-kids-lessons.mjs --check                # dry-run report
  */
 
-import { createWriteStream, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join, dirname, extname }                                   from 'node:path';
-import { fileURLToPath }                                            from 'node:url';
+import { createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { join, dirname, extname }                                                            from 'node:path';
+import { fileURLToPath }                                                                     from 'node:url';
 import https                                                        from 'node:https';
 import http                                                         from 'node:http';
 import { parse as parseUrl }                                        from 'node:url';
@@ -45,6 +45,7 @@ const COLLECTIONS = {
 const args    = process.argv.slice(2);
 const FORCE   = args.includes('--force');
 const CHECK   = args.includes('--check');
+const RENAME  = args.includes('--rename');
 
 const colIdx  = args.indexOf('--collection');
 const colArg  = colIdx >= 0 ? args[colIdx + 1] : null;
@@ -238,7 +239,9 @@ function htmlToText(html) {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/\\n/g, '\n')
     .replace(/[ \t]+/g, ' ')
+    .replace(/[ \t]*\n[ \t]*/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -339,7 +342,7 @@ async function downloadLesson(lesson, collectionPath, outDir) {
   const title     = lesson.title;
   const date      = msToSADate(lesson.startDate);
   const prefix    = `${date}-${slugify(title)}`;
-  const lessonDir = join(outDir, slug);
+  const lessonDir = join(outDir, prefix);
   const imgDir    = join(lessonDir, 'images');
   const docDir    = join(lessonDir, 'docs');
   const jsonPath  = join(lessonDir, 'lesson.json');
@@ -470,9 +473,59 @@ async function downloadLesson(lesson, collectionPath, outDir) {
   return 'downloaded';
 }
 
+// ── Rename existing folders to date-slug format ───────────────────────────────
+
+function renameExistingFolders(outDir) {
+  const entries = readdirSync(outDir, { withFileTypes: true })
+    .filter(e => e.isDirectory());
+
+  let renamed = 0, skipped = 0, failed = 0;
+
+  for (const entry of entries) {
+    const jsonPath = join(outDir, entry.name, 'lesson.json');
+    if (!existsSync(jsonPath)) continue;
+
+    let record;
+    try { record = JSON.parse(readFileSync(jsonPath, 'utf8')); } catch { continue; }
+
+    const expected = `${record.date}-${slugify(record.title)}`;
+    if (entry.name === expected) { skipped++; continue; }
+
+    const oldPath = join(outDir, entry.name);
+    const newPath = join(outDir, expected);
+    if (existsSync(newPath)) {
+      console.log(`${cross} ${entry.name}  →  ${expected}  ${c.dim}(target exists, skipped)${c.reset}`);
+      failed++;
+      continue;
+    }
+    try {
+      renameSync(oldPath, newPath);
+      console.log(`${tick} ${entry.name}  →  ${expected}`);
+      renamed++;
+    } catch (e) {
+      console.error(`${cross} ${entry.name}: ${e.message}`);
+      failed++;
+    }
+  }
+
+  return { renamed, skipped, failed };
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 let totalDownloaded = 0, totalSkipped = 0, totalFailed = 0;
+
+if (RENAME) {
+  for (const [name, col] of Object.entries(selectedCollections)) {
+    const outDir = join(OUT_ROOT, col.folder);
+    console.log(`\n${c.bold}${c.yellow}━━  ${name.toUpperCase()}  ━━${c.reset}`);
+    const { renamed, skipped, failed } = renameExistingFolders(outDir);
+    console.log(`${renamed} renamed  ${skipped} already correct  ${failed} failed`);
+    if (failed > 0) totalFailed += failed;
+  }
+  console.log('');
+  process.exit(totalFailed > 0 ? 1 : 0);
+}
 
 for (const [name, col] of Object.entries(selectedCollections)) {
   const outDir = join(OUT_ROOT, col.folder);

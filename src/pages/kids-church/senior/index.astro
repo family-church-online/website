@@ -14,8 +14,8 @@ const mods = import.meta.glob<{ frontmatter: Frontmatter }>(
 
 const lessons = Object.entries(mods)
 	.map(([path, mod]) => ({
-		date: path.replace('../../../content/kids/senior/', '').replace('.mdx', ''),
 		...mod.frontmatter,
+		date: path.replace('../../../content/kids/senior/', '').replace('.mdx', ''),
 	}))
 	.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
 

@@ -85,7 +85,7 @@ const pdfs       = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.file
 			{paragraphs.map(p => (
 				<div>
 					{p.heading && (
-						<h3 class="font-display text-xl font-semibold text-[var(--navy)] dark:text-white mb-2">{p.heading}</h3>
+						<h3 class="font-display text-2xl font-semibold text-[var(--navy)] dark:text-white mb-2">{p.heading}</h3>
 					)}
 					{p.content && (
 						<p class="text-[var(--ink)]/80 dark:text-white/80 leading-relaxed">{p.content}</p>

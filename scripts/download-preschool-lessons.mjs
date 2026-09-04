@@ -18,7 +18,7 @@
  *   node scripts/download-preschool-lessons.mjs --check    # report without downloading
  */
 
-import { createWriteStream, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join, dirname, extname }                                   from 'node:path';
 import { fileURLToPath }                                            from 'node:url';
 import { pipeline }                                                 from 'node:stream/promises';
@@ -38,6 +38,7 @@ const COLLECTION = '/pre-school-church';
 const args     = process.argv.slice(2);
 const FORCE    = args.includes('--force');
 const CHECK    = args.includes('--check');
+const RENAME   = args.includes('--rename');
 const slugIdx  = args.indexOf('--slug');
 const ONLY_SLUG = slugIdx >= 0 ? args[slugIdx + 1] : null;
 
@@ -154,7 +155,9 @@ function htmlToText(html) {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/\\n/g, '\n')
     .replace(/[ \t]+/g, ' ')
+    .replace(/[ \t]*\n[ \t]*/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -286,7 +289,7 @@ async function downloadLesson(lesson) {
   const title     = lesson.title;
   const date      = msToSADate(lesson.startDate);
   const prefix    = filePrefix(date, slugify(title));
-  const lessonDir = join(OUT_ROOT, slug);
+  const lessonDir = join(OUT_ROOT, prefix);
   const imgDir    = join(lessonDir, 'images');
   const docDir    = join(lessonDir, 'docs');
   const jsonPath  = join(lessonDir, 'lesson.json');
@@ -419,7 +422,52 @@ async function downloadLesson(lesson) {
   console.log(`  ${tick} lesson.json written`);
 }
 
+// ── Rename existing folders to date-slug format ───────────────────────────────
+
+function renameExistingFolders() {
+  const entries = readdirSync(OUT_ROOT, { withFileTypes: true })
+    .filter(e => e.isDirectory());
+
+  let renamed = 0, alreadyCorrect = 0, failed = 0;
+
+  for (const entry of entries) {
+    const jsonPath = join(OUT_ROOT, entry.name, 'lesson.json');
+    if (!existsSync(jsonPath)) continue;
+
+    let record;
+    try { record = JSON.parse(readFileSync(jsonPath, 'utf8')); } catch { continue; }
+
+    const expected = `${record.date}-${slugify(record.title)}`;
+    if (entry.name === expected) { alreadyCorrect++; continue; }
+
+    const oldPath = join(OUT_ROOT, entry.name);
+    const newPath = join(OUT_ROOT, expected);
+    if (existsSync(newPath)) {
+      console.log(`${cross} ${entry.name}  →  ${expected}  ${c.dim}(target exists, skipped)${c.reset}`);
+      failed++;
+      continue;
+    }
+    try {
+      renameSync(oldPath, newPath);
+      console.log(`${tick} ${entry.name}  →  ${expected}`);
+      renamed++;
+    } catch (e) {
+      console.error(`${cross} ${entry.name}: ${e.message}`);
+      failed++;
+    }
+  }
+
+  console.log(`\n${renamed} renamed  ${alreadyCorrect} already correct  ${failed} failed`);
+  return failed;
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
+
+if (RENAME) {
+  mkdirSync(OUT_ROOT, { recursive: true });
+  const failed = renameExistingFolders();
+  process.exit(failed > 0 ? 1 : 0);
+}
 
 mkdirSync(OUT_ROOT, { recursive: true });
 
