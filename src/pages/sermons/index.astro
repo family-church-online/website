@@ -119,39 +119,52 @@ function fmtMins(mins: number | null | undefined) {
         >
           <a
             href={`/sermons/${s.slug}`}
-            class="group flex gap-5 p-5 items-start text-[var(--ink)] bg-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 overflow-hidden hover:shadow-md transition-shadow"
+            class="group flex flex-col sm:flex-row sm:gap-5 sm:p-5 sm:items-start text-[var(--ink)] dark:text-white bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden hover:shadow-md transition-shadow"
           >
-            {/* Thumbnail — hidden on mobile, shown sm+ */}
-            <div class="hidden sm:block shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-[var(--navy)]/10">
-              {s.image ? (
+            {/* Mobile banner — rectangular strip above heading */}
+            {s.image && (
+              <div class="sm:hidden w-full h-28 overflow-hidden">
                 <img
                   src={s.image}
                   alt={s.title ?? ''}
-                  class="w-full h-full object-cover scale-[1.08] group-hover:scale-[1.14] transition-transform duration-300"
+                  class="w-full h-full object-cover scale-[1.70] group-hover:scale-[1.80] transition-transform duration-300"
+                  loading="lazy"
+                />
+              </div>
+            )}
+
+            {/* Desktop thumbnail — square on the left */}
+            <div class="hidden sm:block shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-[var(--navy)]/10 dark:bg-white/5">
+              {s.image ? (
+                <img
+                  src={s.image}
+                  alt=""
+                  aria-hidden="true"
+                  class="w-full h-full object-cover scale-[1.70] group-hover:scale-[1.80] transition-transform duration-300"
                   loading="lazy"
                 />
               ) : (
                 <div class="w-full h-full flex items-center justify-center">
-                  <Icon name="music-note" class="w-8 h-8 text-[var(--navy)]/30" />
+                  <Icon name="music-note" class="w-8 h-8 text-[var(--navy)]/30 dark:text-white/20" />
                 </div>
               )}
             </div>
 
             {/* Content */}
-            <div class="flex-1 min-w-0">
-              <h2 class="font-display text-lg md:text-xl font-semibold text-[var(--navy)] group-hover:text-[var(--green)] transition-colors leading-snug mb-1">
+            <div class="flex-1 min-w-0 px-4 pt-3 pb-4 sm:p-0">
+              <h2 class="font-display text-lg md:text-xl font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug mb-1">
                 {s.title}
               </h2>
 
               <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1.5">
                 {s.date && (
-                  <time class="text-xs text-[var(--ink)]/55 tabular-nums">{fmtDate(s.date)}</time>
+                  <time class="text-xs text-[var(--ink)]/55 dark:text-white/55 tabular-nums">{fmtDate(s.date)}</time>
                 )}
                 {s.series && (
                   <span class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)]">{s.series}</span>
                 )}
                 {fmtMins(s.durationMinutes) && (
-                  <span class="flex items-center gap-1 text-xs text-[var(--ink)]/50">
+                  <span class="flex items-center gap-1 text-xs text-[var(--ink)]/50 dark:text-white/50">
                     <Icon name="clock" class="w-3 h-3" />
                     {fmtMins(s.durationMinutes)}
                   </span>
@@ -159,16 +172,16 @@ function fmtMins(mins: number | null | undefined) {
               </div>
 
               {s.scripture && (
-                <p class="text-xs font-medium text-[var(--ink)]/60 mb-1.5 tracking-wide">{s.scripture}</p>
+                <p class="text-xs font-medium text-[var(--ink)]/60 dark:text-white/60 mb-1.5 tracking-wide">{s.scripture}</p>
               )}
 
               {s.shortDescription && (
-                <p class="text-sm text-[var(--ink)]/75 line-clamp-[7] sm:line-clamp-2 leading-relaxed">{s.shortDescription}</p>
+                <p class="text-sm text-[var(--ink)]/75 dark:text-white/75 line-clamp-[7] sm:line-clamp-2 leading-relaxed">{s.shortDescription}</p>
               )}
             </div>
 
-            {/* Arrow */}
-            <div class="shrink-0 self-center text-[var(--navy)]/30 group-hover:text-[var(--green)] transition-colors">
+            {/* Arrow — desktop only */}
+            <div class="hidden sm:flex shrink-0 self-center text-[var(--navy)]/30 dark:text-white/30 group-hover:text-[var(--green)] transition-colors">
               <Icon name="caret-right" class="w-5 h-5" />
             </div>
           </a>
@@ -181,24 +194,24 @@ function fmtMins(mins: number | null | undefined) {
       No sermons match those filters.
     </div>
 
-    {/* Pagination — white cards to stay legible in dark mode */}
+    {/* Pagination */}
     <div id="pagination" class="flex items-center justify-between gap-4 mt-8">
       <button
         id="page-prev"
-        class="group flex items-center gap-2 bg-white text-[var(--ink)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/10 px-5 py-3 text-sm font-semibold hover:shadow-md transition-shadow disabled:opacity-40 disabled:pointer-events-none"
+        class="group flex items-center gap-2 bg-white dark:bg-[var(--card)] text-[var(--ink)] dark:text-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/10 dark:ring-white/10 px-5 py-3 text-sm font-semibold hover:shadow-md transition-shadow disabled:opacity-40 disabled:pointer-events-none"
       >
-        <Icon name="caret-left" class="w-4 h-4 text-[var(--navy)]/50 group-hover:text-[var(--green)] transition-colors" />
+        <Icon name="caret-left" class="w-4 h-4 text-[var(--navy)]/50 dark:text-white/50 group-hover:text-[var(--green)] transition-colors" />
         Prev
       </button>
 
-      <span id="page-info" class="text-sm text-[var(--ink)]/55 tabular-nums"></span>
+      <span id="page-info" class="text-sm text-[var(--ink)]/55 dark:text-white/55 tabular-nums"></span>
 
       <button
         id="page-next"
-        class="group flex items-center gap-2 bg-white text-[var(--ink)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/10 px-5 py-3 text-sm font-semibold hover:shadow-md transition-shadow disabled:opacity-40 disabled:pointer-events-none"
+        class="group flex items-center gap-2 bg-white dark:bg-[var(--card)] text-[var(--ink)] dark:text-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/10 dark:ring-white/10 px-5 py-3 text-sm font-semibold hover:shadow-md transition-shadow disabled:opacity-40 disabled:pointer-events-none"
       >
         Next
-        <Icon name="caret-right" class="w-4 h-4 text-[var(--navy)]/50 group-hover:text-[var(--green)] transition-colors" />
+        <Icon name="caret-right" class="w-4 h-4 text-[var(--navy)]/50 dark:text-white/50 group-hover:text-[var(--green)] transition-colors" />
       </button>
     </div>
 

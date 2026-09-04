@@ -39,24 +39,22 @@ const articles  = (sofData?.articles ?? []).filter(Boolean) as Array<{
           <details class="group space-y-3">
 
             {/* Summary — its own card */}
-            <summary class="flex items-start gap-4 px-6 py-5 bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 hover:shadow-md transition-shadow cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden">
-              {/* Number badge */}
-              <span class="shrink-0 mt-0.5 w-8 h-8 rounded-full bg-[var(--navy)] group-open:bg-[var(--green)] flex items-center justify-center text-xs font-bold text-white tabular-nums transition-colors">
-                {a.number}
-              </span>
-
-              {/* Title + summary */}
-              <div class="flex-1 min-w-0">
-                <h2 class="text-base font-semibold text-[var(--navy)] dark:text-white mb-2 group-open:text-[var(--green)] transition-colors">
+            <summary class="flex flex-col gap-2 px-6 py-5 bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 hover:shadow-md transition-shadow cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden">
+              {/* Header row: number + title + chevron */}
+              <div class="flex items-center gap-3">
+                <span class="shrink-0 w-8 h-8 rounded-full bg-[var(--navy)] group-open:bg-[var(--green)] flex items-center justify-center text-xs font-bold text-white tabular-nums transition-colors">
+                  {a.number}
+                </span>
+                <h2 class="flex-1 min-w-0 text-base font-semibold text-[var(--navy)] dark:text-white group-open:text-[var(--green)] transition-colors leading-snug">
                   {a.title}
                 </h2>
-                <p class="text-sm text-[var(--ink)]/75 dark:text-white/80 leading-relaxed">
-                  {a.summary}
-                </p>
+                <Icon name="caret-down" class="shrink-0 w-4 h-4 text-[var(--navy)]/30 dark:text-white/30 transition-transform duration-200 group-open:rotate-180 group-open:text-[var(--green)]" />
               </div>
 
-              {/* Chevron */}
-              <Icon name="caret-down" class="shrink-0 mt-1.5 w-4 h-4 text-[var(--navy)]/30 dark:text-white/30 transition-transform duration-200 group-open:rotate-180 group-open:text-[var(--green)]" />
+              {/* Summary text — spans full card width */}
+              <p class="text-sm text-[var(--ink)]/75 dark:text-white/80 leading-relaxed">
+                {a.summary}
+              </p>
             </summary>
 
             {/* Full statement — separate card */}

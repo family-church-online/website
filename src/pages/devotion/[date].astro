@@ -141,11 +141,13 @@ const articleLd = {
     {(fm.image || fm.keyScripture?.text) && (
       <div class="reveal bg-white dark:bg-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 p-6 flex gap-5 items-start" data-reveal-delay="0.1">
         {fm.image && (
-          <img
-            src={fm.image}
-            alt={fm.title ?? ''}
-            class="hidden sm:block shrink-0 w-28 h-28 rounded-xl object-cover shadow-sm ring-1 ring-black/10"
-          />
+          <div class="hidden sm:block shrink-0 w-28 h-28 rounded-xl overflow-hidden shadow-sm ring-1 ring-black/10">
+            <img
+              src={fm.image}
+              alt={fm.title ?? ''}
+              class="w-full h-full object-cover scale-[1.70]"
+            />
+          </div>
         )}
         {fm.keyScripture?.text && (
           <div class="flex-1 min-w-0">

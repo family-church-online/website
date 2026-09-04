@@ -217,11 +217,13 @@ const ldJsonVideo = vimeoId ? {
         {(fm.image || fm.subtitle || fm.style || fm.level) && (
           <div class="image-section px-6 py-5 border-b border-[var(--ink)]/8 flex gap-5 items-start">
             {fm.image && (
-              <img
-                src={fm.image}
-                alt={fm.title ?? ''}
-                class="hidden sm:block shrink-0 w-28 h-28 rounded-xl object-cover shadow-sm ring-1 ring-black/10"
-              />
+              <div class="hidden sm:block shrink-0 w-28 h-28 rounded-xl overflow-hidden shadow-sm ring-1 ring-black/10">
+                <img
+                  src={fm.image}
+                  alt={fm.title ?? ''}
+                  class="w-full h-full object-cover scale-[1.70]"
+                />
+              </div>
             )}
             <div class="flex-1 min-w-0">
               {fm.subtitle && (
