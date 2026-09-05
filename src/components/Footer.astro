@@ -41,13 +41,16 @@ const year = new Date().getFullYear();
 							<span class="sr-only">{link.title}</span>
 						</a>
 					))}
-					<button
+					<a
 						id="wa-share-btn"
+						href="https://wa.me/"
+						target="_blank"
+						rel="noopener noreferrer"
 						title="Share this page on WhatsApp"
 						aria-label="Share this page on WhatsApp"
 					>
 						<SiteIcon name="share" />
-					</button>
+					</a>
 				</div>
 				<div class="footer-banking">
 					<p class="footer-label" style="margin-bottom:0.5rem">Banking</p>
@@ -247,7 +250,12 @@ const year = new Date().getFullYear();
 </style>
 
 <script>
-	document.getElementById('wa-share-btn')?.addEventListener('click', () => {
-		window.open('https://wa.me/?text=' + encodeURIComponent(window.location.href), '_blank');
-	});
+	function updateShareBtn() {
+		const shareBtn = document.getElementById('wa-share-btn') as HTMLAnchorElement | null;
+		if (shareBtn) {
+			shareBtn.href = 'https://wa.me/?text=' + encodeURIComponent(window.location.href);
+		}
+	}
+	updateShareBtn();
+	document.addEventListener('astro:page-load', updateShareBtn);
 </script>
