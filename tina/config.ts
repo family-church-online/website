@@ -44,7 +44,7 @@ export default defineConfig({
   media: {
     tina: {
       publicFolder: 'public',
-      mediaRoot: '',
+      mediaRoot: 'images',
     },
   },
   build: {
