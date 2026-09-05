@@ -31,7 +31,7 @@ const processed = slides
 
 		<div data-carousel>
 			<!-- Viewport: reference element for absolutely-stacked slides and nav buttons -->
-			<div data-carousel-viewport tabindex="0" class="relative overflow-hidden rounded-xl shadow-md bg-white dark:bg-[var(--card)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--green)]">
+			<div data-carousel-viewport tabindex="0" class="relative overflow-hidden rounded-xl shadow-md bg-white dark:bg-[var(--card)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--green)]" style="touch-action:pan-y">
 
 				{processed.map((slide, i) => (
 					<div
@@ -215,11 +215,18 @@ const processed = slides
 			}
 
 			let startX = 0;
-			viewport.addEventListener('pointerdown', e => { startX = e.clientX; });
-			viewport.addEventListener('pointerup',   e => {
-				const dx = e.clientX - startX;
-				if (Math.abs(dx) > 50) go(dx < 0 ? cur + 1 : cur - 1);
-			});
+			let startY = 0;
+			viewport.addEventListener('touchstart', e => {
+				startX = e.touches[0].clientX;
+				startY = e.touches[0].clientY;
+			}, { passive: true });
+			viewport.addEventListener('touchend', e => {
+				const dx = e.changedTouches[0].clientX - startX;
+				const dy = e.changedTouches[0].clientY - startY;
+				if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+					go(dx < 0 ? cur + 1 : cur - 1);
+				}
+			}, { passive: true });
 
 			registry.push({ el, go, cur: () => cur });
 		}
