@@ -11,6 +11,7 @@ import { CourseCollection } from "./collections/course";
 import { EventCollection } from "./collections/event";
 import { ThreeMinutesCollection } from "./collections/three-minutes";
 import { ministryLessonCollection } from "./collections/ministry-lesson";
+import { courseLessonCollection }   from "./collections/course-lesson";
 
 // Your hosting provider likely exposes this as an environment variable
 const branch =
@@ -74,6 +75,10 @@ export default defineConfig({
       ministryLessonCollection({ name: 'kidsPreschool', label: 'Kids — Pre-School',      path: 'src/content/kids/preschool',  route: '/kids-church/pre-school' }),
       ministryLessonCollection({ name: 'kidsJunior',    label: 'Kids — Junior',           path: 'src/content/kids/junior',     route: '/kids-church/junior' }),
       ministryLessonCollection({ name: 'kidsSenior',    label: 'Kids — Senior',           path: 'src/content/kids/senior',     route: '/kids-church/senior' }),
+      courseLessonCollection({ name: 'tagScripture',    label: 'Truth & Grace — Scripture',      courseSlug: 'truth-and-grace', chapterSlug: 'scripture'      }),
+      courseLessonCollection({ name: 'tagGod',          label: 'Truth & Grace — God',            courseSlug: 'truth-and-grace', chapterSlug: 'god'            }),
+      courseLessonCollection({ name: 'tagHumanity',     label: 'Truth & Grace — Humanity',       courseSlug: 'truth-and-grace', chapterSlug: 'humanity'       }),
+      courseLessonCollection({ name: 'tagTheSonOfGod',  label: 'Truth & Grace — The Son of God', courseSlug: 'truth-and-grace', chapterSlug: 'the-son-of-god' }),
       GlobalConfigCollection,
     ],
   },
