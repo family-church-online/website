@@ -70,7 +70,7 @@ const pdfs       = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.file
 			<h3 class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">Scriptures</h3>
 			<div class="space-y-3">
 				{scriptures.map(s => (
-					<div class="rounded-xl border border-[var(--navy)]/10 dark:border-white/10 px-5 py-4 bg-white dark:bg-[var(--card)]">
+					<div class="rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 bg-white dark:bg-[var(--card)]">
 						{s.ref && <p class="text-xs font-bold uppercase tracking-widest text-[var(--green)] mb-1">{s.ref}</p>}
 						{s.text && <p class="text-sm text-[var(--ink)]/80 dark:text-white/80 leading-relaxed">{s.text}</p>}
 					</div>
@@ -83,7 +83,7 @@ const pdfs       = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.file
 	{paragraphs.length > 0 && (
 		<section class="space-y-4">
 			{paragraphs.map(p => (
-				<div class="rounded-xl border border-[var(--navy)]/10 dark:border-white/10 px-5 py-5 bg-white dark:bg-[var(--card)]">
+				<div class="rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-5 bg-white dark:bg-[var(--card)]">
 					{p.heading && (
 						<h3 class="font-display text-xl font-semibold text-[var(--navy)] dark:text-white mb-2">{p.heading}</h3>
 					)}
