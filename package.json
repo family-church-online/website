@@ -10,8 +10,6 @@
     "dev:mobile": "node scripts/proxy-tina.mjs & TINA_HOST=$(hostname -I | awk '{print $1}') tinacms dev -c \"astro dev\"",
     "build": "node --experimental-strip-types scripts/generate-sveltia-config.mts && tinacms build --content=local -c \"astro build\" && node scripts/patch-wrangler.mjs",
     "build:local": "node --experimental-strip-types scripts/generate-sveltia-config.mts && tinacms build --local --skip-cloud-checks -c \"astro build\"",
-    "//build:deploy": "Cloudflare production build. Skips tinacms build entirely — no /admin/, no TinaCloud, no assets.tina.io on the live site. TinaCMS runs locally only (pnpm dev). Sveltia at /edit/ handles all live editing. To revert: change Cloudflare build command back to 'pnpm build' and delete this script.",
-    "build:deploy": "node --experimental-strip-types scripts/generate-sveltia-config.mts && astro build && node scripts/patch-wrangler.mjs",
     "sveltia:config": "node --experimental-strip-types scripts/generate-sveltia-config.mts",
     "build:search": "tinacms search-index",
     "preview": "astro preview",
