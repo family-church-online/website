@@ -53,6 +53,13 @@
     });
     var s = document.createElement('script');
     s.src = '/js/esv-crossref.min.js';
+    s.onload = function () {
+      // If window.load already fired (common on mobile/cached pages), the
+      // script's own load listener won't fire — trigger linkify manually.
+      if (document.readyState === 'complete') {
+        window.dispatchEvent(new Event('esv-crossref.trigger-linkify'));
+      }
+    };
     document.body.appendChild(s);
   }
   if ('requestIdleCallback' in window) {
