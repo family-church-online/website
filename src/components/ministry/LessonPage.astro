@@ -52,7 +52,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 ---
 
 <!-- Page header -->
-<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center esv-crossref-ignore">
 	<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">{label}</p>
 	<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-4">{fm.title ?? 'Lesson'}</h1>
 	<div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -66,7 +66,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 	<!-- Hero image -->
 	{fm.image && (
-		<div class="reveal rounded-2xl overflow-hidden mb-6 h-56 sm:h-72 shadow-md" data-reveal-delay="0.05">
+		<div class="reveal rounded-2xl overflow-hidden mb-6 h-56 sm:h-72 shadow-md esv-crossref-ignore" data-reveal-delay="0.05">
 			<img
 				src={fm.image}
 				alt={fm.title ?? 'Lesson image'}
@@ -89,7 +89,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 			{/* Main scripture text */}
 			{fm.mainScriptureText && (
-				<div class="px-6 py-5 bg-[var(--ink)]/[0.02] border-b border-[var(--ink)]/8">
+				<div class="px-6 py-5 bg-[var(--ink)]/[0.02] border-b border-[var(--ink)]/8 esv-crossref-ignore">
 					{fm.scripture && (
 						<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">{fm.scripture}</p>
 					)}
@@ -101,7 +101,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 			{/* Summary */}
 			{fm.summary && (
-				<div class="px-6 py-5 border-b border-[var(--ink)]/8">
+				<div class="px-6 py-5 border-b border-[var(--ink)]/8 esv-crossref-ignore">
 					<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Summary</p>
 					<p class="text-sm text-[var(--ink)]/80 leading-relaxed">{fm.summary}</p>
 				</div>
@@ -109,7 +109,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 			{/* About */}
 			{fm.about && (
-				<div class="px-6 py-5 border-b border-[var(--ink)]/8">
+				<div class="px-6 py-5 border-b border-[var(--ink)]/8 esv-crossref-ignore">
 					<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">About</p>
 					<p class="text-sm text-[var(--ink)]/80 leading-relaxed">{fm.about}</p>
 				</div>
@@ -117,7 +117,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 			{/* Takeaway + For You */}
 			{(takeaway.length > 0 || forYou.length > 0) && (
-				<div class={`grid border-b border-[var(--ink)]/8 ${takeaway.length > 0 && forYou.length > 0 ? 'md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[var(--ink)]/8' : ''}`}>
+				<div class={`grid border-b border-[var(--ink)]/8 esv-crossref-ignore ${takeaway.length > 0 && forYou.length > 0 ? 'md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[var(--ink)]/8' : ''}`}>
 					{takeaway.length > 0 && (
 						<div class="px-6 py-5">
 							<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Takeaway</p>
@@ -167,7 +167,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 			{/* Big idea */}
 			{fm.bigIdea && (
-				<div class="big-idea px-6 py-5 bg-[var(--navy)] text-white">
+				<div class="big-idea px-6 py-5 bg-[var(--navy)] text-white esv-crossref-ignore">
 					<p class="text-xs font-bold uppercase tracking-widest text-white/50 mb-2">The Big Idea</p>
 					<p class="font-display text-lg font-semibold leading-snug">{fm.bigIdea}</p>
 				</div>
@@ -185,7 +185,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 			{/* Main points */}
 			{mainPoints.length > 0 && (
-				<div class="px-6 py-5 border-b border-[var(--ink)]/8">
+				<div class="px-6 py-5 border-b border-[var(--ink)]/8 esv-crossref-ignore">
 					<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Main Points</p>
 					<ol class="space-y-4">
 						{mainPoints.map((pt, i) => (
@@ -205,7 +205,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 			{/* Key illustration */}
 			{fm.keyIllustration && (
-				<div class="px-6 py-5 bg-[var(--ink)]/[0.03] border-b border-[var(--ink)]/8">
+				<div class="px-6 py-5 bg-[var(--ink)]/[0.03] border-b border-[var(--ink)]/8 esv-crossref-ignore">
 					<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Key Illustration</p>
 					<p class="text-sm text-[var(--ink)]/75 leading-relaxed">{fm.keyIllustration}</p>
 				</div>
@@ -213,7 +213,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 			{/* Means for us */}
 			{meansForUs.length > 0 && (
-				<div class="px-6 py-5 border-b border-[var(--ink)]/8">
+				<div class="px-6 py-5 border-b border-[var(--ink)]/8 esv-crossref-ignore">
 					<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What This Means for Us</p>
 					<ul class="space-y-3">
 						{meansForUs.map(a => (
@@ -228,7 +228,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 			{/* Remember */}
 			{fm.remember && (
-				<div class="px-6 py-5 bg-[var(--green)]/8 border-b border-[var(--ink)]/8">
+				<div class="px-6 py-5 bg-[var(--green)]/8 border-b border-[var(--ink)]/8 esv-crossref-ignore">
 					<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">Remember</p>
 					<p class="font-display text-lg font-semibold text-[var(--navy)] leading-snug">{fm.remember}</p>
 				</div>
@@ -242,21 +242,21 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 	<!-- Images carousel -->
 	{images.length > 0 && (
-		<div class="reveal mb-6" data-reveal-delay="0.18">
+		<div class="reveal mb-6 esv-crossref-ignore" data-reveal-delay="0.18">
 			<Carousel slides={images} heading="Images" />
 		</div>
 	)}
 
 	<!-- Videos carousel -->
 	{videos.length > 0 && (
-		<div class="reveal mb-6" data-reveal-delay="0.22">
+		<div class="reveal mb-6 esv-crossref-ignore" data-reveal-delay="0.22">
 			<Carousel slides={videos} heading="Videos" />
 		</div>
 	)}
 
 	<!-- PDFs -->
 	{pdfs.length > 0 && (
-		<div class="reveal mb-8" data-reveal-delay="0.26">
+		<div class="reveal mb-8 esv-crossref-ignore" data-reveal-delay="0.26">
 			<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Downloads</p>
 			<div class="flex flex-wrap gap-3">
 				{pdfs.map(p => (
@@ -275,7 +275,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 
 	<!-- Prev / Next navigation -->
 	{(prev || next) && (
-		<nav class="reveal flex items-stretch gap-3 mt-2 mb-8">
+		<nav class="reveal flex items-stretch gap-3 mt-2 mb-8 esv-crossref-ignore">
 			{prev ? (
 				<a href={`${baseRoute}/${prev.slug}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/10 px-5 py-4 hover:shadow-md transition-shadow no-underline">
 					<Icon name="caret-left" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 dark:text-white/40 group-hover:text-[var(--green)] transition-colors" />

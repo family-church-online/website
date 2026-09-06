@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
+import EsvCrossref from '../../components/EsvCrossref.astro';
 import { getConfig } from '../../lib/data';
 import Icon from '../../components/Icon.astro';
 
@@ -121,7 +122,7 @@ const articleLd = {
 	<script slot="head" type="application/ld+json" set:html={JSON.stringify(articleLd)} />
 
   {/* ── PAGE HEADER ────────────────────────────────────────────────────────── */}
-  <div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+  <div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center esv-crossref-ignore">
     <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Daily Devotion</p>
     <h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-3">{fm.title ?? 'Devotion'}</h1>
     <time class="text-sm text-muted-foreground" datetime={date}>{fmtDate(date)}</time>
@@ -166,7 +167,7 @@ const articleLd = {
 
     {/* ── REFLECTION ─────────────────────────────────────────────────────────── */}
     {fm.reflection && (
-      <section class="reveal">
+      <section class="reveal esv-crossref-ignore">
         <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Reflection</h2>
         <div class="space-y-4">
           {paras(fm.reflection).map(p => (
@@ -199,7 +200,7 @@ const articleLd = {
 
     {/* ── LIFE APPLICATION ───────────────────────────────────────────────────── */}
     {fm.lifeApplication && (
-      <section class="reveal bg-[var(--navy)]/4 dark:bg-white/4 rounded-xl p-6">
+      <section class="reveal bg-[var(--navy)]/4 dark:bg-white/4 rounded-xl p-6 esv-crossref-ignore">
         <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Life Application</h2>
         <div class="space-y-4">
           {paras(fm.lifeApplication).map(p => (
@@ -211,7 +212,7 @@ const articleLd = {
 
     {/* ── PRAYER ─────────────────────────────────────────────────────────────── */}
     {fm.prayer && (
-      <section class="reveal bg-[var(--navy)] rounded-xl p-6 text-center">
+      <section class="reveal bg-[var(--navy)] rounded-xl p-6 text-center esv-crossref-ignore">
         <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--green)] mb-4">Prayer</h2>
         <div class="space-y-1">
           {prayerLines(fm.prayer).map(line => (
@@ -223,7 +224,7 @@ const articleLd = {
 
     {/* ── DAILY READINGS ─────────────────────────────────────────────────────── */}
     {fm.readingPlans && (
-      <section class="reveal" id="readings">
+      <section class="reveal esv-crossref-ignore" id="readings">
         <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Daily Readings</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
@@ -313,7 +314,7 @@ const articleLd = {
 
     {/* ── PREV / NEXT ─────────────────────────────────────────────────────────── */}
     {(prev || next || isLatest) && (
-      <nav class="reveal flex items-stretch gap-3 mt-2 mb-8">
+      <nav class="reveal flex items-stretch gap-3 mt-2 mb-8 esv-crossref-ignore">
         {prev ? (
           <a href={`/devotion/${prev.date}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow">
             <Icon name="caret-left" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
@@ -345,4 +346,6 @@ const articleLd = {
     )}
 
   </main>
+
+  <EsvCrossref />
 </Base>

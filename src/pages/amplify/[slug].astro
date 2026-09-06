@@ -3,6 +3,7 @@ export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
 import LessonPage from '../../components/ministry/LessonPage.astro';
+import EsvCrossref from '../../components/EsvCrossref.astro';
 import { getConfig } from '../../lib/data';
 
 interface Frontmatter {
@@ -64,4 +65,5 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 		{prev}
 		{next}
 	/>
+	<EsvCrossref />
 </Base>

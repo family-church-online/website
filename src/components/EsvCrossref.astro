@@ -1,0 +1,61 @@
+---
+// ESV Cross-Reference Tool
+// Scans page text for scripture references and makes them clickable popups.
+// Drop <EsvCrossref /> into any page template to enable.
+// Add class="esv-crossref-ignore" to any container to exclude it from scanning.
+// Script is self-hosted at /js/esv-crossref.min.js — update by re-downloading:
+//   curl https://static.esvmedia.org/crossref/crossref.min.js -o public/js/esv-crossref.min.js
+---
+<script is:inline>
+(function () {
+  var LIGHT = {
+    border_color:            '273f61',
+    border_radius:           10,
+    header_font_color:       'ffffff',
+    header_background_color: '273f61',
+    body_font_color:         '14202f',
+    body_background_color:   'ffffff',
+    footer_font_color:       '8f926b',
+    footer_background_color: 'f0f4f8',
+  };
+  var DARK = {
+    border_color:            '3d5a7a',
+    border_radius:           10,
+    header_font_color:       'ffffff',
+    header_background_color: '1e3a5f',
+    body_font_color:         'dce4f0',
+    body_background_color:   '1a2840',
+    footer_font_color:       '8f926b',
+    footer_background_color: '0f1a28',
+  };
+  function isDark() { return document.documentElement.classList.contains('dark'); }
+  window.ESV_CROSSREF_OPTIONS = isDark() ? DARK : LIGHT;
+
+  // Reset cached iframes and link fetch state when theme changes
+  new MutationObserver(function () {
+    window.ESV_CROSSREF_OPTIONS = isDark() ? DARK : LIGHT;
+    document.querySelectorAll('iframe.esv-crossref').forEach(function (iframe) {
+      iframe.src = 'about:blank';
+    });
+    document.querySelectorAll('a.esv-crossref-link').forEach(function (el) {
+      el.ESV_FETCHED = false;
+    });
+  }).observe(document.documentElement, { attributeFilter: ['class'] });
+
+  // Lazy-load the script on first user interaction
+  var loaded = false;
+  function load() {
+    if (loaded) return;
+    loaded = true;
+    ['scroll', 'mousemove', 'touchstart', 'keydown'].forEach(function (e) {
+      document.removeEventListener(e, load);
+    });
+    var s = document.createElement('script');
+    s.src = '/js/esv-crossref.min.js';
+    document.body.appendChild(s);
+  }
+  ['scroll', 'mousemove', 'touchstart', 'keydown'].forEach(function (e) {
+    document.addEventListener(e, load, { passive: true });
+  });
+})();
+</script>
