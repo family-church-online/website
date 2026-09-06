@@ -42,7 +42,8 @@
     });
   }).observe(document.documentElement, { attributeFilter: ['class'] });
 
-  // Lazy-load the script on first user interaction
+  // Load the script once the browser is idle (or after 2s), whichever comes first.
+  // Also load immediately on first user interaction, in case idle never fires.
   var loaded = false;
   function load() {
     if (loaded) return;
@@ -53,6 +54,11 @@
     var s = document.createElement('script');
     s.src = '/js/esv-crossref.min.js';
     document.body.appendChild(s);
+  }
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(load, { timeout: 2000 });
+  } else {
+    setTimeout(load, 2000);
   }
   ['scroll', 'mousemove', 'touchstart', 'keydown'].forEach(function (e) {
     document.addEventListener(e, load, { passive: true });
