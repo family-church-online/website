@@ -2,43 +2,271 @@
 export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
-import LessonCard from '../../components/ministry/LessonCard.astro';
 import { getConfig } from '../../lib/data';
+import Icon from '../../components/Icon.astro';
 
-interface Frontmatter { title?: string; date?: string; scripture?: string; }
+interface Frontmatter {
+	title?: string;
+	scripture?: string;
+	image?: string;
+	summary?: string;
+	about?: string;
+}
 
-const mods = import.meta.glob<{ frontmatter: Frontmatter }>(
+const modules = import.meta.glob<{ frontmatter: Frontmatter }>(
 	'../../content/amplify/*.mdx',
 	{ eager: true },
 );
 
-const lessons = Object.entries(mods)
-	.map(([path, mod]) => ({
-		date: path.replace('../../content/amplify/', '').replace('.mdx', ''),
-		...mod.frontmatter,
-	}))
-	.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+const lessons = Object.entries(modules)
+	.map(([path, mod]) => {
+		const slug = path.replace('../../content/amplify/', '').replace('.mdx', '');
+		return {
+			...mod.frontmatter,
+			slug,
+			date: slug.slice(0, 10),
+		};
+	})
+	.filter(l => l.slug !== '.gitkeep')
+	.sort((a, b) => b.date.localeCompare(a.date));
+
+const allYears = [...new Set(
+	lessons.map(l => l.date.slice(0, 4)).filter(Boolean)
+)].sort((a, b) => b.localeCompare(a));
 
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
+
+function fmtDate(d: string) {
+	return new Date(d + 'T00:00:00Z').toLocaleDateString('en-ZA', {
+		day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+	});
+}
 ---
 
-<Base title={`Amplify — Teens · ${siteTitle}`} description="Weekly lessons for teens from Family Church.">
-	<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-4 text-center">
+<Base
+	title={`Amplify — Teens · ${siteTitle}`}
+	description="Weekly lessons for teens from Family Church."
+>
+
+	{/* ── PAGE HEADER ─────────────────────────────────────────────────────────── */}
+	<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
 		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Ministry</p>
-		<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-2">Amplify</h1>
-		<p class="text-[var(--ink)]/55 dark:text-white/50 text-sm">Weekly lessons for teens</p>
+		<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance">Amplify</h1>
+		<p class="text-lg text-muted-foreground mt-4">Weekly lessons for teens.</p>
 	</div>
 
-	<main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-8">
-		{lessons.length === 0 ? (
-			<p class="text-[var(--ink)]/50 dark:text-white/40 text-sm">No lessons published yet.</p>
-		) : (
-			<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-				{lessons.map(l => (
-					<LessonCard href={`/amplify/${l.date}`} date={l.date} title={l.title} scripture={l.scripture} />
-				))}
+	{/* ── FILTER BAR ──────────────────────────────────────────────────────────── */}
+	{allYears.length > 1 && (
+		<div class="bg-[var(--background)] border-b border-[var(--ink)]/10 sticky top-20 z-20">
+			<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-3 flex flex-wrap gap-3 items-center">
+				<div class="filter-wrap">
+					<select id="filter-year" class="filter-select">
+						<option value="">All years</option>
+						{allYears.map(y => <option value={y}>{y}</option>)}
+					</select>
+				</div>
+				<button id="filter-clear" style="display:none" class="text-sm font-medium text-[var(--navy)] dark:text-white/80 bg-white dark:bg-[var(--card)] border border-[var(--ink)]/18 dark:border-white/12 rounded-lg px-3 py-1.5 hover:border-[var(--green)] hover:text-[var(--green)] transition-colors cursor-pointer">
+					Clear filters
+				</button>
+				<span id="result-count" class="text-sm text-[var(--ink)]/55 dark:text-white/55 ml-auto tabular-nums"></span>
 			</div>
+		</div>
+	)}
+
+	{/* ── LESSON LIST ─────────────────────────────────────────────────────────── */}
+	<main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10" id="lessons-top">
+
+		{lessons.length === 0 ? (
+			<p class="text-center text-[var(--ink)]/50 dark:text-white/40 text-sm py-20">No lessons published yet.</p>
+		) : (
+			<ul id="lesson-list" class="space-y-3">
+				{lessons.map(l => (
+					<li class="reveal" data-lesson data-year={l.date.slice(0, 4)}>
+						<a
+							href={`/amplify/${l.slug}`}
+							class="group flex flex-col sm:flex-row sm:gap-5 sm:p-5 sm:items-start text-[var(--ink)] dark:text-white bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden hover:shadow-md transition-shadow"
+						>
+							{/* Mobile banner */}
+							{l.image && (
+								<div class="sm:hidden w-full h-28 overflow-hidden">
+									<img
+										src={l.image}
+										alt={l.title ?? ''}
+										class="w-full h-full object-cover scale-[1.70] group-hover:scale-[1.80] transition-transform duration-300"
+										loading="lazy"
+									/>
+								</div>
+							)}
+
+							{/* Desktop thumbnail */}
+							<div class="hidden sm:block shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-[var(--navy)]/10 dark:bg-white/5">
+								{l.image ? (
+									<img
+										src={l.image}
+										alt=""
+										aria-hidden="true"
+										class="w-full h-full object-cover scale-[1.70] group-hover:scale-[1.80] transition-transform duration-300"
+										loading="lazy"
+									/>
+								) : (
+									<div class="w-full h-full flex items-center justify-center">
+										<Icon name="scripture" class="w-8 h-8 text-[var(--navy)]/30 dark:text-white/20" />
+									</div>
+								)}
+							</div>
+
+							{/* Content */}
+							<div class="flex-1 min-w-0 px-4 pt-3 pb-4 sm:p-0">
+								<h2 class="font-display text-lg md:text-xl font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug mb-1">
+									{l.title}
+								</h2>
+
+								<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1.5">
+									<time class="text-xs text-[var(--ink)]/55 dark:text-white/55 tabular-nums">{fmtDate(l.date)}</time>
+									{l.scripture && (
+										<span class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)]">{l.scripture}</span>
+									)}
+								</div>
+
+								{(l.summary ?? l.about) && (
+									<p class="text-sm text-[var(--ink)]/75 dark:text-white/75 line-clamp-[7] sm:line-clamp-2 leading-relaxed">
+										{l.summary ?? l.about}
+									</p>
+								)}
+							</div>
+
+							{/* Arrow */}
+							<div class="hidden sm:flex shrink-0 self-center text-[var(--navy)]/30 dark:text-white/30 group-hover:text-[var(--green)] transition-colors">
+								<Icon name="caret-right" class="w-5 h-5" />
+							</div>
+						</a>
+					</li>
+				))}
+			</ul>
 		)}
+
+		{/* Empty state */}
+		<div id="empty-state" class="py-20 text-center text-[var(--ink)]/50 hidden">
+			No lessons match that filter.
+		</div>
+
+		{/* Pagination */}
+		<div id="pagination" class="flex items-center justify-between gap-4 mt-8">
+			<button id="page-prev" class="group flex items-center gap-2 bg-white dark:bg-[var(--card)] text-[var(--ink)] dark:text-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/10 dark:ring-white/10 px-5 py-3 text-sm font-semibold hover:shadow-md transition-shadow disabled:opacity-40 disabled:pointer-events-none">
+				<Icon name="caret-left" class="w-4 h-4 text-[var(--navy)]/50 dark:text-white/50 group-hover:text-[var(--green)] transition-colors" />
+				Prev
+			</button>
+			<span id="page-info" class="text-sm text-[var(--ink)]/55 dark:text-white/55 tabular-nums"></span>
+			<button id="page-next" class="group flex items-center gap-2 bg-white dark:bg-[var(--card)] text-[var(--ink)] dark:text-white rounded-xl shadow-sm ring-1 ring-[var(--navy)]/10 dark:ring-white/10 px-5 py-3 text-sm font-semibold hover:shadow-md transition-shadow disabled:opacity-40 disabled:pointer-events-none">
+				Next
+				<Icon name="caret-right" class="w-4 h-4 text-[var(--navy)]/50 dark:text-white/50 group-hover:text-[var(--green)] transition-colors" />
+			</button>
+		</div>
+
 	</main>
 </Base>
+
+<style>
+.filter-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.filter-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0.6rem;
+  pointer-events: none;
+  width: 1rem;
+  height: 1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23273f61' stroke-width='1.5'%3E%3Cpath d='M5 8l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+.filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: white;
+  border: 1px solid rgba(20, 32, 47, 0.18);
+  border-radius: 0.5rem;
+  padding: 0.375rem 2rem 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--navy);
+  cursor: pointer;
+  min-width: 10rem;
+  max-width: 16rem;
+}
+.filter-select:focus {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+:global(.dark) .filter-select {
+  background: var(--card);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--foreground);
+}
+:global(.dark) .filter-wrap::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23ffffff' stroke-width='1.5'%3E%3Cpath d='M5 8l5 5 5-5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+</style>
+
+<script>
+const PAGE_SIZE = 20;
+
+function init() {
+  let page = 1;
+
+  const yearEl     = document.getElementById('filter-year')  as HTMLSelectElement | null;
+  const clearBtn   = document.getElementById('filter-clear') as HTMLButtonElement | null;
+  const countEl    = document.getElementById('result-count')!;
+  const prevBtn    = document.getElementById('page-prev')    as HTMLButtonElement | null;
+  const nextBtn    = document.getElementById('page-next')    as HTMLButtonElement | null;
+  const pageInfo   = document.getElementById('page-info')!;
+  const emptyState = document.getElementById('empty-state')!;
+  const pagination = document.getElementById('pagination')!;
+  const allItems   = Array.from(document.querySelectorAll<HTMLLIElement>('[data-lesson]'));
+
+  if (!allItems.length) return;
+
+  function getFiltered() {
+    const year = yearEl?.value ?? '';
+    return allItems.filter(el => !year || el.dataset.year === year);
+  }
+
+  function render() {
+    const items   = getFiltered();
+    const total   = items.length;
+    const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    page = Math.min(page, maxPage);
+    const start = (page - 1) * PAGE_SIZE;
+    const end   = Math.min(start + PAGE_SIZE, total);
+
+    allItems.forEach(el => (el.hidden = true));
+    items.slice(start, end).forEach(el => (el.hidden = false));
+
+    emptyState.classList.toggle('hidden', total > 0);
+    pagination.classList.toggle('hidden', total <= PAGE_SIZE);
+
+    countEl.textContent  = total === 0 ? '' : `${start + 1}–${end} of ${total}`;
+    pageInfo.textContent = `Page ${page} of ${maxPage}`;
+    if (prevBtn) prevBtn.disabled = page <= 1;
+    if (nextBtn) nextBtn.disabled = page >= maxPage;
+    if (clearBtn) clearBtn.style.display = yearEl?.value ? '' : 'none';
+  }
+
+  yearEl?.addEventListener('change', () => { page = 1; render(); });
+  clearBtn?.addEventListener('click', () => {
+    if (yearEl) yearEl.value = '';
+    page = 1;
+    render();
+  });
+  prevBtn?.addEventListener('click', () => { page--; render(); document.getElementById('lessons-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  nextBtn?.addEventListener('click', () => { page++; render(); document.getElementById('lessons-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+
+  render();
+}
+
+document.addEventListener('astro:page-load', init);
+</script>

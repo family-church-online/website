@@ -14,10 +14,16 @@ export function ministryLessonCollection(opts: {
 		ui: {
 			router: ({ document }) => `${opts.route}/${document._sys.filename}`,
 			filename: {
-				slugify: (values) =>
-					values.date
+				slugify: (values) => {
+					const date = values.date
 						? new Date(values.date).toISOString().split('T')[0]
-						: 'undated',
+						: 'undated';
+					const title = (values.title ?? '')
+						.toLowerCase()
+						.replace(/[^a-z0-9]+/g, '-')
+						.replace(/^-|-$/g, '');
+					return title ? `${date}-${title}` : date;
+				},
 			},
 		},
 		fields: [
@@ -48,30 +54,85 @@ export function ministryLessonCollection(opts: {
 				ui: { uploadDir: () => '/images/lessons' },
 			},
 			{
-				name: 'scriptures',
-				label: 'Scriptures',
+				name: 'mainScriptureText',
+				label: 'Main Scripture Text',
+				type: 'string',
+				ui: { component: 'textarea' },
+				description: 'The full text of the key scripture passage',
+			},
+			{
+				name: 'additionalScriptures',
+				label: 'Additional Scriptures',
+				type: 'string',
+				list: true,
+			},
+			{
+				name: 'summary',
+				label: 'Summary',
+				type: 'string',
+				ui: { component: 'textarea' },
+			},
+			{
+				name: 'about',
+				label: 'About',
+				type: 'string',
+				ui: { component: 'textarea' },
+			},
+			{
+				name: 'takeaway',
+				label: 'Takeaway',
+				type: 'string',
+				list: true,
+			},
+			{
+				name: 'forYou',
+				label: 'For You',
+				type: 'string',
+				list: true,
+			},
+			{
+				name: 'keyScripture',
+				label: 'Key Scripture (Notes)',
+				type: 'string',
+				ui: { component: 'textarea' },
+				description: 'Full scripture text shown in the Notes tab',
+			},
+			{
+				name: 'bigIdea',
+				label: 'Big Idea',
+				type: 'string',
+				ui: { component: 'textarea' },
+			},
+			{
+				name: 'mainPoints',
+				label: 'Main Points',
 				type: 'object',
 				list: true,
 				ui: {
-					itemProps: (item: { ref?: string }) => ({ label: item.ref || 'Scripture' }),
+					itemProps: (item: { heading?: string }) => ({ label: item.heading || 'Point' }),
 				},
 				fields: [
-					{ name: 'ref', label: 'Reference', type: 'string', description: 'e.g. "John 3:16"' },
+					{ name: 'heading', label: 'Heading', type: 'string' },
 					{ name: 'text', label: 'Text', type: 'string', ui: { component: 'textarea' } },
 				],
 			},
 			{
-				name: 'paragraphs',
-				label: 'Paragraphs',
-				type: 'object',
+				name: 'keyIllustration',
+				label: 'Key Illustration',
+				type: 'string',
+				ui: { component: 'textarea' },
+			},
+			{
+				name: 'meansForUs',
+				label: 'Means for Us',
+				type: 'string',
 				list: true,
-				ui: {
-					itemProps: (item: { heading?: string }) => ({ label: item.heading || 'Paragraph' }),
-				},
-				fields: [
-					{ name: 'heading', label: 'Heading', type: 'string' },
-					{ name: 'content', label: 'Content', type: 'string', ui: { component: 'textarea' } },
-				],
+			},
+			{
+				name: 'remember',
+				label: 'Remember',
+				type: 'string',
+				ui: { component: 'textarea' },
 			},
 			{
 				name: 'images',

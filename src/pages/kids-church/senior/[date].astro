@@ -2,7 +2,7 @@
 export const prerender = true;
 
 import Base from '../../../layouts/Base.astro';
-import LessonPage from '../../../components/ministry/LessonPage.astro';
+import KidsLessonPage from '../../../components/ministry/KidsLessonPage.astro';
 import { getConfig } from '../../../lib/data';
 
 interface Frontmatter { title?: string; date?: string; scripture?: string; }
@@ -45,7 +45,7 @@ const groupLabel   = kc.seniorLabel ?? 'Senior';
 ---
 
 <Base title={`${fm.title ?? 'Lesson'} · ${ministryName} ${groupLabel} · ${siteTitle}`} description={fm.scripture ?? `A weekly lesson for ${groupLabel} children from Family Church.`}>
-	<LessonPage
+	<KidsLessonPage
 		label={`${ministryName} — ${groupLabel}`}
 		baseRoute="/kids-church/senior"
 		{date}

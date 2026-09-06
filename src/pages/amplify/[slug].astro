@@ -1,0 +1,67 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import LessonPage from '../../components/ministry/LessonPage.astro';
+import { getConfig } from '../../lib/data';
+
+interface Frontmatter {
+	title?: string;
+	scripture?: string;
+	summary?: string;
+}
+
+export function getStaticPaths() {
+	const mods = import.meta.glob<{ frontmatter: Frontmatter }>(
+		'../../content/amplify/*.mdx',
+		{ eager: true },
+	);
+
+	const all = Object.entries(mods)
+		.map(([path, mod]) => ({
+			slug: path.replace('../../content/amplify/', '').replace('.mdx', ''),
+			frontmatter: mod.frontmatter,
+		}))
+		.filter(e => e.slug !== '.gitkeep')
+		.sort((a, b) => a.slug.localeCompare(b.slug));
+
+	return all.map((entry, i) => ({
+		params: { slug: entry.slug },
+		props: {
+			date: entry.slug.slice(0, 10),
+			frontmatter: entry.frontmatter,
+			prev: i > 0
+				? { slug: all[i - 1].slug, title: all[i - 1].frontmatter.title }
+				: null,
+			next: i < all.length - 1
+				? { slug: all[i + 1].slug, title: all[i + 1].frontmatter.title }
+				: null,
+		},
+	}));
+}
+
+const { slug } = Astro.params;
+const { date, frontmatter: fm, prev, next } = Astro.props as {
+	date: string;
+	frontmatter: Frontmatter;
+	prev: { slug: string; title?: string } | null;
+	next: { slug: string; title?: string } | null;
+};
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+---
+
+<Base
+	title={`${fm.title ?? 'Lesson'} · Amplify · ${siteTitle}`}
+	description={fm.summary ?? fm.scripture ?? 'A weekly lesson for teens from Family Church.'}
+>
+	<LessonPage
+		label="Amplify — Teens"
+		baseRoute="/amplify"
+		{date}
+		frontmatter={fm}
+		{prev}
+		{next}
+	/>
+</Base>

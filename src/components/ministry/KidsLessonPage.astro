@@ -1,0 +1,156 @@
+---
+import Carousel from './Carousel.astro';
+import Icon from '../Icon.astro';
+
+interface LessonFrontmatter {
+	title?: string;
+	date?: string;
+	scripture?: string;
+	image?: string;
+	scriptures?: Array<{ ref?: string; text?: string }>;
+	paragraphs?: Array<{ heading?: string; content?: string }>;
+	images?: Array<{ image?: string; description?: string }>;
+	videos?: Array<{ url?: string; description?: string }>;
+	pdfs?: Array<{ file?: string; label?: string }>;
+}
+
+interface Props {
+	label: string;
+	baseRoute: string;
+	date: string;
+	frontmatter: LessonFrontmatter;
+	prev: { date: string; title?: string } | null;
+	next: { date: string; title?: string } | null;
+}
+
+const { label, baseRoute, date, frontmatter: fm, prev, next } = Astro.props;
+
+function fmtDate(d: string) {
+	return new Date(d + 'T00:00:00Z').toLocaleDateString('en-ZA', {
+		weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+	});
+}
+
+const scriptures = (fm.scriptures ?? []).filter(s => s?.ref || s?.text);
+const paragraphs = (fm.paragraphs ?? []).filter(p => p?.heading || p?.content);
+const images     = (fm.images ?? []).filter(img => img?.image).map(img => ({ image: img.image, description: img.description }));
+const videos     = (fm.videos ?? []).filter(v => v?.url).map(v => ({ url: v.url, description: v.description }));
+const pdfs       = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.file!, label: p.label || 'Download PDF' }));
+---
+
+<!-- Header -->
+<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-6 text-center">
+	<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">{label}</p>
+	<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-3">
+		{fm.title ?? 'Lesson'}
+	</h1>
+	<time class="text-sm text-[var(--ink)]/50 dark:text-white/50" datetime={date}>{fmtDate(date)}</time>
+	{fm.scripture && (
+		<p class="mt-2 text-sm italic text-[var(--olive)]">{fm.scripture}</p>
+	)}
+</div>
+
+<!-- Hero image -->
+{fm.image && (
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 mb-8">
+		<img
+			src={fm.image}
+			alt={fm.title ?? 'Lesson image'}
+			class="w-full rounded-xl object-cover max-h-80 shadow-md"
+		/>
+	</div>
+)}
+
+<!-- Content sections -->
+<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-8 space-y-10">
+
+	<!-- Scriptures -->
+	{scriptures.length > 0 && (
+		<section>
+			<h3 class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">Scriptures</h3>
+			<div class="space-y-3">
+				{scriptures.map(s => (
+					<div class="rounded-xl border border-[var(--navy)]/10 dark:border-white/10 px-5 py-4 bg-white dark:bg-[var(--card)]">
+						{s.ref && <p class="text-xs font-bold uppercase tracking-widest text-[var(--green)] mb-1">{s.ref}</p>}
+						{s.text && <p class="text-sm text-[var(--ink)]/80 dark:text-white/80 leading-relaxed">{s.text}</p>}
+					</div>
+				))}
+			</div>
+		</section>
+	)}
+
+	<!-- Paragraphs -->
+	{paragraphs.length > 0 && (
+		<section class="space-y-4">
+			{paragraphs.map(p => (
+				<div class="rounded-xl border border-[var(--navy)]/10 dark:border-white/10 px-5 py-5 bg-white dark:bg-[var(--card)]">
+					{p.heading && (
+						<h3 class="font-display text-xl font-semibold text-[var(--navy)] dark:text-white mb-2">{p.heading}</h3>
+					)}
+					{p.content && (
+						<p class="text-sm text-[var(--ink)]/80 dark:text-white/80 leading-relaxed">{p.content}</p>
+					)}
+				</div>
+			))}
+		</section>
+	)}
+
+	<!-- Images carousel -->
+	{images.length > 0 && (
+		<section>
+			<Carousel slides={images} heading="Images" />
+		</section>
+	)}
+
+	<!-- Videos carousel -->
+	{videos.length > 0 && (
+		<section>
+			<Carousel slides={videos} heading="Videos" />
+		</section>
+	)}
+
+	<!-- PDFs -->
+	{pdfs.length > 0 && (
+		<section>
+			<h3 class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">Downloads</h3>
+			<div class="flex flex-wrap gap-3">
+				{pdfs.map(p => (
+					<a
+						href={p.file}
+						download
+						class="inline-flex items-center gap-2 rounded-lg bg-white dark:bg-[var(--card)] ring-1 ring-[var(--navy)]/10 dark:ring-white/10 px-4 py-3 text-sm font-semibold text-[var(--navy)] dark:text-white hover:ring-[var(--green)]/50 hover:text-[var(--green)] transition-all no-underline shadow-sm"
+					>
+						<Icon name="download" class="w-4 h-4 shrink-0" />
+						{p.label}
+					</a>
+				))}
+			</div>
+		</section>
+	)}
+
+</div>
+
+<!-- Prev / Next navigation -->
+{(prev || next) && (
+	<nav class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-12 flex items-stretch gap-3">
+		{prev ? (
+			<a href={`${baseRoute}/${prev.date}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow no-underline">
+				<Icon name="caret-left" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
+				<div class="min-w-0">
+					<p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Previous</p>
+					<p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{prev.title}</p>
+				</div>
+			</a>
+		) : <div class="flex-1" />}
+
+		{next ? (
+			<a href={`${baseRoute}/${next.date}`} class="group flex-1 flex items-center justify-end gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow text-right no-underline">
+				<div class="min-w-0">
+					<p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/40 mb-0.5">Next</p>
+					<p class="text-sm font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-1">{next.title}</p>
+				</div>
+				<Icon name="caret-right" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
+			</a>
+		) : <div class="flex-1" />}
+	</nav>
+)}
