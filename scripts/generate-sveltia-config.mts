@@ -116,6 +116,7 @@ import { DevotionCollection }       from '../tina/collections/devotion.ts';
 import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
 import { EventCollection }          from '../tina/collections/event.ts';
 import { GuideCollection }          from '../tina/collections/guide.ts';
+import { SermonCollection }          from '../tina/collections/sermon.ts';
 import { ministryLessonCollection } from '../tina/collections/ministry-lesson.ts';
 import { kidsLessonCollection }     from '../tina/collections/kids-lesson.ts';
 
@@ -216,47 +217,48 @@ type SveltiaField = Record<string, unknown>;
  * Add an entry here when Sveltia should render a field differently from what
  * the TinaCMS type would normally produce.
  */
+/**
+ * Override map for fields that need a different Sveltia widget than the
+ * TinaCMS type would normally produce.
+ *
+ * Key format: "collectionName.fieldPath" where fieldPath uses dot notation for
+ * nested fields, e.g. "lesson.pdfs.file" (pdfs list → file field inside it).
+ * This ensures an override never accidentally matches a same-named field in a
+ * different nesting level (e.g. "sermon.body" vs "sermon.mainPoints.body").
+ *
+ * Value: Sveltia field definition, or null to skip the field entirely.
+ */
 const FIELD_OVERRIDES: Record<string, SveltiaField | null> = {
   // pdfs[].file is type:image in TinaCMS (only upload type available) but must
   // be widget:file in Sveltia so editors can actually pick PDF files.
-  'lesson.file':     { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/lessons', required: false },
-  'kidsLesson.file': { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/lessons', required: false },
+  'lesson.pdfs.file':     { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/lessons', required: false },
+  'kidsLesson.pdfs.file': { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/lessons', required: false },
+
+  // sermon.style has options but existing data includes "Teaching" (not in the list).
+  // Use widget:string to avoid breaking existing sermon data with an invalid select value.
+  'sermon.style': { name: 'style', label: 'Preaching Style', widget: 'string', required: false },
+  // sermon.level — ditto; safer as a free-text field in case values drift from the option list.
+  'sermon.level': { name: 'level', label: 'Level', widget: 'string', required: false },
+  // sermon.body is isBody:true — the markdown transcript stored after the frontmatter.
+  // widget:markdown makes Sveltia treat it as the document body (not a frontmatter field).
+  'sermon.body':  { name: 'body', label: 'Transcript', widget: 'markdown', required: false },
 };
 
 /**
- * Fields that should start collapsed in the Sveltia editor.
- * Key: "collectionName.fieldName" — only applies to object and list widgets
- * (scalar fields cannot be collapsed). Collapsed fields are still editable;
- * they just start hidden to reduce visual noise for complex forms.
- *
- * Guidelines:
- *   • Keep primary content expanded (what editors touch most often)
- *   • Collapse secondary / rarely-edited / media fields
- *   • Collapse deeply-nested objects that distract from the main content
+ * Fields that should start EXPANDED in the Sveltia editor (opt-out from the
+ * collapsed-by-default rule). All list and object widgets collapse by default.
+ * Keys use the same "collectionName.fieldPath" dot notation as FIELD_OVERRIDES.
  */
-const COLLAPSED_FIELDS = new Set<string>([
-  // Amplify lesson — "About" panel content stays expanded; media + secondary collapsed
-  'lesson.additionalScriptures',
-  'lesson.images',
-  'lesson.videos',
-  'lesson.pdfs',
-
-  // Devotions — reading plans are auto-generated and rarely hand-edited;
-  // supporting scriptures are secondary to the main reflection
-  'devotion.readingPlans',
-  'devotion.supportingScriptures',
-
-  // Kids lessons — paragraphs (main content) stay expanded; media collapsed
-  'kidsLesson.images',
-  'kidsLesson.videos',
-  'kidsLesson.pdfs',
+const EXPANDED_FIELDS = new Set<string>([
+  // Nothing expanded by default — editors click to open the sections they need.
 ]);
 
-function translateField(field: TinaField, collectionName: string): SveltiaField | null {
-  const overrideKey = `${collectionName}.${field.name}`;
+function translateField(field: TinaField, collectionName: string, parentPath = ''): SveltiaField | null {
+  const fieldPath  = parentPath ? `${parentPath}.${field.name as string}` : (field.name as string);
+  const overrideKey = `${collectionName}.${fieldPath}`;
   if (overrideKey in FIELD_OVERRIDES) return FIELD_OVERRIDES[overrideKey];
 
-  const collapsed = COLLAPSED_FIELDS.has(overrideKey) ? { collapsed: true } : {};
+  const collapsed = EXPANDED_FIELDS.has(overrideKey) ? {} : { collapsed: true };
 
   // isTitle is handled at collection level via identifier_field — include the
   // field itself normally (it still renders as a string widget in Sveltia).
@@ -306,6 +308,7 @@ function translateField(field: TinaField, collectionName: string): SveltiaField 
       const subFields = translateFields(
         (field.fields as TinaField[] | undefined) ?? [],
         collectionName,
+        fieldPath,
       );
       return list
         ? { ...base, widget: 'list', ...collapsed, fields: subFields }
@@ -322,9 +325,9 @@ function translateField(field: TinaField, collectionName: string): SveltiaField 
   }
 }
 
-function translateFields(tinaFields: TinaField[], collectionName: string): SveltiaField[] {
+function translateFields(tinaFields: TinaField[], collectionName: string, parentPath = ''): SveltiaField[] {
   return tinaFields
-    .map(f => translateField(f, collectionName))
+    .map(f => translateField(f, collectionName, parentPath))
     .filter((f): f is SveltiaField => f !== null);
 }
 
@@ -342,10 +345,27 @@ function translateFields(tinaFields: TinaField[], collectionName: string): Svelt
 const editorNoPreview   = { preview: false };
 const editorWithPreview = { preview: true };
 
+const _sermonFields    = (SermonCollection.fields ?? []) as TinaField[];
 const _amplifyFields   = (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
 const _kidsFields      = (kidsLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
 
 const folderCollections = [
+  {
+    name: 'sermon',
+    label: 'Sermons',
+    folder: 'src/content/sermons',
+    format: 'frontmatter',
+    extension: 'mdx',
+    // Sermons are imported via the sermon pipeline, not created manually in Sveltia.
+    create: false,
+    identifier_field: 'title',
+    slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
+    // Transcript body is very large — in-editor preview adds no value here.
+    // preview_path lets editors open the published sermon page on the live site.
+    editor: editorNoPreview,
+    preview_path: 'sermons/{{slug}}',
+    fields: translateFields(_sermonFields, 'sermon'),
+  },
   {
     name: 'announcement',
     label: 'Announcements',
