@@ -51,6 +51,17 @@ const orgLd = {
 			<Footer config={config} />
 		</TinaIsland>
 		<script>
+			// If the page loaded with a hash, immediately mark the target element as
+			// visible so the reveal animation doesn't start it 32px below the scroll
+			// landing position. Runs before the IntersectionObserver attaches.
+			function resolveHashTarget() {
+				if (!location.hash) return;
+				const target = document.querySelector(location.hash);
+				if (target?.classList.contains('reveal')) target.classList.add('is-visible');
+			}
+			resolveHashTarget();
+			document.addEventListener('astro:page-load', resolveHashTarget);
+
 			// Nav: transparent at top, frosted when scrolled.
 			// Re-query header after each View Transition swap so the reference stays fresh.
 			let header = document.querySelector('header');

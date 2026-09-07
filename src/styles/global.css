@@ -33,6 +33,13 @@ html:not(.dark) header {
 	border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
+/* Offset anchor-link scroll targets so the fixed header (4rem / 64px) doesn't
+   cover the top of the destination element. Works for both in-page links
+   (#section) and cross-page links (/page#section). */
+html {
+	scroll-padding-top: 4.5rem;
+}
+
 /* Scroll-reveal — add .reveal to any element; JS adds .is-visible on intersect */
 .reveal {
 	opacity: 0;
