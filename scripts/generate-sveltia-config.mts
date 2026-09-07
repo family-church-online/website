@@ -344,6 +344,29 @@ const _sermonFields    = (SermonCollection.fields ?? []) as TinaField[];
 const _amplifyFields   = (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
 const _kidsFields      = (kidsLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
 
+/**
+ * Sveltia only respects media_folder set at the collection level, not at the
+ * field level (field-level media_folder on image widgets is a known open issue:
+ * github.com/sveltia/sveltia-cms/issues/497). Derive the collection-level
+ * media/public folder from the first top-level image field's uploadDir.
+ */
+function collectionMedia(fields: TinaField[]): { media_folder: string; public_folder: string } | Record<string, never> {
+  for (const field of fields) {
+    if (field.type === 'image') {
+      const ui      = (field.ui ?? {}) as Record<string, unknown>;
+      const uploadDir = typeof ui.uploadDir === 'function'
+        ? (ui.uploadDir as () => string)()
+        : null;
+      if (uploadDir) {
+        const mf = uploadDir.startsWith('/') ? `/public${uploadDir}` : `/public/${uploadDir}`;
+        const pf = uploadDir.startsWith('/') ? uploadDir : `/${uploadDir}`;
+        return { media_folder: mf, public_folder: pf };
+      }
+    }
+  }
+  return {};
+}
+
 const folderCollections = [
   {
     name: 'sermon',
@@ -351,12 +374,10 @@ const folderCollections = [
     folder: 'src/content/sermons',
     format: 'frontmatter',
     extension: 'mdx',
-    // Sermons are imported via the sermon pipeline, not created manually in Sveltia.
     create: false,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
-    // Transcript body is very large — in-editor preview adds no value here.
-    // preview_path lets editors open the published sermon page on the live site.
+    ...collectionMedia(_sermonFields),
     editor: editorNoPreview,
     preview_path: 'sermons/{{slug}}',
     fields: translateFields(_sermonFields, 'sermon'),
@@ -370,8 +391,6 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{slug}}',
-    // Announcements have a markdown body — the in-editor pane shows a useful preview.
-    // No preview_path: announcements appear inline on the homepage, not at a dedicated URL.
     editor: editorWithPreview,
     fields: translateFields(AnnouncementCollection.fields as TinaField[], 'announcement'),
   },
@@ -384,8 +403,7 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}',
-    // Devotions are structured frontmatter with no markdown body — in-editor pane is empty.
-    // preview_path lets editors open the published devotion page on the live site.
+    ...collectionMedia(DevotionCollection.fields as TinaField[]),
     editor: editorNoPreview,
     preview_path: 'devotion/{{year}}-{{month}}-{{day}}',
     fields: translateFields(DevotionCollection.fields as TinaField[], 'devotion'),
@@ -399,6 +417,7 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{slug}}',
+    ...collectionMedia(ThreeMinutesCollection.fields as TinaField[]),
     editor: editorWithPreview,
     preview_path: 'threeminutes/{{slug}}',
     fields: translateFields(ThreeMinutesCollection.fields as TinaField[], 'threeminutes'),
@@ -412,6 +431,7 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
+    ...collectionMedia(EventCollection.fields as TinaField[]),
     editor: editorWithPreview,
     preview_path: 'events/{{slug}}',
     fields: translateFields(EventCollection.fields as TinaField[], 'event'),
@@ -425,6 +445,7 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
+    ...collectionMedia(GuideCollection.fields as TinaField[]),
     editor: editorWithPreview,
     preview_path: 'guides/{{slug}}',
     fields: translateFields(GuideCollection.fields as TinaField[], 'guide'),
@@ -438,6 +459,7 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}',
+    ...collectionMedia(_amplifyFields),
     editor: editorNoPreview,
     preview_path: 'amplify/{{slug}}',
     fields: translateFields(_amplifyFields, 'lesson'),
@@ -451,6 +473,7 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}',
+    ...collectionMedia(_kidsFields),
     editor: editorNoPreview,
     preview_path: 'kids-church/pre-school/{{slug}}',
     fields: translateFields(_kidsFields, 'kidsLesson'),
@@ -464,6 +487,7 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}',
+    ...collectionMedia(_kidsFields),
     editor: editorNoPreview,
     preview_path: 'kids-church/junior/{{slug}}',
     fields: translateFields(_kidsFields, 'kidsLesson'),
@@ -477,6 +501,7 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}',
+    ...collectionMedia(_kidsFields),
     editor: editorNoPreview,
     preview_path: 'kids-church/senior/{{slug}}',
     fields: translateFields(_kidsFields, 'kidsLesson'),
