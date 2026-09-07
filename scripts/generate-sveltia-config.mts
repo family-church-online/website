@@ -225,7 +225,7 @@ type SveltiaField = Record<string, unknown>;
 const FIELD_OVERRIDES: Record<string, SveltiaField | null> = {
   // pdfs[].file is type:image in TinaCMS (only upload type available) but must
   // be widget:file in Sveltia so editors can actually pick PDF files.
-  'lesson.pdfs.file':     { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/lessons', required: false },
+  'lesson.pdfs.file':     { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/amplify', required: false },
   'kidsLesson.pdfs.file': { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/lessons', required: false },
 
   // sermon.style has options but existing data includes "Teaching" (not in the list).

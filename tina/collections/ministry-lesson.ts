@@ -51,7 +51,7 @@ export function ministryLessonCollection(opts: {
 				name: 'image',
 				label: 'Lesson Image',
 				type: 'image',
-				ui: { uploadDir: () => '/images/lessons' },
+				ui: { uploadDir: () => '/images/amplify' },
 			},
 			{
 				name: 'mainScriptureText',
@@ -143,7 +143,7 @@ export function ministryLessonCollection(opts: {
 					itemProps: (item: { description?: string }) => ({ label: item.description || 'Image' }),
 				},
 				fields: [
-					{ name: 'image', label: 'Image', type: 'image', ui: { uploadDir: () => '/images/lessons' } },
+					{ name: 'image', label: 'Image', type: 'image', ui: { uploadDir: () => '/images/amplify' } },
 					{ name: 'description', label: 'Description', type: 'string' },
 				],
 			},
@@ -169,7 +169,7 @@ export function ministryLessonCollection(opts: {
 					itemProps: (item: { label?: string }) => ({ label: item.label || 'PDF' }),
 				},
 				fields: [
-					{ name: 'file', label: 'File', type: 'image', ui: { uploadDir: () => '/images/lessons' } },
+					{ name: 'file', label: 'File', type: 'image', ui: { uploadDir: () => '/images/amplify' } },
 					{ name: 'label', label: 'Label', type: 'string', description: 'e.g. "Activity Sheet"' },
 				],
 			},

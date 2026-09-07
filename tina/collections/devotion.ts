@@ -45,9 +45,9 @@ export const DevotionCollection: Collection = {
 		},
 		{
 			name: 'image',
-			label: 'Sermon Image URL',
-			type: 'string',
-			description: 'Populated by script2 from the calendar event.',
+			label: 'Image',
+			type: 'image',
+			ui: { uploadDir: () => '/images/devotions' },
 		},
 		{
 			name: 'sermonUrl',
