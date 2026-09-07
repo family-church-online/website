@@ -291,8 +291,9 @@ function translateField(field: TinaField, collectionName: string, parentPath = '
       const uploadDir = typeof ui.uploadDir === 'function'
         ? (ui.uploadDir as () => string)()
         : '/images/uploads';
-      const sveltiaMediaFolder = uploadDir.startsWith('/') ? `/public${uploadDir}` : `/public/${uploadDir}`;
-      return { ...base, widget: 'image', media_folder: sveltiaMediaFolder };
+      const sveltiaMediaFolder  = uploadDir.startsWith('/') ? `/public${uploadDir}` : `/public/${uploadDir}`;
+      const sveltiaPublicFolder = uploadDir.startsWith('/') ? uploadDir : `/${uploadDir}`;
+      return { ...base, widget: 'image', media_folder: sveltiaMediaFolder, public_folder: sveltiaPublicFolder };
     }
 
     case 'rich-text':
