@@ -33,7 +33,7 @@ export const ThreeMinutesCollection: Collection = {
 			name: 'image',
 			label: 'Image',
 			type: 'image',
-			ui: { uploadDir: () => '/images/three-minutes' },
+			ui: { uploadDir: () => '/images/threeminutes' },
 		},
 		{
 			name: 'description',
