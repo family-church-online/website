@@ -29,9 +29,17 @@
     footer_background_color: '0f1a28',
   };
   function isDark() { return document.documentElement.classList.contains('dark'); }
+
+  // Always refresh theme options — runs on every navigation so the options
+  // stay in sync if the user toggled dark mode on a previous page.
   window.ESV_CROSSREF_OPTIONS = isDark() ? DARK : LIGHT;
 
-  // Reset cached iframes and link fetch state when theme changes
+  // Everything below only needs to run once across the whole session.
+  // window._ESV_INIT survives View Transition navigations; the closure does not.
+  if (window._ESV_INIT) return;
+  window._ESV_INIT = true;
+
+  // Reset cached iframes and link fetch state when theme changes.
   new MutationObserver(function () {
     window.ESV_CROSSREF_OPTIONS = isDark() ? DARK : LIGHT;
     document.querySelectorAll('iframe.esv-crossref').forEach(function (iframe) {
@@ -42,8 +50,11 @@
     });
   }).observe(document.documentElement, { attributeFilter: ['class'] });
 
-  // Load the script once the browser is idle (or after 2s), whichever comes first.
-  // Also load immediately on first user interaction, in case idle never fires.
+  function triggerLinkify() {
+    window.dispatchEvent(new Event('esv-crossref.trigger-linkify'));
+  }
+
+  // loaded tracks whether the external script has been appended.
   var loaded = false;
   function load() {
     if (loaded) return;
@@ -54,14 +65,20 @@
     var s = document.createElement('script');
     s.src = '/js/esv-crossref.min.js';
     s.onload = function () {
-      // If window.load already fired (common on mobile/cached pages), the
-      // script's own load listener won't fire — trigger linkify manually.
-      if (document.readyState === 'complete') {
-        window.dispatchEvent(new Event('esv-crossref.trigger-linkify'));
-      }
+      // If window.load already fired (mobile/cached pages), the script's own
+      // load listener won't fire — trigger linkify manually.
+      if (document.readyState === 'complete') triggerLinkify();
     };
     document.body.appendChild(s);
   }
+
+  // After each View Transition the page content is new but the script is
+  // already loaded — just re-run linkify over the fresh DOM.
+  document.addEventListener('astro:page-load', function () {
+    if (loaded) triggerLinkify();
+  });
+
+  // Initial load: on idle (or 2 s timeout), or on first user interaction.
   if ('requestIdleCallback' in window) {
     requestIdleCallback(load, { timeout: 2000 });
   } else {
