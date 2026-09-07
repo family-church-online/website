@@ -212,12 +212,6 @@ type TinaField = Record<string, unknown>;
 type SveltiaField = Record<string, unknown>;
 
 /**
- * Intentional divergences from auto-translation.
- * Key: "collectionName.fieldName", value: Sveltia field definition (or null to skip).
- * Add an entry here when Sveltia should render a field differently from what
- * the TinaCMS type would normally produce.
- */
-/**
  * Override map for fields that need a different Sveltia widget than the
  * TinaCMS type would normally produce.
  *
