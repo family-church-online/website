@@ -117,6 +117,7 @@ import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
 import { EventCollection }          from '../tina/collections/event.ts';
 import { GuideCollection }          from '../tina/collections/guide.ts';
 import { ministryLessonCollection } from '../tina/collections/ministry-lesson.ts';
+import { kidsLessonCollection }     from '../tina/collections/kids-lesson.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = resolve(__dirname, '..');
@@ -218,12 +219,44 @@ type SveltiaField = Record<string, unknown>;
 const FIELD_OVERRIDES: Record<string, SveltiaField | null> = {
   // pdfs[].file is type:image in TinaCMS (only upload type available) but must
   // be widget:file in Sveltia so editors can actually pick PDF files.
-  'lesson.file': { name: 'file', label: 'File', widget: 'file', media_folder: '/public/images/lessons', required: false },
+  'lesson.file':     { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/lessons', required: false },
+  'kidsLesson.file': { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/lessons', required: false },
 };
+
+/**
+ * Fields that should start collapsed in the Sveltia editor.
+ * Key: "collectionName.fieldName" — only applies to object and list widgets
+ * (scalar fields cannot be collapsed). Collapsed fields are still editable;
+ * they just start hidden to reduce visual noise for complex forms.
+ *
+ * Guidelines:
+ *   • Keep primary content expanded (what editors touch most often)
+ *   • Collapse secondary / rarely-edited / media fields
+ *   • Collapse deeply-nested objects that distract from the main content
+ */
+const COLLAPSED_FIELDS = new Set<string>([
+  // Amplify lesson — "About" panel content stays expanded; media + secondary collapsed
+  'lesson.additionalScriptures',
+  'lesson.images',
+  'lesson.videos',
+  'lesson.pdfs',
+
+  // Devotions — reading plans are auto-generated and rarely hand-edited;
+  // supporting scriptures are secondary to the main reflection
+  'devotion.readingPlans',
+  'devotion.supportingScriptures',
+
+  // Kids lessons — paragraphs (main content) stay expanded; media collapsed
+  'kidsLesson.images',
+  'kidsLesson.videos',
+  'kidsLesson.pdfs',
+]);
 
 function translateField(field: TinaField, collectionName: string): SveltiaField | null {
   const overrideKey = `${collectionName}.${field.name}`;
   if (overrideKey in FIELD_OVERRIDES) return FIELD_OVERRIDES[overrideKey];
+
+  const collapsed = COLLAPSED_FIELDS.has(overrideKey) ? { collapsed: true } : {};
 
   // isTitle is handled at collection level via identifier_field — include the
   // field itself normally (it still renders as a string widget in Sveltia).
@@ -240,7 +273,7 @@ function translateField(field: TinaField, collectionName: string): SveltiaField 
   switch (type) {
     case 'string':
       if (list && opts?.length) return { ...base, widget: 'select', multiple: true, options: opts };
-      if (list)                 return { ...base, widget: 'list' };
+      if (list)                 return { ...base, widget: 'list', ...collapsed };
       if (opts?.length)         return { ...base, widget: 'select', options: opts };
       if (ui.component === 'textarea') return { ...base, widget: 'text' };
       return { ...base, widget: 'string' };
@@ -275,8 +308,8 @@ function translateField(field: TinaField, collectionName: string): SveltiaField 
         collectionName,
       );
       return list
-        ? { ...base, widget: 'list', fields: subFields }
-        : { ...base, widget: 'object', fields: subFields };
+        ? { ...base, widget: 'list', ...collapsed, fields: subFields }
+        : { ...base, widget: 'object', ...collapsed, fields: subFields };
     }
 
     case 'reference':
@@ -300,7 +333,17 @@ function translateFields(tinaFields: TinaField[], collectionName: string): Svelt
 // Collection-level config (folder, slug, create, identifier_field) is
 // maintained here because it's Sveltia-specific and has no TinaCMS equivalent.
 
-const editor = { preview: false };
+// editor configs — preview: true enables the live markdown split-pane (useful only
+// for collections with a markdown body field; structured-frontmatter collections
+// show nothing useful in the pane so we leave them with preview: false).
+// preview_path lets editors click "Open Preview" to view the published page on
+// the live site (site_url + preview_path). Structured-frontmatter collections
+// still benefit from this even without the in-editor pane.
+const editorNoPreview   = { preview: false };
+const editorWithPreview = { preview: true };
+
+const _amplifyFields   = (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
+const _kidsFields      = (kidsLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
 
 const folderCollections = [
   {
@@ -312,7 +355,9 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{slug}}',
-    editor,
+    // Announcements have a markdown body — the in-editor pane shows a useful preview.
+    // No preview_path: announcements appear inline on the homepage, not at a dedicated URL.
+    editor: editorWithPreview,
     fields: translateFields(AnnouncementCollection.fields as TinaField[], 'announcement'),
   },
   {
@@ -324,7 +369,10 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}',
-    editor,
+    // Devotions are structured frontmatter with no markdown body — in-editor pane is empty.
+    // preview_path lets editors open the published devotion page on the live site.
+    editor: editorNoPreview,
+    preview_path: 'devotion/{{year}}-{{month}}-{{day}}',
     fields: translateFields(DevotionCollection.fields as TinaField[], 'devotion'),
   },
   {
@@ -336,7 +384,8 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{slug}}',
-    editor,
+    editor: editorWithPreview,
+    preview_path: 'threeminutes/{{slug}}',
     fields: translateFields(ThreeMinutesCollection.fields as TinaField[], 'threeminutes'),
   },
   {
@@ -348,7 +397,8 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
-    editor,
+    editor: editorWithPreview,
+    preview_path: 'events/{{slug}}',
     fields: translateFields(EventCollection.fields as TinaField[], 'event'),
   },
   {
@@ -360,7 +410,8 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
-    editor,
+    editor: editorWithPreview,
+    preview_path: 'guides/{{slug}}',
     fields: translateFields(GuideCollection.fields as TinaField[], 'guide'),
   },
   {
@@ -372,11 +423,9 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}',
-    editor,
-    fields: translateFields(
-      (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[],
-      'lesson',
-    ),
+    editor: editorNoPreview,
+    preview_path: 'amplify/{{slug}}',
+    fields: translateFields(_amplifyFields, 'lesson'),
   },
   {
     name: 'kids-preschool',
@@ -387,11 +436,9 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}',
-    editor,
-    fields: translateFields(
-      (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[],
-      'lesson',
-    ),
+    editor: editorNoPreview,
+    preview_path: 'kids-church/pre-school/{{slug}}',
+    fields: translateFields(_kidsFields, 'kidsLesson'),
   },
   {
     name: 'kids-junior',
@@ -402,11 +449,9 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}',
-    editor,
-    fields: translateFields(
-      (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[],
-      'lesson',
-    ),
+    editor: editorNoPreview,
+    preview_path: 'kids-church/junior/{{slug}}',
+    fields: translateFields(_kidsFields, 'kidsLesson'),
   },
   {
     name: 'kids-senior',
@@ -417,11 +462,9 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}',
-    editor,
-    fields: translateFields(
-      (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[],
-      'lesson',
-    ),
+    editor: editorNoPreview,
+    preview_path: 'kids-church/senior/{{slug}}',
+    fields: translateFields(_kidsFields, 'kidsLesson'),
   },
 ];
 
