@@ -418,7 +418,7 @@ const folderCollections = [
     identifier_field: 'title',
     slug: '{{slug}}',
     ...collectionMedia(ThreeMinutesCollection.fields as TinaField[]),
-    editor: editorWithPreview,
+    editor: editorNoPreview,
     preview_path: 'threeminutes/{{slug}}',
     fields: translateFields(ThreeMinutesCollection.fields as TinaField[], 'threeminutes'),
   },
