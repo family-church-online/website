@@ -26,7 +26,7 @@ export const POST: APIRoute = async ({ request }) => {
 	const timestamp = new Date().toISOString();
 	const hex       = Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0');
 	const key       = `report:${timestamp}:${hex}`;
-	const report    = { button: body.button, ip, timestamp };
+	const report    = { type: 'report' as const, button: body.button, ip, timestamp };
 
 	const kv = getKV();
 	if (kv) {
