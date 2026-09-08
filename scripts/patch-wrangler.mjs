@@ -39,9 +39,11 @@ config.migrations = [
 	{ tag: 'v1', new_sqlite_classes: ['StreamMonitor'] },
 ];
 
-// Point main at our custom entry so the DO class is exported alongside
-// the Astro server handler (bundle-do.mjs writes this file post-build)
-config.main = './worker-entry.js';
+// NOTE: we deliberately do NOT change config.main here. The Cloudflare Vite
+// plugin sets main to the actual Vite-bundled filename (e.g. "index.js") and
+// also sets no_bundle: true. bundle-do.mjs reads that filename, creates
+// worker-entry.js that re-exports from it + adds the DO class export, then
+// updates main to "./worker-entry.js".
 
 writeFileSync(path, JSON.stringify(config, null, 2));
 console.log('[patch-wrangler] patched dist/server/wrangler.json');
