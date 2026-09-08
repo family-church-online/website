@@ -140,11 +140,11 @@ These routes run as Worker handlers — everything else is pre-rendered static H
 
 ## Stream reporting
 
-When a live stream is active, a "Report a Problem" widget appears on the `/video` page with five buttons: No Sound, Low Volume, Sound Quality, No Picture, Picture Quality.
+When a live stream is active, a "Report a Problem" widget appears on the `/video` page with five icon+label tappable items: No Sound, Low Volume, Sound Quality, No Picture, Picture Quality. The widget description text is editable via TinaCMS and Sveltia (`reportDescription` field on the Live Stream block).
 
-- Reports are stored in the **`STREAM_REPORTS`** KV namespace (7-day TTL) with the button label, timestamp, and IP
+- Reports are stored in the **`STREAM_REPORTS`** KV namespace with the button label, timestamp, and IP. Entries are deleted automatically when read if they are older than 60 minutes.
 - Each report also notifies the **`StreamMonitor`** Durable Object via `/notify`, which broadcasts to all connected dashboard WebSockets in real time
-- The dashboard at `/stream-dashboard` shows one tile per category — green when no recent reports, red when a report has arrived in the last 60 minutes. It is responsive for narrow OBS custom dock windows (~300px)
+- The dashboard at `/stream-dashboard` shows one tile per category with the count of reports in the last 60 minutes — green when none, red when active. It polls the server every 60 seconds so counts drop to zero once reports expire. It is responsive for narrow OBS custom dock windows (~300px)
 
 ### Cloudflare setup (once)
 
