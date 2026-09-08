@@ -19,7 +19,7 @@
 		]
 	},
 	"migrations": [
-		{ "tag": "v1", "new_classes": ["StreamMonitor"] }
+		{ "tag": "v1", "new_sqlite_classes": ["StreamMonitor"] }
 	],
 	"observability": {
 		"enabled": false,
