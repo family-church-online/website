@@ -72,6 +72,26 @@ const { data } = Astro.props;
 			</div>
 		</div>
 
+		{/* Report a Problem — only visible while stream is live */}
+		<div id="report-widget" class="hidden py-4 reveal" data-reveal-delay="0.1">
+			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-6 py-5">
+				<p class="text-sm font-semibold text-[var(--ink)] dark:text-white mb-0.5">Report a Problem</p>
+				<p class="text-xs text-[var(--ink)]/55 dark:text-white/45 mb-4">Let us know if you're having issues — we'll look into it right away.</p>
+				<div id="report-buttons" class="flex flex-wrap gap-2">
+					{['No Sound', 'Low Volume', 'Sound Quality', 'No Picture', 'Picture Quality'].map(label => (
+						<button
+							type="button"
+							data-report={label}
+							class="report-btn text-xs font-semibold px-4 py-2 rounded-full bg-[var(--navy)]/8 dark:bg-white/10 text-[var(--ink)] dark:text-white hover:bg-[var(--red)] hover:text-white transition-colors"
+						>{label}</button>
+					))}
+				</div>
+				<p id="report-thanks" class="hidden text-sm text-[var(--green)] font-semibold">
+					Thank you — our technicians will investigate immediately.
+				</p>
+			</div>
+		</div>
+
 	</div>
 )}
 
@@ -86,8 +106,9 @@ const { data } = Astro.props;
 
 <script>
 async function checkStream() {
-	const dot   = document.getElementById('stream-dot');
-	const label = document.getElementById('stream-label');
+	const dot    = document.getElementById('stream-dot');
+	const label  = document.getElementById('stream-label');
+	const widget = document.getElementById('report-widget');
 	if (!dot || !label) return;
 
 	try {
@@ -99,13 +120,50 @@ async function checkStream() {
 		dot.classList.toggle('bg-[var(--ink)]/20', !data.live);
 		dot.classList.toggle('dark:bg-white/20',   !data.live);
 		label.textContent = data.live ? 'Live Audio Broadcast — on air now' : 'Live Audio Broadcast — off air';
+
+		if (widget) {
+			widget.classList.toggle('hidden', !data.live);
+			// Reset if stream went off then back on
+			if (data.live) resetReportWidget();
+		}
 	} catch {
 		label.textContent = 'Live Audio Broadcast';
 	}
 }
 
+function resetReportWidget() {
+	const buttons = document.getElementById('report-buttons');
+	const thanks  = document.getElementById('report-thanks');
+	if (buttons && thanks && thanks.classList.contains('hidden') === false) {
+		// Only reset if already dismissed — allow re-reporting next service
+		buttons.classList.remove('hidden');
+		thanks.classList.add('hidden');
+	}
+}
+
+function initReportButtons() {
+	document.querySelectorAll<HTMLButtonElement>('.report-btn').forEach(btn => {
+		btn.addEventListener('click', async () => {
+			const label   = btn.dataset.report;
+			const buttons = document.getElementById('report-buttons');
+			const thanks  = document.getElementById('report-thanks');
+			if (!label || !buttons || !thanks) return;
+
+			buttons.classList.add('hidden');
+			thanks.classList.remove('hidden');
+
+			fetch('/api/stream-report', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ button: label }),
+			}).catch(() => {/* fire-and-forget */});
+		});
+	});
+}
+
 function init() {
 	checkStream();
+	initReportButtons();
 	setInterval(checkStream, 60_000);
 }
 

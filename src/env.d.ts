@@ -3,6 +3,8 @@
 
 interface CloudflareEnv {
 	LESSON_PROGRESS: KVNamespace;
+	STREAM_REPORTS: KVNamespace;
+	STREAM_MONITOR: DurableObjectNamespace;
 }
 
 declare namespace App {

@@ -1,0 +1,219 @@
+---
+export const prerender = true;
+
+const BUTTONS = ['No Sound', 'Low Volume', 'Sound Quality', 'No Picture', 'Picture Quality'];
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Stream Monitor · Family Church</title>
+	<meta name="robots" content="noindex, nofollow" />
+	<link rel="icon" href="/favicon.ico" />
+	<style>
+		*, *::before, *::after { box-sizing: border-box; }
+		body {
+			margin: 0;
+			font-family: system-ui, sans-serif;
+			background: #0f1923;
+			color: #fff;
+			min-height: 100dvh;
+			padding: 1.5rem 1rem 3rem;
+		}
+		.header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			max-width: 900px;
+			margin: 0 auto 2rem;
+			gap: 1rem;
+			flex-wrap: wrap;
+		}
+		.header h1 {
+			margin: 0;
+			font-size: 1.25rem;
+			font-weight: 700;
+			letter-spacing: -0.01em;
+		}
+		.header .meta {
+			font-size: 0.75rem;
+			color: rgba(255,255,255,0.45);
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		.ws-dot {
+			display: inline-block;
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: #4ade80;
+			flex-shrink: 0;
+		}
+		.ws-dot.disconnected { background: rgba(255,255,255,0.25); }
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+			gap: 1rem;
+			max-width: 900px;
+			margin: 0 auto;
+		}
+		.tile {
+			border-radius: 1rem;
+			padding: 1.25rem 1rem 1rem;
+			background: #1e2d3d;
+			transition: background 0.3s;
+			display: flex;
+			flex-direction: column;
+			gap: 0.5rem;
+			min-height: 130px;
+		}
+		.tile.green { background: #1a3a1f; }
+		.tile.red   { background: #3a1a1a; }
+		.tile .label {
+			font-size: 0.7rem;
+			font-weight: 700;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: rgba(255,255,255,0.5);
+		}
+		.tile .count {
+			font-size: 3rem;
+			font-weight: 800;
+			line-height: 1;
+			color: #fff;
+		}
+		.tile .indicator {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			background: rgba(255,255,255,0.15);
+			margin-top: auto;
+		}
+		.tile.green .indicator { background: #4ade80; }
+		.tile.red   .indicator { background: #f87171; animation: pulse 1.5s infinite; }
+		.tile .last-report {
+			font-size: 0.7rem;
+			color: rgba(255,255,255,0.35);
+			margin-top: -0.25rem;
+		}
+		@keyframes pulse {
+			0%, 100% { opacity: 1; }
+			50% { opacity: 0.4; }
+		}
+	</style>
+</head>
+<body>
+	<div class="header">
+		<h1>Stream Monitor</h1>
+		<div class="meta">
+			<span class="ws-dot disconnected" id="ws-dot"></span>
+			<span id="ws-label">Connecting…</span>
+			<span>·</span>
+			<span id="updated">—</span>
+		</div>
+	</div>
+
+	<div class="grid" id="grid">
+		{BUTTONS.map(label => (
+			<div class="tile" id={`tile-${label.replace(/\s+/g, '-')}`}>
+				<div class="label">{label}</div>
+				<div class="count" id={`count-${label.replace(/\s+/g, '-')}`}>0</div>
+				<div class="last-report" id={`last-${label.replace(/\s+/g, '-')}`}></div>
+				<div class="indicator"></div>
+			</div>
+		))}
+	</div>
+
+	<script>
+		const BUTTONS = ['No Sound', 'Low Volume', 'Sound Quality', 'No Picture', 'Picture Quality'];
+
+		// State: total counts and recent (last 60 min) per button
+		const counts: Record<string, number>  = {};
+		const recent: Record<string, number>  = {};
+		const lastTs: Record<string, number>  = {};
+
+		function slug(s: string) { return s.replace(/\s+/g, '-'); }
+
+		function updateTile(label: string) {
+			const tile  = document.getElementById(`tile-${slug(label)}`);
+			const count = document.getElementById(`count-${slug(label)}`);
+			const last  = document.getElementById(`last-${slug(label)}`);
+			if (!tile || !count || !last) return;
+
+			const total   = counts[label] ?? 0;
+			const isRed   = (recent[label] ?? 0) > 0;
+			count.textContent = String(total);
+			tile.className = `tile ${isRed ? 'red' : total > 0 ? 'green' : ''}`;
+
+			if (lastTs[label]) {
+				const mins = Math.round((Date.now() - lastTs[label]) / 60_000);
+				last.textContent = mins < 1 ? 'just now' : `${mins} min ago`;
+			} else {
+				last.textContent = '';
+			}
+		}
+
+		function tick() {
+			BUTTONS.forEach(updateTile);
+			document.getElementById('updated')!.textContent =
+				'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+		}
+
+		async function loadInitial() {
+			try {
+				const res  = await fetch('/api/stream-reports');
+				const data = await res.json() as { counts: Record<string, number>; recent: Record<string, number> };
+				Object.assign(counts, data.counts);
+				Object.assign(recent, data.recent);
+				tick();
+			} catch {
+				/* ignore — WS will keep us updated */
+			}
+		}
+
+		function connectWS() {
+			const dot   = document.getElementById('ws-dot')!;
+			const label = document.getElementById('ws-label')!;
+			const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+			const ws    = new WebSocket(`${proto}//${location.host}/api/stream-ws`);
+			let retryMs = 1_000;
+
+			ws.onopen = () => {
+				dot.className   = 'ws-dot';
+				label.textContent = 'Live';
+				retryMs = 1_000;
+			};
+
+			ws.onmessage = (ev: MessageEvent) => {
+				try {
+					const msg = JSON.parse(ev.data as string) as { type: string; button?: string; timestamp?: string };
+					if (msg.type === 'report' && msg.button) {
+						counts[msg.button] = (counts[msg.button] ?? 0) + 1;
+						recent[msg.button] = (recent[msg.button] ?? 0) + 1;
+						if (msg.timestamp) lastTs[msg.button] = new Date(msg.timestamp).getTime();
+						tick();
+					}
+				} catch { /* ignore */ }
+			};
+
+			ws.onclose = () => {
+				dot.className    = 'ws-dot disconnected';
+				label.textContent = 'Reconnecting…';
+				setTimeout(connectWS, retryMs);
+				retryMs = Math.min(retryMs * 2, 30_000);
+			};
+
+			ws.onerror = () => ws.close();
+		}
+
+		// Refresh "X min ago" labels every 30 s
+		setInterval(tick, 30_000);
+
+		loadInitial();
+		connectWS();
+	</script>
+</body>
+</html>
