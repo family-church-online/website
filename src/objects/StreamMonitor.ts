@@ -11,8 +11,8 @@ export class StreamMonitor {
 				return new Response('Expected WebSocket', { status: 426 });
 			}
 			const pair = new WebSocketPair();
-			const [client, server] = Object.values(pair);
-			this.state.acceptWebSocket(server);
+			const [client, server] = Object.values(pair) as WebSocket[];
+			server.accept();
 			this.sessions.add(server);
 			server.addEventListener('close', () => this.sessions.delete(server));
 			server.addEventListener('error', () => this.sessions.delete(server));

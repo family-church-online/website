@@ -18,5 +18,5 @@ export const GET: APIRoute = async ({ request }) => {
 	}
 
 	const stub = doNs.get(doNs.idFromName('global'));
-	return stub.fetch('https://do/ws', request);
+	return stub.fetch(new Request('https://do/ws', request));
 };
