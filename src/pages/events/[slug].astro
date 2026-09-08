@@ -142,19 +142,19 @@ const eventLd = {
 			{/* ── INFO CARD ─────────────────────────────────────────────────── */}
 			<div class="reveal bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden mb-10" data-reveal-delay="0.08">
 
-				{/* Date & time */}
+				{/* Date, time & CTAs */}
 				{calDay && (
-					<div class="flex items-center gap-5 px-6 py-5 border-b border-[var(--navy)]/8 dark:border-white/8">
+					<div class={`flex flex-wrap items-start gap-x-5 gap-y-3 px-6 py-5${locationStr ? ' border-b border-[var(--navy)]/8 dark:border-white/8' : ''}`}>
 						{/* Calendar badge */}
-						<div class="shrink-0 w-14 rounded-xl overflow-hidden ring-1 ring-[var(--navy)]/12 dark:ring-white/12 text-center">
-							<div class="bg-[var(--navy)] py-1">
-								<span class="text-[var(--green)] text-[10px] font-bold uppercase tracking-widest">{calMonth}</span>
+						<div class="shrink-0 w-14 rounded-xl overflow-hidden ring-1 ring-[var(--red)]/20 dark:ring-white/12 text-center">
+							<div class="bg-[var(--red)] py-1">
+								<span class="text-white text-[10px] font-bold uppercase tracking-widest">{calMonth}</span>
 							</div>
 							<div class="bg-white dark:bg-[var(--card)] py-2">
 								<span class="text-[var(--navy)] dark:text-white text-2xl font-bold leading-none">{calDay}</span>
 							</div>
 						</div>
-						<div>
+						<div class="flex-1 min-w-0">
 							<p class="font-semibold text-[var(--navy)] dark:text-white">
 								{calWeekday}, {calDay} {calMonth} {calYear}
 							</p>
@@ -165,42 +165,40 @@ const eventLd = {
 								</p>
 							)}
 						</div>
+						{(fm.registrationUrl || mapCoords) && (
+							<div class="basis-full sm:basis-auto flex flex-wrap gap-2 justify-end">
+								{fm.registrationUrl && (
+									<a
+										href={fm.registrationUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-6 py-2.5 hover:bg-[var(--green)] hover:text-[var(--ink)] transition-colors"
+									>
+										<Icon name="whatsapp" class="w-4 h-4" />
+										Register
+									</a>
+								)}
+								{mapCoords && (
+									<a
+										href={`https://www.google.com/maps/dir/?api=1&destination=${mapCoords.lat},${mapCoords.lng}`}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-6 py-2.5 hover:bg-[var(--green)] hover:text-[var(--ink)] transition-colors"
+									>
+										<Icon name="map-pin" class="w-4 h-4" />
+										Get directions
+									</a>
+								)}
+							</div>
+						)}
 					</div>
 				)}
 
 				{/* Plain text location (no map) */}
 				{locationStr && (
-					<div class="flex items-center gap-3 px-6 py-4 border-b border-[var(--navy)]/8 dark:border-white/8">
+					<div class="flex items-center gap-3 px-6 py-4">
 						<Icon name="map-pin" class="w-4 h-4 text-[var(--navy)]/50 dark:text-white/40 shrink-0" />
 						<p class="text-sm text-[var(--ink)]/70 dark:text-white/60">{locationStr}</p>
-					</div>
-				)}
-
-				{/* CTAs — register + get directions */}
-				{(fm.registrationUrl || mapCoords) && (
-					<div class="px-6 py-5 flex flex-wrap gap-3">
-						{fm.registrationUrl && (
-							<a
-								href={fm.registrationUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-6 py-2.5 hover:bg-[var(--green)] hover:text-[var(--ink)] transition-colors"
-							>
-								<Icon name="whatsapp" class="w-4 h-4" />
-								Register
-							</a>
-						)}
-						{mapCoords && (
-							<a
-								href={`https://www.google.com/maps/dir/?api=1&destination=${mapCoords.lat},${mapCoords.lng}`}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-6 py-2.5 hover:bg-[var(--green)] hover:text-[var(--ink)] transition-colors"
-							>
-								<Icon name="map-pin" class="w-4 h-4" />
-								Get directions
-							</a>
-						)}
 					</div>
 				)}
 			</div>

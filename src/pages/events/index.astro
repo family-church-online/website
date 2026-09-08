@@ -66,16 +66,17 @@ function parsePoint(raw: string | null | undefined): { lat: number; lng: number 
 	return null;
 }
 
-function dateTimeLabel(event: { date?: string; endDate?: string | null }) {
-	if (!event.date) return null;
-	const date = new Date(event.date).toLocaleDateString('en-GB', {
+function dateLabel(iso: string) {
+	return new Date(iso).toLocaleDateString('en-GB', {
 		weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
 	});
-	const time    = fmtTime(event.date);
-	const endTime = event.endDate ? fmtTime(event.endDate) : null;
-	return time
-		? `${date} · ${time}${endTime ? ` – ${endTime}` : ''}`
-		: date;
+}
+
+function calParts(iso: string) {
+	return {
+		day:   new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'UTC' }),
+		month: new Date(iso).toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }).toUpperCase(),
+	};
 }
 ---
 
@@ -93,7 +94,9 @@ function dateTimeLabel(event: { date?: string; endDate?: string | null }) {
 			<section class="mb-16">
 				<div class="space-y-4">
 				{upcoming.map((event, i) => {
-					const label  = dateTimeLabel(event);
+					const dateStr   = event.date ? dateLabel(event.date) : null;
+					const timeStr   = event.date ? fmtTime(event.date) : null;
+					const endTimeStr = event.endDate ? fmtTime(event.endDate) : null;
 					const coords = parsePoint(event.location);
 					const locText = locationLabel(event.location);
 					return (
@@ -102,46 +105,51 @@ function dateTimeLabel(event: { date?: string; endDate?: string | null }) {
 							class="reveal group flex flex-col sm:flex-row bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden hover:shadow-md transition-shadow"
 							data-reveal-delay={String(i * 0.06)}
 						>
-							{event.image && (
-								<div class="h-36 sm:h-auto sm:w-28 md:w-36 shrink-0 overflow-hidden">
-									<img
-										src={event.image}
-										alt={event.title ?? ''}
-										class="w-full h-full object-cover scale-[1.7] group-hover:scale-[1.7] transition-transform duration-500"
-										loading="lazy"
-									/>
+							<div class="flex items-start gap-4 px-6 py-5 flex-1 min-w-0">
+								{event.date && (() => { const p = calParts(event.date!); return (
+									<div class="shrink-0 w-14 rounded-xl overflow-hidden ring-1 ring-[var(--red)]/20 dark:ring-white/12 text-center">
+										<div class="bg-[var(--red)] py-1">
+											<span class="text-white text-[10px] font-bold uppercase tracking-widest">{p.month}</span>
+										</div>
+										<div class="bg-white dark:bg-[var(--card)] py-2">
+											<span class="text-[var(--navy)] dark:text-white text-2xl font-bold leading-none">{p.day}</span>
+										</div>
+									</div>
+								); })()}
+								<div class="flex flex-col gap-1.5 flex-1 min-w-0">
+									<div class="flex items-start gap-3">
+										<h2 class="flex-1 min-w-0 text-lg font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">
+											{event.title}
+										</h2>
+										<Icon name="caret-right" class="shrink-0 w-5 h-5 mt-0.5 text-[var(--navy)]/25 dark:text-white/25 group-hover:text-[var(--green)] transition-colors" />
+									</div>
+
+									{dateStr && (
+										<p class="text-sm font-semibold text-[var(--navy)] dark:text-white/80">
+											{dateStr}
+										</p>
+									)}
+
+									{timeStr && (
+										<p class="flex items-center gap-1.5 text-sm text-[var(--ink)]/60 dark:text-white/50">
+											<Icon name="clock" class="w-3.5 h-3.5 shrink-0" />
+											{timeStr}{endTimeStr ? ` – ${endTimeStr}` : ''}
+										</p>
+									)}
+
+									{locText && (
+										<p class="flex items-center gap-1.5 text-sm text-[var(--ink)]/55 dark:text-white/45">
+											<Icon name="map-pin" class="w-3.5 h-3.5 shrink-0" />
+											{locText}
+										</p>
+									)}
+
+									{event.description && (
+										<p class="text-sm text-[var(--ink)]/65 dark:text-white/55 leading-relaxed">
+											{event.description}
+										</p>
+									)}
 								</div>
-							)}
-							<div class="flex flex-col gap-2 px-6 py-5 flex-1 min-w-0">
-								<div class="flex items-center gap-4">
-									<span class="shrink-0 w-10 h-10 rounded-full bg-[var(--navy)] group-hover:bg-[var(--green)] transition-colors flex items-center justify-center">
-										<Icon name="calendar" class="w-5 h-5 text-white" />
-									</span>
-									<h2 class="flex-1 min-w-0 text-lg font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">
-										{event.title}
-									</h2>
-									<Icon name="caret-right" class="shrink-0 w-5 h-5 text-[var(--navy)]/25 dark:text-white/25 group-hover:text-[var(--green)] transition-colors" />
-								</div>
-
-								{label && (
-									<p class="text-sm font-semibold text-[var(--navy)] dark:text-white/80">
-										{label}
-									</p>
-								)}
-
-								{locText && (
-									<p class="flex items-center gap-1.5 text-sm text-[var(--ink)]/55 dark:text-white/45">
-										<Icon name="map-pin" class="w-3.5 h-3.5 shrink-0" />
-										{locText}
-									</p>
-								)}
-
-								{event.description && (
-									<p class="text-sm text-[var(--ink)]/65 dark:text-white/55 leading-relaxed">
-										{event.description}
-									</p>
-								)}
-
 							</div>
 						</a>
 					);
