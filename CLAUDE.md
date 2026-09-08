@@ -41,6 +41,7 @@ Copy `.env.example` → `.env`. Key vars:
 | `SITE_URL` | Canonical URL — required on Cloudflare Workers where no platform var is injected |
 | `DEPLOY_ADAPTER` | Force `vercel \| cloudflare \| netlify \| node`; normally auto-detected |
 | `TINA_HOST` | LAN IP or full URL for mobile dev against the same local TinaCMS |
+| `VIMEO_ACCESS_TOKEN` | Vimeo API token — used by `/api/stream-status` to detect live stream |
 
 ## Architecture
 
@@ -80,6 +81,11 @@ Sermon filenames follow the pattern `YYYY-MM-DD-slugified-title.mdx` (enforced b
 - `src/pages/devotion/[date].astro` — Date-specific devotion (`/devotion/2026-08-27`)
 - `src/pages/today.astro` — Static fallback; in production intercepted by `functions/today.ts`
 - `src/pages/tina-island/[name].ts` — Dynamic on-demand route powering TinaCMS visual editing
+- `src/pages/api/stream-status.ts` — GET; checks Vimeo API for live stream
+- `src/pages/api/stream-report.ts` — POST; writes problem report to `STREAM_REPORTS` KV, notifies DO
+- `src/pages/api/stream-reports.ts` — GET; returns report counts + recent (last 60 min) from KV
+- `src/pages/api/stream-ws.ts` — GET; proxies WebSocket upgrades to `StreamMonitor` Durable Object
+- `src/pages/stream-dashboard.astro` — Live problem dashboard (no auth); responsive for OBS docks
 
 ### `/today` — server-rendered redirect
 
@@ -99,6 +105,17 @@ Pages use a composable block system. Each block type has two files:
 - `src/components/blocks/foo.template.ts` — TinaCMS default values for that block type
 
 `src/components/blocks/Blocks.astro` maps `__typename` to the correct block component.
+
+### Stream reporting
+
+`src/components/blocks/LiveStream.astro` shows a "Report a Problem" widget when the stream is live (detected via `/api/stream-status`). Clicking a button POSTs to `/api/stream-report`, which:
+
+1. Writes `{ button, ip, timestamp }` to the `STREAM_REPORTS` KV namespace with a 7-day TTL
+2. Notifies the `StreamMonitor` Durable Object via `POST /notify`
+
+The DO broadcasts the report to all connected WebSocket clients (the dashboard). The dashboard at `/stream-dashboard` opens a WebSocket to `/api/stream-ws` and updates tiles in real time.
+
+**Durable Object deployment**: The `StreamMonitor` class (`src/objects/StreamMonitor.ts`) is not in the Astro source tree — it is bundled post-build by `scripts/bundle-do.mjs` into `dist/server/StreamMonitor.js`. A thin `dist/server/worker-entry.js` re-exports both the Astro server handler and `StreamMonitor` as a named export. `scripts/patch-wrangler.mjs` injects the DO binding and migration into `dist/server/wrangler.json` (kept out of `wrangler.jsonc` so Miniflare doesn't try to resolve the class during the Vite build phase).
 
 ### Adapters (deployment targets)
 
@@ -125,3 +142,6 @@ Dark mode is controlled by the `.dark` class on `<html>` (set by `ThemeToggle.as
 - **`src/content.config.ts`** only declares the `config` collection (to prevent Astro from treating the JSON global-config as Markdown). Blog and page Markdown generation remains auto.
 - **All CSS is inlined** — `build.inlineStylesheets: 'always'` in `astro.config.mjs` prevents a render-blocking `<link>` on mobile.
 - **Sermon `review: true`** — Sermons with `review: true` in their frontmatter are excluded from the listing page. Use this flag to stage content before going live.
+- **Icons** — `src/components/Icon.astro` is a hand-rolled component with inline Phosphor SVG paths (256×256 viewBox, `fill="currentColor"`). There is no npm icon package at runtime. To add an icon: find the Phosphor Regular SVG path at `github.com/phosphor-icons/core/tree/main/assets/regular`, add it to the `paths` map and `IconName` union in `Icon.astro`.
+- **Cloudflare KV access** — use `import { env } from 'cloudflare:workers'` with a try/catch wrapper (see existing API routes for the pattern). Never access KV via `Astro.locals` or `process.env`.
+- **DO bindings in `patch-wrangler.mjs` not `wrangler.jsonc`** — DO bindings must not be in `wrangler.jsonc` or Miniflare will try to resolve the class during the Vite build phase and fail. Always add them in `patch-wrangler.mjs` instead.
