@@ -176,32 +176,32 @@ const eventLd = {
 					</div>
 				)}
 
-				{/* Registration CTA */}
-				{fm.registrationUrl && (
-					<div class="px-6 py-5" class:list={[mapCoords ? 'border-b border-[var(--navy)]/8 dark:border-white/8' : '']}>
-						<a
-							href={fm.registrationUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-6 py-2.5 hover:bg-[var(--green)] hover:text-[var(--ink)] transition-colors"
-						>
-							Register / More info
-							<Icon name="arrow-right" class="w-4 h-4" />
-						</a>
+				{/* CTAs — register + get directions */}
+				{(fm.registrationUrl || mapCoords) && (
+					<div class="px-6 py-5 flex flex-wrap gap-3">
+						{fm.registrationUrl && (
+							<a
+								href={fm.registrationUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-6 py-2.5 hover:bg-[var(--green)] hover:text-[var(--ink)] transition-colors"
+							>
+								<Icon name="whatsapp" class="w-4 h-4" />
+								Register
+							</a>
+						)}
+						{mapCoords && (
+							<a
+								href={`https://www.google.com/maps/dir/?api=1&destination=${mapCoords.lat},${mapCoords.lng}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-6 py-2.5 hover:bg-[var(--green)] hover:text-[var(--ink)] transition-colors"
+							>
+								<Icon name="map-pin" class="w-4 h-4" />
+								Get directions
+							</a>
+						)}
 					</div>
-				)}
-
-				{/* Get directions — always last */}
-				{mapCoords && (
-					<a
-						href={`https://www.google.com/maps/dir/?api=1&destination=${mapCoords.lat},${mapCoords.lng}`}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="flex items-center justify-center gap-2 py-3 text-sm font-semibold text-[var(--navy)] dark:text-white hover:text-[var(--green)] dark:hover:text-[var(--green)] transition-colors bg-[var(--navy)]/4 dark:bg-white/5 hover:bg-[var(--navy)]/8 dark:hover:bg-white/8"
-					>
-						<Icon name="map-pin" class="w-4 h-4 shrink-0" />
-						Get directions
-					</a>
 				)}
 			</div>
 
