@@ -1,10 +1,11 @@
 /**
- * Post-build: bundle the StreamMonitor Durable Object class and inject it as a
- * named export into dist/_worker.js so Cloudflare Workers can find it.
+ * Post-build: bundle the StreamMonitor Durable Object class into dist/server/,
+ * then write a worker-entry.js that re-exports both the Astro server handler
+ * and the DO class as named exports.
  *
  * Cloudflare requires DO classes to be named exports from the worker's entry
- * module. Astro's Cloudflare adapter only emits a default export, so we patch
- * the output here after every build.
+ * module. Astro's Cloudflare adapter only emits a default export, so we wrap
+ * it here. patch-wrangler.mjs sets wrangler.json main → ./worker-entry.js.
  */
 
 import { build } from 'esbuild';
