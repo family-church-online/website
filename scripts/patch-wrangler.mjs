@@ -29,5 +29,13 @@ if (source.kv_namespaces?.length) {
 	config.kv_namespaces = source.kv_namespaces.map(({ remote: _r, ...ns }) => ns);
 }
 
+// Copy Durable Object bindings and migrations
+if (source.durable_objects) {
+	config.durable_objects = source.durable_objects;
+}
+if (source.migrations) {
+	config.migrations = source.migrations;
+}
+
 writeFileSync(path, JSON.stringify(config, null, 2));
 console.log('[patch-wrangler] patched dist/server/wrangler.json');

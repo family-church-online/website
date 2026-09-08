@@ -14,9 +14,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root      = resolve(__dirname, '..');
-const workerJs  = resolve(root, 'dist/_worker.js');
+const workerJs  = resolve(root, 'dist/server/_worker.js');
 const doSrc     = resolve(root, 'src/objects/StreamMonitor.ts');
-const doOut     = resolve(root, 'dist/StreamMonitor.js');
+const doOut     = resolve(root, 'dist/server/StreamMonitor.js');
 
 if (!existsSync(workerJs)) {
 	console.error('bundle-do: dist/_worker.js not found — run astro build first');
