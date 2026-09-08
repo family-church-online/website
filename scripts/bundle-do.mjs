@@ -8,21 +8,23 @@
  */
 
 import { build } from 'esbuild';
-import { appendFileSync, existsSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const root      = resolve(__dirname, '..');
-const workerJs  = resolve(root, 'dist/server/_worker.js');
-const doSrc     = resolve(root, 'src/objects/StreamMonitor.ts');
-const doOut     = resolve(root, 'dist/server/StreamMonitor.js');
+const __dirname  = dirname(fileURLToPath(import.meta.url));
+const root       = resolve(__dirname, '..');
+const serverDir  = resolve(root, 'dist/server');
+const doSrc      = resolve(root, 'src/objects/StreamMonitor.ts');
+const doOut      = resolve(serverDir, 'StreamMonitor.js');
+const entryOut   = resolve(serverDir, 'worker-entry.js');
 
-if (!existsSync(workerJs)) {
-	console.error('bundle-do: dist/_worker.js not found — run astro build first');
+if (!existsSync(serverDir)) {
+	console.error('bundle-do: dist/server/ not found — run astro build first');
 	process.exit(1);
 }
 
+// Bundle the Durable Object class into dist/server/StreamMonitor.js
 await build({
 	entryPoints: [doSrc],
 	bundle: true,
@@ -31,5 +33,11 @@ await build({
 	target: 'es2022',
 });
 
-appendFileSync(workerJs, '\nexport { StreamMonitor } from "./StreamMonitor.js";\n');
-console.log('bundle-do: StreamMonitor exported from dist/_worker.js ✓');
+// Write a custom worker entry that re-exports both the Astro server handler
+// and the DO class — this becomes the `main` field in wrangler.json
+writeFileSync(entryOut, [
+	'export { default } from "@astrojs/cloudflare/entrypoints/server";',
+	'export { StreamMonitor } from "./StreamMonitor.js";',
+].join('\n') + '\n');
+
+console.log('bundle-do: worker-entry.js written with StreamMonitor export ✓');

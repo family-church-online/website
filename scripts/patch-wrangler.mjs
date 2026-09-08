@@ -37,5 +37,9 @@ if (source.migrations) {
 	config.migrations = source.migrations;
 }
 
+// Point main at our custom entry so the DO class is exported alongside
+// the Astro server handler (bundle-do.mjs writes this file post-build)
+config.main = './worker-entry.js';
+
 writeFileSync(path, JSON.stringify(config, null, 2));
 console.log('[patch-wrangler] patched dist/server/wrangler.json');
