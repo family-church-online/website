@@ -189,8 +189,7 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 	<script>
 		const BUTTONS = ['No Sound', 'Low Volume', 'Sound Quality', 'No Picture', 'Picture Quality'];
 
-		// State: total counts and recent (last 60 min) per button
-		const counts: Record<string, number>  = {};
+		// State: recent (last 60 min) counts per button
 		const recent: Record<string, number>  = {};
 		const lastTs: Record<string, number>  = {};
 
@@ -202,10 +201,10 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 			const last  = document.getElementById(`last-${slug(label)}`);
 			if (!tile || !count || !last) return;
 
-			const total   = counts[label] ?? 0;
-			const isRed   = (recent[label] ?? 0) > 0;
-			count.textContent = String(total);
-			tile.className = `tile ${isRed ? 'red' : total > 0 ? 'green' : ''}`;
+			const recentCount = recent[label] ?? 0;
+			const isRed       = recentCount > 0;
+			count.textContent = String(recentCount);
+			tile.className    = `tile ${isRed ? 'red' : ''}`;
 
 			if (lastTs[label]) {
 				const mins = Math.round((Date.now() - lastTs[label]) / 60_000);
@@ -225,8 +224,8 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 			try {
 				const res  = await fetch('/api/stream-reports');
 				const data = await res.json() as { counts: Record<string, number>; recent: Record<string, number> };
-				Object.assign(counts, data.counts);
-				Object.assign(recent, data.recent);
+				// Replace entirely so expired reports drop to zero
+				BUTTONS.forEach(b => { recent[b] = data.recent[b] ?? 0; });
 				tick();
 			} catch {
 				/* ignore — WS will keep us updated */
@@ -250,7 +249,6 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 				try {
 					const msg = JSON.parse(ev.data as string) as { type: string; button?: string; timestamp?: string };
 					if (msg.type === 'report' && msg.button) {
-						counts[msg.button] = (counts[msg.button] ?? 0) + 1;
 						recent[msg.button] = (recent[msg.button] ?? 0) + 1;
 						if (msg.timestamp) lastTs[msg.button] = new Date(msg.timestamp).getTime();
 						tick();
@@ -270,6 +268,8 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 
 		// Refresh "X min ago" labels every 30 s
 		setInterval(tick, 30_000);
+		// Refresh counts from server every 60 s so expired reports drop to zero
+		setInterval(loadInitial, 60_000);
 
 		loadInitial();
 		connectWS();

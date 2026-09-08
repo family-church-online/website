@@ -15,21 +15,23 @@ export const GET: APIRoute = async () => {
 		return json({ counts: {}, recent: {} });
 	}
 
-	const list = await kv.list({ prefix: 'report:' });
-	const now  = Date.now();
+	const list   = await kv.list({ prefix: 'report:' });
+	const now    = Date.now();
 	const counts: Record<string, number> = {};
-	const recent: Record<string, number> = {};
+	const recent = counts; // same object — only live reports remain after cleanup
 
 	await Promise.all(list.keys.map(async ({ name }) => {
 		const raw = await kv.get(name);
 		if (!raw) return;
 		try {
-			const r = JSON.parse(raw) as Report;
-			counts[r.button]  = (counts[r.button]  ?? 0) + 1;
+			const r   = JSON.parse(raw) as Report;
 			const age = now - new Date(r.timestamp).getTime();
-			if (age < 60 * 60 * 1000) {
-				recent[r.button] = (recent[r.button] ?? 0) + 1;
+			if (age >= 60 * 60 * 1000) {
+				await kv.delete(name);
+				return;
 			}
+			counts[r.button]  = (counts[r.button]  ?? 0) + 1;
+			recent[r.button]  = (recent[r.button]  ?? 0) + 1;
 		} catch { /* skip malformed */ }
 	}));
 
