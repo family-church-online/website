@@ -8,6 +8,7 @@ interface Props {
 		subheading?: string | null;
 		streamUrl?: string | null;
 		description?: string | null;
+		reportDescription?: string | null;
 	};
 }
 
@@ -85,16 +86,16 @@ const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] 
 		<div id="report-widget" class="hidden py-4 reveal" data-reveal-delay="0.1">
 			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-6 py-5">
 				<p class="text-sm font-semibold text-[var(--ink)] dark:text-white mb-0.5">Report a Problem</p>
-				<p class="text-xs text-[var(--ink)]/55 dark:text-white/45 mb-4">Let us know if you're having issues — we'll look into it right away.</p>
-				<div id="report-buttons" class="flex flex-wrap gap-2">
+				<p class="text-sm text-[var(--ink)]/55 dark:text-white/45 mb-4">{data.reportDescription ?? "Let us know if you're experiencing technical issues. Clicking on the icons below will report it live to our technicians."}</p>
+				<div id="report-buttons" class="flex justify-around items-start gap-1">
 					{REPORT_BUTTONS.map(({ label, icon }) => (
 						<button
 							type="button"
 							data-report={label}
-							class="report-btn inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full bg-[var(--navy)]/8 dark:bg-white/10 text-[var(--ink)] dark:text-white hover:bg-[var(--red)] hover:text-white transition-colors"
+							class="report-btn flex flex-col items-center gap-1.5 flex-1 py-1 rounded-xl text-[var(--ink)]/55 dark:text-white/45 hover:text-[var(--red)] dark:hover:text-[var(--red)] transition-colors"
 						>
-							<Icon name={icon} class="w-3.5 h-3.5 shrink-0" />
-							{label}
+							<Icon name={icon} class="w-7 h-7 shrink-0" />
+							<span class="text-[10px] font-semibold leading-tight text-center">{label}</span>
 						</button>
 					))}
 				</div>
