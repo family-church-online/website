@@ -9,7 +9,7 @@ type Props = HTMLAttributes<'section'> & {
 const { background = 'bg-default', class: className, ...rest } = Astro.props;
 ---
 <div class={background}>
-	<section class={cn('py-12 mx-auto max-w-7xl px-6', className)} {...rest}>
+	<section class={cn('py-8 mx-auto max-w-7xl px-6', className)} {...rest}>
 		<slot />
 	</section>
 </div>

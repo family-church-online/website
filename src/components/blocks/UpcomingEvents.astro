@@ -1,5 +1,6 @@
 ---
 import { tinaField } from '@tinacms/astro/tina-field';
+import Icon from '../Icon.astro';
 
 interface EventFrontmatter {
 	title?: string;
@@ -19,14 +20,16 @@ interface Props {
 }
 
 const { data } = Astro.props;
-const heading    = data.heading    ?? 'Upcoming Events';
-const count      = data.count      ?? 3;
+const heading     = data.heading    ?? 'Upcoming Events';
+const count       = data.count      ?? 3;
 const showViewAll = data.showViewAll ?? true;
 
 const eventModules = import.meta.glob<{ frontmatter: EventFrontmatter }>(
 	'../../content/events/*.mdx',
 	{ eager: true },
 );
+
+const TZ = 'Africa/Johannesburg';
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -39,20 +42,43 @@ const upcoming = Object.entries(eventModules)
 	.sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
 	.slice(0, count);
 
-function dateParts(iso: string) {
-	const d = new Date(iso);
-	return {
-		day:   d.toLocaleDateString('en-GB', { day: 'numeric',   timeZone: 'UTC' }),
-		month: d.toLocaleDateString('en-GB', { month: 'short',   timeZone: 'UTC' }).toUpperCase(),
-		full:  d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),
-		time:  d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }),
-	};
+function locationLabel(raw: string | null | undefined): string | null {
+	if (!raw) return null;
+	try { JSON.parse(raw); return null; } catch { /* plain string */ }
+	return raw;
+}
+
+function parsePoint(raw: string | null | undefined): { lat: number; lng: number } | null {
+	if (!raw) return null;
+	try {
+		const geo = JSON.parse(raw);
+		if (geo.type === 'Point' && Array.isArray(geo.coordinates) && geo.coordinates.length >= 2) {
+			const [lng, lat] = geo.coordinates as [number, number];
+			return { lat, lng };
+		}
+	} catch { /* not GeoJSON */ }
+	return null;
+}
+
+function fmtTime(iso: string) {
+	const t = new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
+	return t === '00:00' ? null : t;
+}
+
+function dateTimeLabel(event: { date?: string; endDate?: string | null }) {
+	if (!event.date) return null;
+	const date = new Date(event.date).toLocaleDateString('en-GB', {
+		weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: TZ,
+	});
+	const time    = fmtTime(event.date);
+	const endTime = event.endDate ? fmtTime(event.endDate) : null;
+	return time ? `${date} · ${time}${endTime ? ` – ${endTime}` : ''}` : date;
 }
 ---
 
 {upcoming.length > 0 && (
-	<section class="bg-[var(--background)] py-16">
-		<div class="max-w-[var(--content-width)] mx-auto px-6">
+	<section class="bg-[var(--background)] py-8">
+		<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6">
 			<div class="flex items-end justify-between mb-8 gap-4">
 				<h2
 					data-tina-field={tinaField(data, 'heading')}
@@ -66,48 +92,68 @@ function dateParts(iso: string) {
 				)}
 			</div>
 
-			<ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+			<ul class="space-y-4">
 				{upcoming.map((event, i) => {
-					const parts = event.date ? dateParts(event.date) : null;
+					const label   = dateTimeLabel(event);
+					const coords  = parsePoint(event.location);
+					const locText = locationLabel(event.location);
 					return (
 						<li class="reveal" data-reveal-delay={String(i * 0.07)}>
 							<a
 								href={`/events/${event.slug}`}
-								class="group flex flex-col h-full bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden hover:shadow-md transition-shadow"
+								class="group flex flex-col bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden hover:shadow-md transition-shadow"
 							>
-								{event.image ? (
-									<div class="aspect-video overflow-hidden">
+								{event.image && (
+									<div class="aspect-[3/1] overflow-hidden">
 										<img
 											src={event.image}
 											alt={event.title ?? ''}
-											class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+											class="w-full h-full object-cover scale-110 group-hover:scale-125 transition-transform duration-500"
 											loading="lazy"
 										/>
 									</div>
-								) : (
-									<div class="bg-[var(--navy)] px-5 pt-5 pb-4">
-										{parts && (
-											<div class="flex flex-col items-start">
-												<span class="text-[var(--green)] text-xs font-bold uppercase tracking-widest">{parts.month}</span>
-												<span class="text-white text-5xl font-bold leading-none">{parts.day}</span>
-											</div>
-										)}
-									</div>
 								)}
-								<div class="px-5 py-4 flex flex-col gap-1.5 flex-1">
-									{event.image && parts && (
-										<p class="text-xs font-semibold text-[var(--olive)] uppercase tracking-wide">
-											{parts.month} {parts.day}
+
+								<div class="flex flex-col gap-2 px-6 py-5">
+									<div class="flex items-center gap-4">
+										<span class="shrink-0 w-10 h-10 rounded-full bg-[var(--navy)] group-hover:bg-[var(--green)] transition-colors flex items-center justify-center">
+											<Icon name="calendar" class="w-5 h-5 text-white" />
+										</span>
+										<h3 class="flex-1 min-w-0 text-lg font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug">
+											{event.title}
+										</h3>
+										<Icon name="caret-right" class="shrink-0 w-5 h-5 text-[var(--navy)]/25 dark:text-white/25 group-hover:text-[var(--green)] transition-colors" />
+									</div>
+
+									{label && (
+										<p class="text-sm font-semibold text-[var(--navy)] dark:text-white/80">
+											{label}
 										</p>
 									)}
-									<h3 class="font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] dark:group-hover:text-[var(--green)] transition-colors leading-snug">
-										{event.title}
-									</h3>
-									{event.location && (
-										<p class="text-xs text-[var(--ink)]/55 dark:text-white/45">{event.location}</p>
+
+									{locText && (
+										<p class="flex items-center gap-1.5 text-sm text-[var(--ink)]/55 dark:text-white/45">
+											<Icon name="map-pin" class="w-3.5 h-3.5 shrink-0" />
+											{locText}
+										</p>
 									)}
+
 									{event.description && (
-										<p class="text-sm text-[var(--ink)]/65 dark:text-white/55 line-clamp-2 mt-0.5">{event.description}</p>
+										<p class="text-sm text-[var(--ink)]/65 dark:text-white/55 leading-relaxed">
+											{event.description}
+										</p>
+									)}
+
+									{coords && (
+										<div class="mt-1">
+											<span
+												onclick={`event.stopPropagation();window.open('https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}','_blank')`}
+												class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--navy)] dark:text-white/70 bg-[var(--navy)]/8 dark:bg-white/10 hover:bg-[var(--green)] hover:text-[var(--ink)] rounded-full px-3 py-1 transition-colors cursor-pointer"
+											>
+												<Icon name="map-pin" class="w-3 h-3 shrink-0" />
+												Get directions
+											</span>
+										</div>
 									)}
 								</div>
 							</a>
