@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
 import { getConfig } from '../../lib/data';
 
 interface EventFrontmatter {
@@ -34,35 +35,50 @@ const { frontmatter: fm, Content } = Astro.props as {
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
 
-function fmtDateTime(iso: string) {
-	return new Date(iso).toLocaleDateString('en-GB', {
-		weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
-	});
+const TZ = 'Africa/Johannesburg';
+
+function fmtPart(iso: string, opts: Intl.DateTimeFormatOptions) {
+	return new Date(iso).toLocaleDateString('en-GB', { timeZone: TZ, ...opts });
 }
 
 function fmtTime(iso: string) {
-	const t = new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+	const t = new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
 	return t === '00:00' ? null : t;
 }
 
-const startTime = fm.date ? fmtTime(fm.date) : null;
+const calDay   = fm.date ? fmtPart(fm.date, { day: 'numeric' })    : null;
+const calMonth = fm.date ? fmtPart(fm.date, { month: 'short' }).toUpperCase() : null;
+const calYear  = fm.date ? fmtPart(fm.date, { year: 'numeric' })   : null;
+const calWeekday = fm.date ? fmtPart(fm.date, { weekday: 'long' }) : null;
+
+const startTime = fm.date    ? fmtTime(fm.date)    : null;
 const endTime   = fm.endDate ? fmtTime(fm.endDate) : null;
+
+function parsePoint(raw: string | null | undefined): { lat: number; lng: number } | null {
+	if (!raw) return null;
+	try {
+		const geo = JSON.parse(raw);
+		if (geo.type === 'Point' && Array.isArray(geo.coordinates) && geo.coordinates.length >= 2) {
+			const [lng, lat] = geo.coordinates as [number, number];
+			return { lat, lng };
+		}
+	} catch { /* plain string — not GeoJSON */ }
+	return null;
+}
+
+const mapCoords   = parsePoint(fm.location);
+const locationStr = mapCoords ? null : (fm.location || null);
 
 const siteUrl = new URL('/', Astro.site).toString().replace(/\/$/, '');
 const eventLd = {
 	'@context': 'https://schema.org',
 	'@type': 'Event',
 	name: fm.title,
-	...(fm.date && { startDate: fm.date }),
+	...(fm.date    && { startDate: fm.date }),
 	...(fm.endDate && { endDate: fm.endDate }),
 	...(fm.description && { description: fm.description }),
 	...(fm.image && { image: fm.image.startsWith('http') ? fm.image : `${siteUrl}${fm.image}` }),
-	...(fm.location && {
-		location: {
-			'@type': 'Place',
-			name: fm.location,
-		},
-	}),
+	...(fm.location && { location: { '@type': 'Place', name: fm.location } }),
 	organizer: {
 		'@type': 'Church',
 		name: config?.seo?.title ?? 'Family Church',
@@ -76,66 +92,128 @@ const eventLd = {
 <Base
 	title={`${fm.title ?? 'Event'} · ${siteTitle}`}
 	description={fm.description ?? `An event at ${siteTitle}.`}
+	image={fm.image ?? undefined}
 	ogType="article"
 >
 	<script slot="head" type="application/ld+json" set:html={JSON.stringify(eventLd)} />
-	<article>
-		{fm.image ? (
-			<div class="aspect-[3/1] max-h-72 overflow-hidden">
-				<img src={fm.image} alt={fm.title ?? ''} class="w-full h-full object-cover" />
-			</div>
-		) : (
-			<div class="bg-[var(--navy)] py-16" />
-		)}
 
-		<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-12">
+	<article>
+		<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10">
+			{/* ── BACK LINK ─────────────────────────────────────────────────── */}
 			<a
 				href="/events"
 				class="inline-flex items-center gap-1.5 text-sm text-[var(--ink)]/50 dark:text-white/40 hover:text-[var(--green)] transition-colors mb-8"
 			>
-				← All events
+				<Icon name="caret-left" class="w-4 h-4" />
+				All events
 			</a>
+		</div>
 
-			<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Event</p>
-			<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-6">
-				{fm.title}
-			</h1>
-
-			<dl class="flex flex-col gap-2 mb-10 text-sm text-[var(--ink)]/70 dark:text-white/60">
-				{fm.date && (
-					<div class="flex gap-2">
-						<dt class="font-medium text-[var(--ink)]/40 dark:text-white/30 w-16 shrink-0">Date</dt>
-						<dd>
-							{fmtDateTime(fm.date)}
-							{startTime && ` · ${startTime}`}
-							{endTime && ` – ${endTime}`}
-						</dd>
-					</div>
-				)}
-				{fm.location && (
-					<div class="flex gap-2">
-						<dt class="font-medium text-[var(--ink)]/40 dark:text-white/30 w-16 shrink-0">Where</dt>
-						<dd>{fm.location}</dd>
-					</div>
-				)}
-			</dl>
-
-			{fm.registrationUrl && (
-				<a
-					href={fm.registrationUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-6 py-2.5 hover:bg-[var(--green)] transition-colors mb-10"
-				>
-					Register / More info
-				</a>
+		{/* ── PAGE HEADER ───────────────────────────────────────────────── */}
+		<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 text-center mb-8">
+			<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">What's On</p>
+			<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-4">{fm.title}</h1>
+			{fm.description && (
+				<p class="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">{fm.description}</p>
 			)}
+		</div>
 
+		{/* ── IMAGE ─────────────────────────────────────────────────────────── */}
+		{fm.image ? (
+			<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 mb-8">
+				<div class="w-full rounded-2xl overflow-hidden aspect-[3/1]">
+					<img
+						src={fm.image}
+						alt={fm.title ?? ''}
+						class="w-full h-full object-cover scale-110"
+					/>
+				</div>
+			</div>
+		) : (
+			<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 mb-8">
+				<div class="bg-[var(--navy)] rounded-2xl flex items-center justify-center aspect-[3/1]">
+					<Icon name="calendar" class="w-16 h-16 text-white/15" />
+				</div>
+			</div>
+		)}
+
+		<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-10">
+
+			{/* ── INFO CARD ─────────────────────────────────────────────────── */}
+			<div class="reveal bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden mb-10" data-reveal-delay="0.08">
+
+				{/* Date & time */}
+				{calDay && (
+					<div class="flex items-center gap-5 px-6 py-5 border-b border-[var(--navy)]/8 dark:border-white/8">
+						{/* Calendar badge */}
+						<div class="shrink-0 w-14 rounded-xl overflow-hidden ring-1 ring-[var(--navy)]/12 dark:ring-white/12 text-center">
+							<div class="bg-[var(--navy)] py-1">
+								<span class="text-[var(--green)] text-[10px] font-bold uppercase tracking-widest">{calMonth}</span>
+							</div>
+							<div class="bg-white dark:bg-[var(--card)] py-2">
+								<span class="text-[var(--navy)] dark:text-white text-2xl font-bold leading-none">{calDay}</span>
+							</div>
+						</div>
+						<div>
+							<p class="font-semibold text-[var(--navy)] dark:text-white">
+								{calWeekday}, {calDay} {calMonth} {calYear}
+							</p>
+							{startTime && (
+								<p class="text-sm text-[var(--ink)]/60 dark:text-white/50 mt-0.5 flex items-center gap-1.5">
+									<Icon name="clock" class="w-3.5 h-3.5 shrink-0" />
+									{startTime}{endTime ? ` – ${endTime}` : ''}
+								</p>
+							)}
+						</div>
+					</div>
+				)}
+
+				{/* Plain text location (no map) */}
+				{locationStr && (
+					<div class="flex items-center gap-3 px-6 py-4 border-b border-[var(--navy)]/8 dark:border-white/8">
+						<Icon name="map-pin" class="w-4 h-4 text-[var(--navy)]/50 dark:text-white/40 shrink-0" />
+						<p class="text-sm text-[var(--ink)]/70 dark:text-white/60">{locationStr}</p>
+					</div>
+				)}
+
+				{/* Registration CTA */}
+				{fm.registrationUrl && (
+					<div class="px-6 py-5" class:list={[mapCoords ? 'border-b border-[var(--navy)]/8 dark:border-white/8' : '']}>
+						<a
+							href={fm.registrationUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="inline-flex items-center gap-2 text-sm font-semibold bg-[var(--navy)] text-white rounded-full px-6 py-2.5 hover:bg-[var(--green)] hover:text-[var(--ink)] transition-colors"
+						>
+							Register / More info
+							<Icon name="arrow-right" class="w-4 h-4" />
+						</a>
+					</div>
+				)}
+
+				{/* Get directions — always last */}
+				{mapCoords && (
+					<a
+						href={`https://www.google.com/maps/dir/?api=1&destination=${mapCoords.lat},${mapCoords.lng}`}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="flex items-center justify-center gap-2 py-3 text-sm font-semibold text-[var(--navy)] dark:text-white hover:text-[var(--green)] dark:hover:text-[var(--green)] transition-colors bg-[var(--navy)]/4 dark:bg-white/5 hover:bg-[var(--navy)]/8 dark:hover:bg-white/8"
+					>
+						<Icon name="map-pin" class="w-4 h-4 shrink-0" />
+						Get directions
+					</a>
+				)}
+			</div>
+
+			{/* ── BODY ──────────────────────────────────────────────────────── */}
 			{Content && (
-				<div class="prose dark:prose-invert max-w-none">
-					<Content />
+				<div class="reveal bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-6 py-6" data-reveal-delay="0.14">
+					<div class="prose dark:prose-invert max-w-none">
+						<Content />
+					</div>
 				</div>
 			)}
+
 		</div>
 	</article>
 </Base>

@@ -236,6 +236,9 @@ const FIELD_OVERRIDES: Record<string, SveltiaField | null> = {
   // sermon.body is isBody:true — the markdown transcript stored after the frontmatter.
   // widget:markdown makes Sveltia treat it as the document body (not a frontmatter field).
   'sermon.body':  { name: 'body', label: 'Transcript', widget: 'markdown', required: false },
+
+  // event.location — use the map widget (Point) centred on Johannesburg instead of a plain string.
+  'event.location': { name: 'location', label: 'Location', widget: 'map', type: 'Point', center: [28.0473, -26.2041], zoom: 11, required: false },
 };
 
 /**

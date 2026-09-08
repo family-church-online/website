@@ -130,7 +130,7 @@ html {
 .dark {
 	--background: oklch(0.16 0.02 285);
 	--foreground: oklch(0.95 0.012 285);
-	--card: oklch(0.21 0.025 285);
+	--card: oklch(0.28 0.025 285);
 	--card-foreground: oklch(0.95 0.012 285);
 	--popover: oklch(0.21 0.025 285);
 	--popover-foreground: oklch(0.95 0.012 285);
@@ -143,7 +143,7 @@ html {
 	--accent: oklch(0.28 0.04 285);
 	--accent-foreground: oklch(0.95 0.012 285);
 	--destructive: oklch(0.70 0.19 22);
-	--border: oklch(0.95 0.01 285 / 12%);
+	--border: oklch(0.95 0.01 285 / 18%);
 	--input: oklch(0.95 0.01 285 / 15%);
 	--ring: oklch(0.70 0.18 40);
 }
