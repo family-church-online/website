@@ -36,7 +36,7 @@ export const liveStreamBlockSchema: Template = {
 		defaultItem: {
 			heading: 'Watch & Listen Live',
 			subheading: 'Join us for our live Sunday service — watch the stream or listen in with minimal data.',
-			reportDescription: "Let us know if you're experiencing technical issues. Clicking on the icons below will report it live to our technicians.",
+			reportDescription: "Let us know if you're experiencing technical issues. Clicking on the relevant icon below will alert our technicians immediately.",
 		},
 	},
 };
