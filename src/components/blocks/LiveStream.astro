@@ -1,5 +1,6 @@
 ---
 import { tinaField } from '@tinacms/astro/tina-field';
+import Icon from '../Icon.astro';
 
 interface Props {
 	data: {
@@ -11,6 +12,14 @@ interface Props {
 }
 
 const { data } = Astro.props;
+
+const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] }[] = [
+	{ label: 'No Sound',       icon: 'speaker-x'    },
+	{ label: 'Low Volume',     icon: 'speaker-low'  },
+	{ label: 'Sound Quality',  icon: 'speaker-high' },
+	{ label: 'No Picture',     icon: 'video-slash'  },
+	{ label: 'Picture Quality',icon: 'monitor'      },
+];
 ---
 
 {data.streamUrl && (
@@ -78,12 +87,15 @@ const { data } = Astro.props;
 				<p class="text-sm font-semibold text-[var(--ink)] dark:text-white mb-0.5">Report a Problem</p>
 				<p class="text-xs text-[var(--ink)]/55 dark:text-white/45 mb-4">Let us know if you're having issues — we'll look into it right away.</p>
 				<div id="report-buttons" class="flex flex-wrap gap-2">
-					{['No Sound', 'Low Volume', 'Sound Quality', 'No Picture', 'Picture Quality'].map(label => (
+					{REPORT_BUTTONS.map(({ label, icon }) => (
 						<button
 							type="button"
 							data-report={label}
-							class="report-btn text-xs font-semibold px-4 py-2 rounded-full bg-[var(--navy)]/8 dark:bg-white/10 text-[var(--ink)] dark:text-white hover:bg-[var(--red)] hover:text-white transition-colors"
-						>{label}</button>
+							class="report-btn inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full bg-[var(--navy)]/8 dark:bg-white/10 text-[var(--ink)] dark:text-white hover:bg-[var(--red)] hover:text-white transition-colors"
+						>
+							<Icon name={icon} class="w-3.5 h-3.5 shrink-0" />
+							{label}
+						</button>
 					))}
 				</div>
 				<p id="report-thanks" class="hidden text-sm text-[var(--green)] font-semibold">

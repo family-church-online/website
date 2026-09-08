@@ -1,15 +1,16 @@
 ---
 export const prerender = true;
 
+import Icon from '../../components/Icon.astro';
+
 const BUTTONS = ['No Sound', 'Low Volume', 'Sound Quality', 'No Picture', 'Picture Quality'];
 
-// Tabler icons (24×24 viewBox, stroke-based) — SVG inner HTML per button
-const ICONS: Record<string, string> = {
-	'No Sound':       `<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 8a5 5 0 0 1 1.912 4.934m-1.377 2.602A5 5 0 0 1 15 16m2.7-11a9 9 0 0 1 2.362 11.086m-1.676 2.299A9 9 0 0 1 17.7 19M9.069 5.054L9.5 4.5A.8.8 0 0 1 11 5v2m0 4v8a.8.8 0 0 1-1.5.5L6 15H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2l1.294-1.664M3 3l18 18"/>`,
-	'Low Volume':     `<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 8a5 5 0 0 1 0 8m-9-1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2l3.5-4.5A.8.8 0 0 1 11 5v14a.8.8 0 0 1-1.5.5z"/>`,
-	'Sound Quality':  `<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12h-2c-.894 0-1.662-.857-1.761-2c-.296-3.45-.749-6-2.749-6s-2.5 3.582-2.5 8s-.5 8-2.5 8s-2.452-2.547-2.749-6c-.1-1.147-.867-2-1.763-2h-2"/>`,
-	'No Picture':     `<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m3 3l18 18m-6-10v-1l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-.675.946"/><path d="M10 6h3a2 2 0 0 1 2 2v3m0 4v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1"/></g>`,
-	'Picture Quality':`<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M15 8h.01M6 13l2.644-2.644a1.21 1.21 0 0 1 1.712 0L14 14"/><path d="m13 13l1.644-1.644a1.21 1.21 0 0 1 1.712 0L18 13M3 7V5a2 2 0 0 1 2-2h2M3 17v2a2 2 0 0 0 2 2h2M17 3h2a2 2 0 0 1 2 2v2m-4 14h2a2 2 0 0 0 2-2v-2"/></g>`,
+const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
+	'No Sound':       'speaker-x',
+	'Low Volume':     'speaker-low',
+	'Sound Quality':  'speaker-high',
+	'No Picture':     'video-slash',
+	'Picture Quality':'monitor',
 };
 ---
 
@@ -82,9 +83,9 @@ const ICONS: Record<string, string> = {
 		.tile.green { background: #1a3a1f; }
 		.tile.red   { background: #3a1a1a; }
 		.tile-icon {
-			width: 1.75rem;
-			height: 1.75rem;
-			opacity: 0.5;
+			width: 3rem;
+			height: 3rem;
+			opacity: 0.75;
 			flex-shrink: 0;
 		}
 		.tile .label {
@@ -95,10 +96,10 @@ const ICONS: Record<string, string> = {
 			color: rgba(255,255,255,0.5);
 		}
 		.tile .count {
-			font-size: 3rem;
-			font-weight: 800;
+			font-size: 1.25rem;
+			font-weight: 700;
 			line-height: 1;
-			color: #fff;
+			color: rgba(255,255,255,0.7);
 		}
 		.tile .indicator {
 			width: 10px;
@@ -134,7 +135,7 @@ const ICONS: Record<string, string> = {
 	<div class="grid" id="grid">
 		{BUTTONS.map(label => (
 			<div class="tile" id={`tile-${label.replace(/\s+/g, '-')}`}>
-				<svg viewBox="0 0 24 24" class="tile-icon" aria-hidden="true" set:html={ICONS[label]}></svg>
+				<Icon name={BUTTON_ICONS[label]} class="tile-icon" />
 				<div class="label">{label}</div>
 				<div class="count" id={`count-${label.replace(/\s+/g, '-')}`}>0</div>
 				<div class="last-report" id={`last-${label.replace(/\s+/g, '-')}`}></div>
