@@ -331,14 +331,10 @@ function translateFields(tinaFields: TinaField[], collectionName: string, parent
 // Collection-level config (folder, slug, create, identifier_field) is
 // maintained here because it's Sveltia-specific and has no TinaCMS equivalent.
 
-// editor configs — preview: true enables the live markdown split-pane (useful only
-// for collections with a markdown body field; structured-frontmatter collections
-// show nothing useful in the pane so we leave them with preview: false).
-// preview_path lets editors click "Open Preview" to view the published page on
-// the live site (site_url + preview_path). Structured-frontmatter collections
-// still benefit from this even without the in-editor pane.
-const editorNoPreview   = { preview: false };
-const editorWithPreview = { preview: true };
+// editor configs — preview: false disables the live markdown split-pane globally.
+// preview_path still lets editors click "Open Preview" to view the published page
+// on the live site (site_url + preview_path).
+const editorNoPreview = { preview: false };
 
 const _sermonFields    = (SermonCollection.fields ?? []) as TinaField[];
 const _amplifyFields   = (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
@@ -391,7 +387,7 @@ const folderCollections = [
     create: true,
     identifier_field: 'title',
     slug: '{{slug}}',
-    editor: editorWithPreview,
+    editor: editorNoPreview,
     fields: translateFields(AnnouncementCollection.fields as TinaField[], 'announcement'),
   },
   {
@@ -432,7 +428,7 @@ const folderCollections = [
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
     ...collectionMedia(EventCollection.fields as TinaField[]),
-    editor: editorWithPreview,
+    editor: editorNoPreview,
     preview_path: 'events/{{slug}}',
     fields: translateFields(EventCollection.fields as TinaField[], 'event'),
   },
@@ -446,7 +442,7 @@ const folderCollections = [
     identifier_field: 'title',
     slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
     ...collectionMedia(GuideCollection.fields as TinaField[]),
-    editor: editorWithPreview,
+    editor: editorNoPreview,
     preview_path: 'guides/{{slug}}',
     fields: translateFields(GuideCollection.fields as TinaField[], 'guide'),
   },
