@@ -29,13 +29,15 @@ if (source.kv_namespaces?.length) {
 	config.kv_namespaces = source.kv_namespaces.map(({ remote: _r, ...ns }) => ns);
 }
 
-// Copy Durable Object bindings and migrations
-if (source.durable_objects) {
-	config.durable_objects = source.durable_objects;
-}
-if (source.migrations) {
-	config.migrations = source.migrations;
-}
+// Inject Durable Object bindings + migrations here (not in wrangler.jsonc) so
+// Miniflare doesn't try to resolve the StreamMonitor class during the Vite
+// build phase — the class only exists after bundle-do.mjs runs post-build.
+config.durable_objects = {
+	bindings: [{ name: 'STREAM_MONITOR', class_name: 'StreamMonitor' }],
+};
+config.migrations = [
+	{ tag: 'v1', new_sqlite_classes: ['StreamMonitor'] },
+];
 
 // Point main at our custom entry so the DO class is exported alongside
 // the Astro server handler (bundle-do.mjs writes this file post-build)

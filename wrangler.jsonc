@@ -13,14 +13,6 @@
 		{ "binding": "LESSON_PROGRESS", "id": "56984b88d58641dbb252b1e40fd897da", "remote": true },
 		{ "binding": "STREAM_REPORTS", "id": "aac02cbf9d654272a4a5321fddb472a5", "preview_id": "fc2033883e77407fa5c51e6d6c6f35ca" }
 	],
-	"durable_objects": {
-		"bindings": [
-			{ "name": "STREAM_MONITOR", "class_name": "StreamMonitor" }
-		]
-	},
-	"migrations": [
-		{ "tag": "v1", "new_sqlite_classes": ["StreamMonitor"] }
-	],
 	"observability": {
 		"enabled": false,
 		"head_sampling_rate": 1,
