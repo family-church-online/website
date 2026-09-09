@@ -9,6 +9,7 @@ interface Props {
 		streamUrl?: string | null;
 		description?: string | null;
 		reportDescription?: string | null;
+		vimeoEventId?: string | null;
 	};
 }
 
@@ -46,7 +47,7 @@ const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] 
 			</div>
 		)}
 
-		<div class="py-6 reveal" data-reveal-delay="0.05">
+		<div class="py-6 reveal" data-reveal-delay="0.05" data-vimeo-event-id={data.vimeoEventId ?? ''}>
 			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 
 				<div class="px-6 pt-6 pb-5">
@@ -124,8 +125,11 @@ async function checkStream() {
 	const widget = document.getElementById('report-widget');
 	if (!dot || !label) return;
 
+	const eventId = document.querySelector<HTMLElement>('[data-vimeo-event-id]')?.dataset.vimeoEventId;
+	const url = eventId ? `/api/stream-status?vimeoEventId=${eventId}` : '/api/stream-status';
+
 	try {
-		const res  = await fetch('/api/stream-status');
+		const res  = await fetch(url);
 		const data = await res.json() as { live: boolean };
 
 		dot.classList.toggle('bg-[var(--red)]',    data.live);

@@ -26,10 +26,7 @@ export const GET: APIRoute = async () => {
 		try {
 			const r   = JSON.parse(raw) as Report;
 			const age = now - new Date(r.timestamp).getTime();
-			if (age >= 60 * 60 * 1000) {
-				await kv.delete(name);
-				return;
-			}
+			if (age >= 60 * 60 * 1000) return;
 			counts[r.button]  = (counts[r.button]  ?? 0) + 1;
 			recent[r.button]  = (recent[r.button]  ?? 0) + 1;
 		} catch { /* skip malformed */ }

@@ -2,13 +2,12 @@ import type { APIRoute } from 'astro';
 
 export const prerender = false;
 
-export const GET: APIRoute = async () => {
+async function checkIcecast(): Promise<boolean> {
 	try {
 		const res = await fetch('https://familychurchon.radioca.st/live', {
 			headers: { 'Accept': 'audio/mpeg, audio/*', 'Icy-MetaData': '1' },
 			signal: AbortSignal.timeout(5000),
 		});
-
 		const contentType = res.headers.get('content-type') ?? '';
 		const isLive = res.ok && (
 			contentType.startsWith('audio/') ||
@@ -16,15 +15,57 @@ export const GET: APIRoute = async () => {
 			contentType.includes('ogg') ||
 			contentType.includes('aac')
 		);
-
 		res.body?.cancel();
-
-		return new Response(JSON.stringify({ live: isLive }), {
-			headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-		});
+		return isLive;
 	} catch {
-		return new Response(JSON.stringify({ live: false }), {
-			headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-		});
+		return false;
 	}
+}
+
+async function checkVimeo(eventId: string): Promise<boolean> {
+	const token = process.env.VIMEO_TOKEN;
+	if (!token) return false;
+
+	try {
+		const listRes = await fetch(
+			`https://api.vimeo.com/me/videos?filter=live_event&live_event_id=${eventId}&fields=uri&per_page=1&sort=date&direction=desc`,
+			{
+				headers: { 'Authorization': `bearer ${token}` },
+				signal: AbortSignal.timeout(5000),
+			}
+		);
+		if (!listRes.ok) return false;
+
+		const listData = await listRes.json() as { data?: Array<{ uri: string }> };
+		const videoId = listData.data?.[0]?.uri?.split('/').pop();
+		if (!videoId) return false;
+
+		const statusRes = await fetch(
+			`https://vimeo.com/live_event/status?clip_id=${videoId}`,
+			{
+				headers: { 'Authorization': `bearer ${token}` },
+				signal: AbortSignal.timeout(5000),
+			}
+		);
+		if (!statusRes.ok) return false;
+
+		const statusData = await statusRes.json() as { ingest?: { status?: number } };
+		return statusData.ingest?.status === 4;
+	} catch {
+		return false;
+	}
+}
+
+export const GET: APIRoute = async ({ url }) => {
+	const eventId = url.searchParams.get('vimeoEventId');
+
+	const checks: Promise<boolean>[] = [checkIcecast()];
+	if (eventId) checks.push(checkVimeo(eventId));
+
+	const results = await Promise.all(checks);
+	const live = results.some(Boolean);
+
+	return new Response(JSON.stringify({ live }), {
+		headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+	});
 };
