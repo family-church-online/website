@@ -58,6 +58,11 @@ async function checkVimeo(eventId: string): Promise<boolean> {
 
 export const GET: APIRoute = async ({ url }) => {
 	const eventId = url.searchParams.get('vimeoEventId');
+	const cache = caches.default;
+	const cacheKey = new Request(url.toString());
+
+	const cached = await cache.match(cacheKey);
+	if (cached) return cached;
 
 	const checks: Promise<boolean>[] = [checkIcecast()];
 	if (eventId) checks.push(checkVimeo(eventId));
@@ -65,7 +70,10 @@ export const GET: APIRoute = async ({ url }) => {
 	const results = await Promise.all(checks);
 	const live = results.some(Boolean);
 
-	return new Response(JSON.stringify({ live }), {
-		headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+	const response = new Response(JSON.stringify({ live }), {
+		headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=30' },
 	});
+
+	cache.put(cacheKey, response.clone());
+	return response;
 };
