@@ -1,6 +1,5 @@
 ---
 import { tinaField } from '@tinacms/astro/tina-field';
-import Section from '../ui/Section.astro';
 import YouTubeFacade from '../ui/YouTubeFacade.astro';
 import type { VideoBlock } from '../../lib/data';
 
@@ -34,11 +33,11 @@ if (video?.type === 'embed') {
 }
 ---
 {video && (
-	<Section id="video">
-		<div data-tina-field={tinaField(data, 'url')} class="relative mx-auto aspect-video w-full max-w-[var(--content-width)] overflow-hidden rounded-2xl border">
+	<div id="video" class="max-w-[var(--content-width)] mx-auto py-8 px-6">
+		<div data-tina-field={tinaField(data, 'url')} class="relative aspect-video w-full overflow-hidden rounded-2xl border">
 			{video.type === 'youtube'
 				? <YouTubeFacade id={video.id} params={ytParams} />
 				: <iframe class="absolute inset-0 h-full w-full" src={embedSrc} title="Video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>}
 		</div>
-	</Section>
+	</div>
 )}
