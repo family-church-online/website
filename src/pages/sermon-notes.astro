@@ -17,14 +17,15 @@ interface Frontmatter {
 	speaker?: string;
 	series?: string;
 	image?: string;
-	notes?: string;
 }
 
-const mods = import.meta.glob<{ frontmatter: Frontmatter }>(
+const mods = import.meta.glob<{ frontmatter: Frontmatter; default: any }>(
 	'../content/sermon-notes/current.mdx',
 	{ eager: true }
 );
-const fm: Frontmatter = Object.values(mods)[0]?.frontmatter ?? {};
+const mod = Object.values(mods)[0] ?? {};
+const fm: Frontmatter = mod.frontmatter ?? {};
+const Content: any = mod.default;
 
 const dateStr = fm.date
 	? new Date(fm.date + 'T00:00:00Z').toLocaleDateString('en-ZA', {
@@ -32,34 +33,6 @@ const dateStr = fm.date
 	  })
 	: saDate.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-// Render markdown notes as simple HTML
-function renderMarkdown(md: string): string {
-	if (!md) return '';
-	return md
-		.split(/\n\n+/)
-		.map(block => {
-			const trimmed = block.trim();
-			if (!trimmed) return '';
-			if (/^### /.test(trimmed)) return `<h3>${trimmed.slice(4)}</h3>`;
-			if (/^## /.test(trimmed))  return `<h2>${trimmed.slice(3)}</h2>`;
-			if (/^# /.test(trimmed))   return `<h1>${trimmed.slice(2)}</h1>`;
-			if (/^[-*] /.test(trimmed.split('\n')[0])) {
-				const items = trimmed.split('\n').filter(l => /^[-*] /.test(l.trim())).map(l => `<li>${inline(l.replace(/^[-*] /, ''))}</li>`);
-				return `<ul>${items.join('')}</ul>`;
-			}
-			return `<p>${trimmed.split('\n').map(inline).join('<br>')}</p>`;
-		})
-		.join('');
-}
-
-function inline(text: string): string {
-	return text
-		.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-		.replace(/_(.+?)_/g, '<em>$1</em>')
-		.replace(/`(.+?)`/g, '<code>$1</code>');
-}
-
-const notesHtml = renderMarkdown(fm.notes ?? '');
 ---
 
 <!doctype html>
@@ -195,8 +168,8 @@ const notesHtml = renderMarkdown(fm.notes ?? '');
 		<hr />
 
 		<div class="notes">
-			{notesHtml
-				? <Fragment set:html={notesHtml} />
+			{Content
+				? <Content />
 				: <p class="notes-empty">Notes will appear here before the service.</p>
 			}
 		</div>

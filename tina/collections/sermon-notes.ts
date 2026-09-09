@@ -40,11 +40,10 @@ export const SermonNotesCollection: Collection = {
 			ui: { uploadDir: () => '/images/sermons' },
 		},
 		{
-			name: 'notes',
+			name: 'body',
 			label: 'Sermon Notes',
-			type: 'string',
-			ui: { component: 'textarea' },
-			description: 'Markdown supported. Use ## for headings, - for bullet points, **bold**, _italic_.',
+			type: 'rich-text',
+			isBody: true,
 		},
 	],
 };
