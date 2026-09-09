@@ -111,6 +111,7 @@ import { fileURLToPath } from 'node:url';
 // annotations at runtime via --experimental-strip-types, so .ts files load
 // without any compile step. The `import type { Collection }` in each file
 // is a type-only import that is completely removed at runtime.
+import { SermonNotesCollection }     from '../tina/collections/sermon-notes.ts';
 import { AnnouncementCollection }   from '../tina/collections/announcement.ts';
 import { DevotionCollection }       from '../tina/collections/devotion.ts';
 import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
@@ -507,10 +508,23 @@ const folderCollections = [
   },
 ];
 
-// No files collections currently — global-config, statement-of-faith, and
-// live-video are TinaCMS-only. Add entries here if single-file collections
-// ever need Sveltia access.
-const filesCollections: unknown[] = [];
+const filesCollections: unknown[] = [
+  {
+    name:  'sermon-notes',
+    label: 'Sunday Sermon Notes',
+    editor: editorNoPreview,
+    files: [
+      {
+        name:   'current',
+        label:  'Current Sermon Notes',
+        file:   'src/content/sermon-notes/current.mdx',
+        format: 'frontmatter',
+        ...collectionMedia(SermonNotesCollection.fields as TinaField[]),
+        fields: translateFields(SermonNotesCollection.fields as TinaField[], 'sermonNotes'),
+      },
+    ],
+  },
+];
 
 // ── WRITE OUTPUT ──────────────────────────────────────────────────────────────
 
