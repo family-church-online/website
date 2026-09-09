@@ -66,9 +66,18 @@ const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] 
 					</audio>
 				</div>
 
-				<div class="info-card px-6 py-3 flex items-center justify-center sm:justify-start gap-2 text-sm text-[var(--ink)]/80 dark:text-white/75">
-					<span id="stream-dot" class="shrink-0 w-2 h-2 rounded-full bg-[var(--ink)]/20 dark:bg-white/20"></span>
-					<span id="stream-label">Checking stream…</span>
+				<div class="info-card px-6 py-3 flex items-center justify-between gap-2 text-sm text-[var(--ink)]/80 dark:text-white/75">
+					<div class="flex items-center gap-2">
+						<span id="stream-dot" class="shrink-0 w-2 h-2 rounded-full bg-[var(--ink)]/20 dark:bg-white/20"></span>
+						<span id="stream-label">Checking stream…</span>
+					</div>
+					<button
+						id="notes-btn"
+						class="hidden items-center gap-1.5 text-xs font-semibold text-[var(--navy)] dark:text-white/80 hover:text-[var(--green)] dark:hover:text-[var(--green)] transition-colors"
+					>
+						<Icon name="note" class="w-4 h-4" />
+						Sermon Notes
+					</button>
 				</div>
 
 				{data.description && (
@@ -106,7 +115,19 @@ const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] 
 			</div>
 		</div>
 
+	{/* Sermon Notes drawer — only shown on Sundays via JS */}
+	<div id="notes-overlay" class="hidden fixed inset-0 bg-black/50 z-40 cursor-pointer"></div>
+	<div id="notes-drawer" class="fixed inset-y-0 right-0 w-full sm:w-[520px] bg-white dark:bg-[var(--card)] z-50 shadow-2xl flex flex-col translate-x-full transition-transform duration-300">
+		<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/10 dark:border-white/10 shrink-0">
+			<span class="font-semibold text-sm text-[var(--navy)] dark:text-white">Sermon Notes</span>
+			<button id="notes-close" class="text-[var(--ink)]/50 dark:text-white/50 hover:text-[var(--ink)] dark:hover:text-white transition-colors">
+				<Icon name="x" class="w-5 h-5" />
+			</button>
+		</div>
+		<iframe id="notes-frame" src="" class="flex-1 border-0 w-full" title="Sermon Notes"></iframe>
 	</div>
+
+</div>
 )}
 
 <style>
@@ -178,9 +199,43 @@ function initReportButtons() {
 	});
 }
 
+function isSundaySA(): boolean {
+	const sa = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
+	return sa.getDay() === 0;
+}
+
+function initSermonNotes() {
+	if (!isSundaySA()) return;
+
+	const btn     = document.getElementById('notes-btn');
+	const overlay = document.getElementById('notes-overlay');
+	const drawer  = document.getElementById('notes-drawer');
+	const frame   = document.getElementById('notes-frame') as HTMLIFrameElement | null;
+	const close   = document.getElementById('notes-close');
+	if (!btn || !overlay || !drawer || !frame) return;
+
+	btn.classList.remove('hidden');
+	btn.classList.add('flex');
+
+	function openDrawer() {
+		if (!frame.src) frame.src = '/sermon-notes';
+		overlay.classList.remove('hidden');
+		drawer.classList.remove('translate-x-full');
+	}
+	function closeDrawer() {
+		drawer.classList.add('translate-x-full');
+		overlay.classList.add('hidden');
+	}
+
+	btn.addEventListener('click', openDrawer);
+	overlay.addEventListener('click', closeDrawer);
+	close?.addEventListener('click', closeDrawer);
+}
+
 function init() {
 	checkStream();
 	initReportButtons();
+	initSermonNotes();
 	setInterval(checkStream, 60_000);
 }
 

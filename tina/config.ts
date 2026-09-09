@@ -10,6 +10,7 @@ import { LiveVideoCollection } from "./collections/live-video";
 import { CourseCollection } from "./collections/course";
 import { EventCollection } from "./collections/event";
 import { ThreeMinutesCollection } from "./collections/three-minutes";
+import { SermonNotesCollection } from "./collections/sermon-notes";
 import { ministryLessonCollection } from "./collections/ministry-lesson";
 import { kidsLessonCollection }     from "./collections/kids-lesson";
 import { courseLessonCollection }   from "./collections/course-lesson";
@@ -79,6 +80,7 @@ export default defineConfig({
       courseLessonCollection({ name: 'tagGod',          label: 'Truth & Grace — God',            courseSlug: 'truth-and-grace', chapterSlug: 'god'            }),
       courseLessonCollection({ name: 'tagHumanity',     label: 'Truth & Grace — Humanity',       courseSlug: 'truth-and-grace', chapterSlug: 'humanity'       }),
       courseLessonCollection({ name: 'tagTheSonOfGod',  label: 'Truth & Grace — The Son of God', courseSlug: 'truth-and-grace', chapterSlug: 'the-son-of-god' }),
+      SermonNotesCollection,
       GlobalConfigCollection,
     ],
   },

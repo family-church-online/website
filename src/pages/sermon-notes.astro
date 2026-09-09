@@ -1,0 +1,209 @@
+---
+export const prerender = false;
+
+// Only visible on Sundays (Africa/Johannesburg = UTC+2).
+// Add ?preview to the URL to bypass on other days (for prep / testing).
+const saDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
+const isSunday = saDate.getDay() === 0;
+const isPreview = Astro.url.searchParams.has('preview');
+
+if (!isSunday && !isPreview) {
+	return new Response(null, { status: 404 });
+}
+
+interface Frontmatter {
+	title?: string;
+	date?: string;
+	speaker?: string;
+	series?: string;
+	image?: string;
+	notes?: string;
+}
+
+const mods = import.meta.glob<{ frontmatter: Frontmatter }>(
+	'../content/sermon-notes/current.mdx',
+	{ eager: true }
+);
+const fm: Frontmatter = Object.values(mods)[0]?.frontmatter ?? {};
+
+const dateStr = fm.date
+	? new Date(fm.date + 'T00:00:00Z').toLocaleDateString('en-ZA', {
+			weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+	  })
+	: saDate.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+// Render markdown notes as simple HTML
+function renderMarkdown(md: string): string {
+	if (!md) return '';
+	return md
+		.split(/\n\n+/)
+		.map(block => {
+			const trimmed = block.trim();
+			if (!trimmed) return '';
+			if (/^### /.test(trimmed)) return `<h3>${trimmed.slice(4)}</h3>`;
+			if (/^## /.test(trimmed))  return `<h2>${trimmed.slice(3)}</h2>`;
+			if (/^# /.test(trimmed))   return `<h1>${trimmed.slice(2)}</h1>`;
+			if (/^[-*] /.test(trimmed.split('\n')[0])) {
+				const items = trimmed.split('\n').filter(l => /^[-*] /.test(l.trim())).map(l => `<li>${inline(l.replace(/^[-*] /, ''))}</li>`);
+				return `<ul>${items.join('')}</ul>`;
+			}
+			return `<p>${trimmed.split('\n').map(inline).join('<br>')}</p>`;
+		})
+		.join('');
+}
+
+function inline(text: string): string {
+	return text
+		.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+		.replace(/_(.+?)_/g, '<em>$1</em>')
+		.replace(/`(.+?)`/g, '<code>$1</code>');
+}
+
+const notesHtml = renderMarkdown(fm.notes ?? '');
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>{fm.title ?? 'Sermon Notes'} · Family Church</title>
+	<meta name="robots" content="noindex, nofollow" />
+	<style>
+		*, *::before, *::after { box-sizing: border-box; }
+
+		body {
+			margin: 0;
+			font-family: Georgia, 'Times New Roman', serif;
+			background: #fff;
+			color: #14202f;
+			font-size: 16px;
+			line-height: 1.7;
+		}
+
+		.page {
+			max-width: 680px;
+			margin: 0 auto;
+			padding: 2rem 1.5rem 4rem;
+		}
+
+		/* ── Header ── */
+		.church-name {
+			font-family: system-ui, sans-serif;
+			font-size: 0.7rem;
+			font-weight: 700;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+			color: #8f926b;
+			margin: 0 0 2rem;
+		}
+
+		.sermon-image {
+			width: 100%;
+			max-height: 280px;
+			object-fit: cover;
+			border-radius: 0.75rem;
+			margin-bottom: 1.5rem;
+		}
+
+		.series-label {
+			font-family: system-ui, sans-serif;
+			font-size: 0.7rem;
+			font-weight: 700;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+			color: #8f926b;
+			margin: 0 0 0.5rem;
+		}
+
+		h1 {
+			font-family: system-ui, sans-serif;
+			font-size: 1.75rem;
+			font-weight: 700;
+			line-height: 1.2;
+			margin: 0 0 0.75rem;
+			color: #273f61;
+		}
+
+		.meta {
+			font-family: system-ui, sans-serif;
+			font-size: 0.85rem;
+			color: #14202f99;
+			margin-bottom: 2rem;
+			display: flex;
+			gap: 0.4rem;
+			flex-wrap: wrap;
+			align-items: center;
+		}
+		.meta .sep { color: #14202f40; }
+
+		hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5rem 0 2rem; }
+
+		/* ── Notes prose ── */
+		.notes h1 { font-size: 1.3rem; margin: 1.5rem 0 0.5rem; color: #273f61; }
+		.notes h2 { font-family: system-ui, sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #8f926b; margin: 2rem 0 0.75rem; }
+		.notes h3 { font-family: system-ui, sans-serif; font-size: 1rem; font-weight: 700; margin: 1.25rem 0 0.4rem; color: #273f61; }
+		.notes p  { margin: 0 0 1rem; }
+		.notes ul { margin: 0 0 1rem; padding-left: 1.5rem; }
+		.notes li { margin-bottom: 0.3rem; }
+		.notes strong { font-weight: 700; color: #273f61; }
+		.notes em { font-style: italic; }
+		.notes code { font-family: monospace; font-size: 0.9em; background: #f3f4f6; padding: 0.1em 0.3em; border-radius: 3px; }
+		.notes-empty { color: #14202f60; font-style: italic; font-family: system-ui, sans-serif; font-size: 0.9rem; }
+
+		/* ── Print button ── */
+		.print-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-family: system-ui, sans-serif;
+			font-size: 0.8rem;
+			font-weight: 600;
+			background: #273f61;
+			color: #fff;
+			border: none;
+			border-radius: 0.5rem;
+			padding: 0.5rem 1rem;
+			cursor: pointer;
+			margin-top: 2.5rem;
+		}
+		.print-btn:hover { background: #92c423; }
+
+		/* ── Print styles ── */
+		@media print {
+			.print-btn { display: none; }
+			.page { padding: 0; max-width: 100%; }
+			body { font-size: 14px; }
+			h1 { font-size: 1.4rem; }
+		}
+	</style>
+</head>
+<body>
+	<div class="page">
+		<p class="church-name">Family Church</p>
+
+		{fm.image && <img src={fm.image} alt={fm.title ?? ''} class="sermon-image" />}
+
+		{fm.series && <p class="series-label">{fm.series}</p>}
+		<h1>{fm.title ?? 'Sermon Notes'}</h1>
+
+		<div class="meta">
+			<span>{dateStr}</span>
+			{fm.speaker && <><span class="sep">·</span><span>{fm.speaker}</span></>}
+		</div>
+
+		<hr />
+
+		<div class="notes">
+			{notesHtml
+				? <Fragment set:html={notesHtml} />
+				: <p class="notes-empty">Notes will appear here before the service.</p>
+			}
+		</div>
+
+		<button class="print-btn" onclick="window.print()">
+			Save as PDF / Print
+		</button>
+	</div>
+</body>
+</html>
