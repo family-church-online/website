@@ -205,7 +205,7 @@ function isSundaySA(): boolean {
 }
 
 function initSermonNotes() {
-	if (!isSundaySA()) return;
+	if (!isSundaySA() && !new URLSearchParams(location.search).has('preview')) return;
 
 	const btn     = document.getElementById('notes-btn');
 	const overlay = document.getElementById('notes-overlay');
@@ -218,7 +218,7 @@ function initSermonNotes() {
 	btn.classList.add('flex');
 
 	function openDrawer() {
-		if (!frame.src) frame.src = '/sermon-notes';
+		if (!frame.src) frame.src = new URLSearchParams(location.search).has('preview') ? '/sermon-notes?preview' : '/sermon-notes';
 		overlay.classList.remove('hidden');
 		drawer.classList.remove('translate-x-full');
 	}
