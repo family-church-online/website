@@ -138,13 +138,58 @@ const dateStr = fm.date
 			border-radius: 0.5rem;
 			padding: 0.5rem 1rem;
 			cursor: pointer;
-			margin-top: 2.5rem;
 		}
 		.print-btn:hover { background: #92c423; }
 
+		/* ── Action buttons ── */
+		.action-btns {
+			display: flex;
+			gap: 0.75rem;
+			flex-wrap: wrap;
+			margin-top: 2.5rem;
+		}
+
+		.share-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+			font-family: system-ui, sans-serif;
+			font-size: 0.8rem;
+			font-weight: 600;
+			background: #92c423;
+			color: #fff;
+			border: none;
+			border-radius: 0.5rem;
+			padding: 0.5rem 1rem;
+			cursor: pointer;
+		}
+		.share-btn:hover { background: #7aab1a; }
+
+		/* ── Toast ── */
+		.toast {
+			position: fixed;
+			bottom: 1.5rem;
+			left: 50%;
+			transform: translateX(-50%) translateY(4rem);
+			background: #273f61;
+			color: #fff;
+			font-family: system-ui, sans-serif;
+			font-size: 0.85rem;
+			font-weight: 600;
+			padding: 0.6rem 1.25rem;
+			border-radius: 2rem;
+			opacity: 0;
+			transition: opacity 0.2s, transform 0.2s;
+			pointer-events: none;
+		}
+		.toast.show {
+			opacity: 1;
+			transform: translateX(-50%) translateY(0);
+		}
+
 		/* ── Print styles ── */
 		@media print {
-			.print-btn { display: none; }
+			.action-btns { display: none; }
 			.page { padding: 0; max-width: 100%; }
 			body { font-size: 14px; }
 			h1 { font-size: 1.4rem; }
@@ -174,9 +219,53 @@ const dateStr = fm.date
 			}
 		</div>
 
-		<button class="print-btn" onclick="window.print()">
-			Save as PDF / Print
-		</button>
+		<div class="action-btns">
+			<button class="print-btn" onclick="window.print()">
+				Save as PDF / Print
+			</button>
+			<button class="share-btn" id="share-btn">
+				Share / Copy
+			</button>
+		</div>
 	</div>
+
+	<div id="copy-toast" class="toast">Copied to clipboard</div>
 </body>
+<script>
+function showToast() {
+	const toast = document.getElementById('copy-toast');
+	if (!toast) return;
+	toast.classList.add('show');
+	setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+function copyFallback(text: string) {
+	const el = document.createElement('textarea');
+	el.value = text;
+	el.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+	document.body.appendChild(el);
+	el.focus();
+	el.select();
+	try { document.execCommand('copy'); showToast(); } catch {}
+	document.body.removeChild(el);
+}
+
+const btn = document.getElementById('share-btn');
+btn?.addEventListener('click', async () => {
+	const title = document.querySelector('h1')?.textContent ?? 'Sermon Notes';
+	const meta  = document.querySelector('.meta')?.textContent?.trim() ?? '';
+	const notes = (document.querySelector('.notes') as HTMLElement)?.innerText?.trim() ?? '';
+	const text  = `${title}\n${meta}\n\n${notes}`;
+
+	if (navigator.share) {
+		try { await navigator.share({ title, text }); return; } catch {}
+	}
+	try {
+		await navigator.clipboard.writeText(text);
+		showToast();
+	} catch {
+		copyFallback(text);
+	}
+});
+</script>
 </html>

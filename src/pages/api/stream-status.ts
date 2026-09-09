@@ -58,10 +58,10 @@ async function checkVimeo(eventId: string): Promise<boolean> {
 
 export const GET: APIRoute = async ({ url }) => {
 	const eventId = url.searchParams.get('vimeoEventId');
-	const cache = caches.default;
+	const cache = typeof caches !== 'undefined' ? caches.default : null;
 	const cacheKey = new Request(url.toString());
 
-	const cached = await cache.match(cacheKey);
+	const cached = await cache?.match(cacheKey);
 	if (cached) return cached;
 
 	const checks: Promise<boolean>[] = [checkIcecast()];
@@ -74,6 +74,6 @@ export const GET: APIRoute = async ({ url }) => {
 		headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=30' },
 	});
 
-	cache.put(cacheKey, response.clone());
+	cache?.put(cacheKey, response.clone());
 	return response;
 };
