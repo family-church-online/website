@@ -9,6 +9,7 @@ import Icon from '../../components/Icon.astro';
 interface CourseRegistry {
   title?: string;
   description?: string;
+  order?: number;
   chapters?: Array<{ slug: string; title: string; description?: string }>;
 }
 
@@ -41,10 +42,11 @@ const courses = Object.entries(registryMods).map(([path, data]) => {
     slug,
     title:       data.title ?? slug,
     description: data.description ?? '',
+    order:       data.order ?? 999,
     chapters:    data.chapters ?? [],
     lessonCount: lessonCounts[slug] ?? 0,
   };
-});
+}).sort((a, b) => a.order - b.order);
 
 const config = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';

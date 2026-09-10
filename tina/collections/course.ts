@@ -23,6 +23,12 @@ export const CourseCollection: Collection = {
 			description: 'e.g. "Truth and Grace". The filename/slug is derived automatically.',
 		},
 		{
+			name: 'order',
+			label: 'Order',
+			type: 'number',
+			description: 'Controls the display order on the courses index. Lower numbers appear first.',
+		},
+		{
 			name: 'description',
 			label: 'Description',
 			type: 'string',
