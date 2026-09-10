@@ -41,8 +41,9 @@ import { join, resolve, dirname }                   from 'node:path';
 import { homedir }                                  from 'node:os';
 import { fileURLToPath }                            from 'node:url';
 
-const ROOT      = join(dirname(fileURLToPath(import.meta.url)), '..');
-const CONVERTER = join(ROOT, 'scripts', 'convert-lesson.mjs');
+const ROOT               = join(dirname(fileURLToPath(import.meta.url)), '..');
+const CONVERTER          = join(ROOT, 'scripts', 'convert-lesson.mjs');
+const CONVERTER_GENERIC  = join(ROOT, 'scripts', 'convert-generic-lesson.mjs');
 
 const args    = process.argv.slice(2);
 const force   = args.includes('--force');
@@ -95,8 +96,9 @@ if (manifestMode) {
       continue;
     }
 
+    const converter = entry.format === 'generic' ? CONVERTER_GENERIC : CONVERTER;
     const converterArgs = [
-      CONVERTER,
+      converter,
       filePath,
       '--course',  entry.course,
       '--chapter', entry.chapter,
@@ -230,6 +232,17 @@ if (course.chapters.length === 0) {
 
 const chapter = await pick('Chapter', course.chapters, c => `${c.title}  (${c.slug})`);
 
+// Pick converter format
+const formatChoice = await pick(
+  'Lesson format',
+  [
+    { key: 'generic',    label: 'Generic  (opening paragraph → statement, ## Point: heading, ### A — sections)' },
+    { key: 'statement',  label: 'Statement of faith  (We believe…, ## Point N, ## Scriptural Basis)' },
+  ],
+  f => f.label,
+);
+const lessonFormat = formatChoice.key;
+
 // Name each file
 console.log('\nEnter a lesson name for each file, or press Enter to skip.\n');
 
@@ -252,7 +265,7 @@ for (const file of mdFiles) {
   const lessonName = (await rl.question('  Lesson name (Enter to skip): ')).trim();
 
   if (lessonName) {
-    plan.push({ file, filePath, lessonName, pointNum, statementNum });
+    plan.push({ file, filePath, lessonName, pointNum, statementNum, format: lessonFormat });
   } else {
     console.log('  skipped\n');
   }
@@ -297,8 +310,9 @@ for (const entry of plan) {
     continue;
   }
 
+  const converter = entry.format === 'generic' ? CONVERTER_GENERIC : CONVERTER;
   const converterArgs = [
-    CONVERTER,
+    converter,
     entry.filePath,
     '--course',  course.slug,
     '--chapter', chapter.slug,

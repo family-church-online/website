@@ -38,6 +38,7 @@
     "lesson:import": "node scripts/import-lessons.mjs",
     "lesson:manifest": "node scripts/import-lessons.mjs --manifest",
     "lesson:convert": "node scripts/convert-lesson.mjs",
+    "lesson:convert:generic": "node scripts/convert-generic-lesson.mjs",
     "lesson:list-courses": "node scripts/list-courses.mjs",
     "kids:download": "node scripts/download-kids-lessons.mjs",
     "kids:download:check": "node scripts/download-kids-lessons.mjs --check",
