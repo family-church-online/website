@@ -1,0 +1,12 @@
+{
+  "title": "The Four Walls of the Church",
+  "description": "A study of the four core practices that define the life of the church.",
+  "order": 2,
+  "chapters": [
+    {
+      "slug": "prayer",
+      "title": "Prayer",
+      "description": "What it means to come before God honestly, asking rather than declaring, and trusting His will above our own."
+    }
+  ]
+}

@@ -80,7 +80,7 @@ export default defineConfig({
       courseLessonCollection({ name: 'tagGod',               label: 'Truth & Grace — God',              courseSlug: 'truth-and-grace', chapterSlug: 'god'                }),
       courseLessonCollection({ name: 'tagHumanity',          label: 'Truth & Grace — Humanity',         courseSlug: 'truth-and-grace', chapterSlug: 'humanity'           }),
       courseLessonCollection({ name: 'tagTheSonOfGod',       label: 'Truth & Grace — The Son of God',   courseSlug: 'truth-and-grace', chapterSlug: 'the-son-of-god'     }),
-      courseLessonCollection({ name: 'prayerHumility',       label: 'Prayer — Humility in Prayer',      courseSlug: 'prayer',          chapterSlug: 'humility-in-prayer' }),
+      courseLessonCollection({ name: 'prayerHumility',       label: 'Four Walls — Prayer',              courseSlug: 'the-four-walls-of-the-church', chapterSlug: 'prayer' }),
       SermonNotesCollection,
       GlobalConfigCollection,
     ],
