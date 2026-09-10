@@ -3,6 +3,7 @@ export const prerender = false;
 
 import Base from '../../layouts/Base.astro';
 import { getConfig } from '../../lib/data';
+import { getUser } from '../../lib/auth';
 import Icon from '../../components/Icon.astro';
 
 interface CourseRegistry {
@@ -47,6 +48,7 @@ const courses = Object.entries(registryMods).map(([path, data]) => {
 
 const config = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
+const user = getUser(Astro);
 ---
 
 <Base
@@ -57,6 +59,9 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
   <div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-4 text-center reveal">
     <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Study</p>
     <h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance">Courses</h1>
+    {user && (
+      <p class="text-sm text-[var(--ink)]/50 dark:text-white/40 mt-3">Welcome back, {user.name.split(' ')[0]}.</p>
+    )}
   </div>
 
   <main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-10 space-y-4">

@@ -87,19 +87,26 @@ export async function lookupPersonByEmail(
 	email: string,
 ): Promise<{ pcoId: string; name: string } | null> {
 	const auth = btoa(`${secret('PCO_APP_TOKEN')}:${secret('PCO_APP_SECRET')}`);
-	const res = await fetch(
-		`https://api.planningcenteronline.com/people/v2/emails?where[address]=${encodeURIComponent(email)}&include=person&per_page=1`,
+	const emailRes = await fetch(
+		`https://api.planningcenteronline.com/people/v2/emails?where[address]=${encodeURIComponent(email)}&per_page=1`,
 		{ headers: { Authorization: `Basic ${auth}` } },
 	);
-	if (!res.ok) return null;
-	const json = (await res.json()) as {
+	if (!emailRes.ok) return null;
+	const emailJson = (await emailRes.json()) as {
 		data: Array<{ relationships: { person: { data: { id: string } } } }>;
-		included: Array<{ id: string; attributes: { name: string } }>;
 	};
-	if (json.data.length === 0) return null;
-	const pcoId = json.data[0].relationships.person.data.id;
-	const person = json.included.find((r) => r.id === pcoId);
-	return { pcoId, name: person?.attributes.name ?? email };
+	if (emailJson.data.length === 0) return null;
+	const pcoId = emailJson.data[0].relationships.person.data.id;
+
+	const personRes = await fetch(
+		`https://api.planningcenteronline.com/people/v2/people/${pcoId}`,
+		{ headers: { Authorization: `Basic ${auth}` } },
+	);
+	if (!personRes.ok) return { pcoId, name: email };
+	const personJson = (await personRes.json()) as {
+		data: { attributes: { name: string } };
+	};
+	return { pcoId, name: personJson.data.attributes.name ?? email };
 }
 
 // ── Magic link email via Resend ───────────────────────────────────────────────

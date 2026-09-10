@@ -2,12 +2,16 @@
 export const prerender = false;
 import Base from '../../layouts/Base.astro';
 import { getConfig } from '../../lib/data';
+import { getUser } from '../../lib/auth';
 
 const config = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
 const deniedPage = config?.auth?.deniedPage;
 const heading = deniedPage?.heading ?? 'Access Restricted';
-const body = deniedPage?.body ?? 'This content is available to church members only. If you believe you should have access, please contact us.';
+const bodyTemplate = deniedPage?.body ?? 'This content is available to church members only. If you believe you should have access, please contact us.';
+const user = getUser(Astro);
+const firstName = user?.name.split(' ')[0];
+const body = firstName ? `Sorry, ${firstName} — ${bodyTemplate.charAt(0).toLowerCase()}${bodyTemplate.slice(1)}` : bodyTemplate;
 ---
 
 <Base
