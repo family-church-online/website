@@ -4,9 +4,14 @@
   "description": "The Church is not a building. Acts 2 shows the Church as a people of God under Jesus Christ engaged in four critical works: Scripture, Prayer, Worship and Serving. This course covers lessons on these.",
   "chapters": [
     {
+      "slug": "scripture",
+      "title": "Scripture",
+      "description": "What Scripture says about itself, and how to read it rightly and fruitfully."
+    },
+    {
       "slug": "prayer",
       "title": "Prayer",
-      "description": "The Bible reveals the great privilege of prayer, it's necessity and how we should engage with God in prayer.  "
+      "description": "The Bible reveals the great privilege of prayer, it's necessity and how we should engage with God in prayer."
     }
   ]
 }
