@@ -1,14 +1,22 @@
 import type { APIRoute } from 'astro';
-import { lookupPersonByEmail, fetchListMemberships, getTrackedListIds, createSession, sendMagicLink } from '../../../lib/auth';
+import { lookupPersonByEmail, fetchListMemberships, createSession, sendMagicLink } from '../../../lib/auth';
 import { getConfig } from '../../../lib/data';
 
 export const prerender = false;
 
-// Bundled at build time — used to resolve which list ID a path requires.
+// Bundled at build time — single source of truth for all gated list IDs.
 const registryMods = import.meta.glob<{ requiredListId?: string }>(
 	'../../../content/courses/*.json',
 	{ eager: true },
 );
+
+const trackedListIds: string[] = [
+	...new Set(
+		Object.values(registryMods)
+			.map(r => r.requiredListId)
+			.filter((id): id is string => Boolean(id)),
+	),
+];
 
 function resolveRequiredListId(redirectPath: string): string | undefined {
 	const m = redirectPath.match(/^\/courses\/([^/]+)/);
@@ -44,8 +52,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 			const person = await lookupPersonByEmail(email);
 			if (!person) return;
 
-			const trackedIds = getTrackedListIds();
-			const lists = await fetchListMemberships(person.pcoId, trackedIds);
+			const lists = await fetchListMemberships(person.pcoId, trackedListIds);
 
 			const exp = Date.now() + 10 * 60 * 1000;
 			const token = await createSession({ sub: person.pcoId, name: person.name, email, lists, exp });

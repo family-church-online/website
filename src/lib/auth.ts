@@ -171,13 +171,6 @@ export async function fetchListMemberships(
 	return results.filter((id): id is string => id !== null);
 }
 
-export function getTrackedListIds(): string[] {
-	return ((process.env['PCO_TRACKED_LIST_IDS'] ?? getSecret('PCO_TRACKED_LIST_IDS')) ?? '')
-		.split(',')
-		.map((s) => s.trim())
-		.filter(Boolean);
-}
-
 // ── Page helpers ──────────────────────────────────────────────────────────────
 
 export function requireAuth(
