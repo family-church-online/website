@@ -10,12 +10,16 @@ const registryMods = import.meta.glob<{ requiredListId?: string }>(
 	{ eager: true },
 );
 
+// Admin list — must be tracked so requireAuth() can find it in user.lists
+const ADMIN_LIST_IDS = ['5358919'];
+
 const trackedListIds: string[] = [
-	...new Set(
-		Object.values(registryMods)
+	...new Set([
+		...ADMIN_LIST_IDS,
+		...Object.values(registryMods)
 			.map(r => r.requiredListId)
 			.filter((id): id is string => Boolean(id)),
-	),
+	]),
 ];
 
 function resolveRequiredListId(redirectPath: string): string | undefined {
