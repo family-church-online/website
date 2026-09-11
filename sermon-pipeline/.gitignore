@@ -1,0 +1,6 @@
+node_modules/
+audio/
+output/
+session/
+oauth_credentials.json
+oauth_token.json

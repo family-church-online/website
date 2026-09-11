@@ -6,6 +6,7 @@
     "node": ">=22.22.0"
   },
   "scripts": {
+    "pipeline": "cd sermon-pipeline && node pipeline.mjs",
     "dev": "tinacms dev -c \"astro dev\"",
     "dev:mobile": "node scripts/proxy-tina.mjs & TINA_HOST=$(hostname -I | awk '{print $1}') tinacms dev -c \"astro dev\"",
     "build": "node --experimental-strip-types scripts/generate-sveltia-config.mts && tinacms build --content=local -c \"astro build\" && node scripts/patch-wrangler.mjs && node scripts/bundle-do.mjs",

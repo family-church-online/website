@@ -2,6 +2,7 @@
 # settings file instead of failing with "packages field missing or empty".
 packages:
   - '.'
+  - 'sermon-pipeline'
 
 onlyBuiltDependencies:
   - better-sqlite3

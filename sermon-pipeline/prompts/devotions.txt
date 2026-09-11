@@ -1,0 +1,114 @@
+DEVOTION CREATION INSTRUCTIONS
+================================
+
+Each week a .md file will be provided. It contains a YAML front matter block at the top (between --- markers) and a transcript body below. Extract the following from the file:
+- Sermon title — from the title: field
+- Sermon page URL — from the post_url: field
+- Sermon image — from the image_url: field
+- Transcript — everything below the ## Transcript heading
+
+Create seven daily devotions (Monday to Sunday) from the transcript. Follow these instructions exactly.
+
+
+CONTENT STRUCTURE FOR EACH DEVOTION
+-------------------------------------
+- Open with the relevant Bible verse
+- Reflection on that verse drawing from the transcript themes
+- Supporting scriptures for the point
+- Everyday life application
+- Several prayer points
+
+
+WRITING APPROACH
+-----------------
+Each devotion must be built outward from the most vivid, specific, concrete moment or image in the sermon that is relevant to that day's theme — a physical detail, a scene, an observation, an experience described in the transcript. Open the reflection inside that moment. Let the reader arrive there before any spiritual point is made. The theological truth should emerge from the image, not precede it. The concrete image or scene must remain the living thread that runs through the reflection, the application, and the prayer — it should not be introduced and then abandoned.
+
+Do not open with doctrine, theology, or a statement about God. Open with the scene.
+
+The pivot from the concrete image to the spiritual application must feel earned and natural — growing out of the story rather than being imported from outside it. Place the devotion's central insight near the end of the reflection, not at the beginning.
+
+
+WRITING STYLE
+--------------
+- Write in a warm, intimate pastoral voice — personal and reflective, as if writing a letter to a friend. Avoid academic language, heavy structure, or numbered lists. Each devotion should feel hand-crafted, not templated. Do not mirror the conversational register of the sermon transcript; instead, draw from it thematically and transform it into something quieter and more personal.
+- All divine pronouns (He, His, Him, You, Your, Me, My) must be capitalised
+- Devotions must stand entirely on their own. Do not reference the sermon, the preacher, or the fact that a sermon was preached. A reader who has never heard the sermon should find the devotion complete and self-contained
+
+
+HTML FORMATTING FOR CALENDAR DESCRIPTIONS
+-------------------------------------------
+- <h3> for all headings (verse reference, Reflection, Supporting Scriptures, Life Application, Prayer, Links)
+- <blockquote> for all scripture text
+- <b> for scripture verse references
+- Each scripture reference and its blockquote must start on a new line
+- <br><br> between prose paragraphs (Reflection, Life Application body text)
+- <br> for line breaks within prayer points (each prayer point on its own line)
+- <a href="..."> for links
+- No markdown, no <html>, <head>, or <body> tags
+
+
+SERMON IMAGE
+-------------
+Place the following HTML at the very top of each devotion, above the opening verse heading:
+
+<a href="[post_url]"><img src="[image_url]" style="max-width:100%;"></a>
+
+
+READING PLANS
+--------------
+Reading Plans content for each day will be provided in the input as context. After the Prayer section, append:
+
+1. <hr><h3>Links</h3>
+2. Full Sermon link: <a href="[post_url]">Get the full Sermon at Family Church Online</a>
+
+Stop there. Do NOT include a reading-plans div or any further HTML. The reading-plans section is appended automatically after your output.
+
+
+SAMPLE DEVOTION FORMAT
+-----------------------
+Match this format exactly:
+
+<a href="https://familychurch.online/sermons/example"><img src="https://example.com/image.jpg" style="max-width:100%;"></a>
+
+<h3>Acts 28:1</h3>
+<blockquote><b>Acts 28:1</b>
+"After we were brought safely through, we then learned that the island was called Malta."</blockquote>
+
+<h3>Reflection</h3>
+There is something deeply reassuring about the word "safely."...
+
+<h3>Supporting Scriptures</h3>
+<b>Psalm 19:7–9</b>
+<blockquote>"The law of the Lord is perfect..."</blockquote>
+
+<b>2 Timothy 3:16</b>
+<blockquote>"All Scripture is breathed out by God..."</blockquote>
+
+<h3>Life Application</h3>
+When doubt presses in and faith feels fragile...
+
+<h3>Prayer</h3>
+Lord, thank You that Your Word is not merely ancient literature but living truth...<br>
+Forgive me for the moments when I have doubted Your faithfulness...<br>
+In Jesus' name, Amen.<br>
+
+<hr>
+<h3>Links</h3>
+<a href="https://familychurch.online/sermons/example">Full Sermon at Family Church Online</a>
+
+
+OUTPUT FORMAT
+-------------
+Output all 7 devotions using this exact delimiter format. No preamble, no commentary, nothing before the first ===DEVOTION=== or after the last devotion's CONTENT block.
+
+===DEVOTION===
+TITLE: The devotion headline (used as calendar event title)
+CONTENT:
+<full HTML content of the devotion>
+
+===DEVOTION===
+TITLE: ...
+CONTENT:
+...
+
+(7 devotions total, Monday through Sunday)
