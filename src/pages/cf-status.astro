@@ -11,12 +11,18 @@ const adminListId = (siteConfig.data?.config?.auth as Record<string, unknown> | 
 const auth = requireAuth(Astro, adminListId);
 if (auth instanceof Response) return auth;
 
-// ── CF API credentials (optional — Workers analytics only) ────────────────────
+// ── CF API credentials ─────────────────────────────────────────────────────────
 // Add CF_ACCOUNT_ID and CF_API_TOKEN as Cloudflare dashboard Variables.
 // Token needs: Account Analytics → Read permission.
 const cfAccountId = process.env['CF_ACCOUNT_ID'] ?? null;
 const cfApiToken  = process.env['CF_API_TOKEN'] ?? null;
 const hasApi = !!(cfAccountId && cfApiToken);
+
+// KV namespace IDs (from wrangler.jsonc) — needed for per-namespace breakdown
+const KV_NS = {
+	LESSON_PROGRESS: '56984b88d58641dbb252b1e40fd897da',
+	STREAM_REPORTS:  'aac02cbf9d654272a4a5321fddb472a5',
+};
 
 // ── KV helpers ────────────────────────────────────────────────────────────────
 
@@ -38,7 +44,7 @@ async function countKVKeys(kv: KVNamespace | null): Promise<number | null> {
 	return count;
 }
 
-// ── Workers analytics (Cloudflare GraphQL Analytics API) ──────────────────────
+// ── Cloudflare GraphQL Analytics (single combined request) ────────────────────
 
 interface WorkersStats {
 	requests: number;
@@ -48,22 +54,44 @@ interface WorkersStats {
 	cpuP99ms: number;
 }
 
-async function fetchWorkersStats(): Promise<WorkersStats | null> {
-	if (!hasApi) return null;
+interface KVOpCounts {
+	read: number;
+	write: number;
+	delete: number;
+	list: number;
+}
+
+interface KVStats {
+	total: KVOpCounts;
+	byNamespace: Record<string, KVOpCounts>;
+}
+
+async function fetchAnalytics(): Promise<{ workers: WorkersStats | null; kv: KVStats | null }> {
+	if (!hasApi) return { workers: null, kv: null };
+
 	const now = new Date();
-	const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
-	const dayEnd   = now.toISOString();
+	const dayStartDT = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+	const dayEndDT   = now.toISOString();
+	// KV uses date-only filters
+	const today = dayStartDT.slice(0, 10);
 
 	const query = `{
     viewer {
       accounts(filter: { accountTag: "${cfAccountId}" }) {
         workersInvocationsAdaptive(limit: 10000, filter: {
           scriptName: "family-church-website",
-          datetime_geq: "${dayStart}",
-          datetime_leq: "${dayEnd}"
+          datetime_geq: "${dayStartDT}",
+          datetime_leq: "${dayEndDT}"
         }) {
           sum { requests errors subrequests }
           quantiles { cpuTimeP50 cpuTimeP99 }
+        }
+        kvOperationsAdaptiveGroups(limit: 10000, filter: {
+          date_geq: "${today}",
+          date_leq: "${today}"
+        }) {
+          dimensions { actionType namespaceId }
+          sum { requests }
         }
       }
     }
@@ -78,7 +106,7 @@ async function fetchWorkersStats(): Promise<WorkersStats | null> {
 			},
 			body: JSON.stringify({ query }),
 		});
-		if (!res.ok) return null;
+		if (!res.ok) return { workers: null, kv: null };
 
 		const json = await res.json() as {
 			data?: {
@@ -88,60 +116,96 @@ async function fetchWorkersStats(): Promise<WorkersStats | null> {
 							sum: { requests: number; errors: number; subrequests: number };
 							quantiles: { cpuTimeP50: number; cpuTimeP99: number };
 						}>;
+						kvOperationsAdaptiveGroups?: Array<{
+							dimensions: { actionType: string; namespaceId: string };
+							sum: { requests: number };
+						}>;
 					}>;
 				};
 			};
 		};
 
-		const rows = json.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive ?? [];
-		if (!rows.length) return { requests: 0, errors: 0, subrequests: 0, cpuP50ms: 0, cpuP99ms: 0 };
+		const account = json.data?.viewer?.accounts?.[0];
 
-		let requests = 0, errors = 0, subrequests = 0, cpuP50 = 0, cpuP99 = 0;
-		for (const row of rows) {
-			requests    += row.sum.requests;
-			errors      += row.sum.errors;
-			subrequests += row.sum.subrequests;
-			cpuP50 = Math.max(cpuP50, row.quantiles.cpuTimeP50);
-			cpuP99 = Math.max(cpuP99, row.quantiles.cpuTimeP99);
+		// Workers
+		let workers: WorkersStats | null = null;
+		const wRows = account?.workersInvocationsAdaptive ?? [];
+		if (wRows.length > 0) {
+			let requests = 0, errors = 0, subrequests = 0, cpuP50 = 0, cpuP99 = 0;
+			for (const row of wRows) {
+				requests    += row.sum.requests;
+				errors      += row.sum.errors;
+				subrequests += row.sum.subrequests;
+				cpuP50 = Math.max(cpuP50, row.quantiles.cpuTimeP50);
+				cpuP99 = Math.max(cpuP99, row.quantiles.cpuTimeP99);
+			}
+			workers = { requests, errors, subrequests, cpuP50ms: cpuP50 / 1000, cpuP99ms: cpuP99 / 1000 };
+		} else {
+			workers = { requests: 0, errors: 0, subrequests: 0, cpuP50ms: 0, cpuP99ms: 0 };
 		}
-		// cpuTime values are in microseconds
-		return { requests, errors, subrequests, cpuP50ms: cpuP50 / 1000, cpuP99ms: cpuP99 / 1000 };
+
+		// KV
+		const empty = (): KVOpCounts => ({ read: 0, write: 0, delete: 0, list: 0 });
+		const total = empty();
+		const byNamespace: Record<string, KVOpCounts> = {};
+
+		for (const row of (account?.kvOperationsAdaptiveGroups ?? [])) {
+			const { actionType, namespaceId } = row.dimensions;
+			const n = row.sum.requests;
+			const type = actionType as keyof KVOpCounts;
+			if (type in total) total[type] += n;
+			if (!byNamespace[namespaceId]) byNamespace[namespaceId] = empty();
+			if (type in byNamespace[namespaceId]) byNamespace[namespaceId][type] += n;
+		}
+
+		return { workers, kv: { total, byNamespace } };
 	} catch {
-		return null;
+		return { workers: null, kv: null };
 	}
 }
 
 // ── Fetch everything in parallel ──────────────────────────────────────────────
 
-const [workersStats, lessonKeys, reportKeys] = await Promise.all([
-	fetchWorkersStats(),
+const [analytics, lessonKeys, reportKeys] = await Promise.all([
+	fetchAnalytics(),
 	countKVKeys(getKV('LESSON_PROGRESS')),
 	countKVKeys(getKV('STREAM_REPORTS')),
 ]);
 
+const { workers: workersStats, kv: kvStats } = analytics;
+
 // ── Display helpers ────────────────────────────────────────────────────────────
 
-function pct(used: number | null, limit: number): number | null {
-	if (used === null) return null;
+function pct(used: number | null | undefined, limit: number): number {
+	if (used == null) return 0;
 	return Math.min(100, (used / limit) * 100);
 }
 
-function barColor(p: number | null): string {
-	if (p === null) return 'bg-[var(--navy)]/15 dark:bg-white/10';
+function barColor(used: number | null | undefined, limit: number): string {
+	const p = used == null ? -1 : (used / limit) * 100;
+	if (p < 0)  return 'bg-[var(--navy)]/15 dark:bg-white/10';
 	if (p >= 90) return 'bg-[var(--red)]';
 	if (p >= 70) return 'bg-yellow-400';
 	return 'bg-[var(--green)]';
 }
 
-function fmt(n: number | null): string {
-	if (n === null) return '—';
+function statusDot(used: number | null | undefined, limit: number): string {
+	if (used == null) return 'bg-[var(--navy)]/20 dark:bg-white/15';
+	const p = (used / limit) * 100;
+	if (p >= 90) return 'bg-[var(--red)]';
+	if (p >= 70) return 'bg-yellow-400';
+	return 'bg-[var(--green)]';
+}
+
+function fmt(n: number | null | undefined): string {
+	if (n == null) return '—';
 	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
 	if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
 	return String(n);
 }
 
-function fmtMs(ms: number | null): string {
-	if (ms === null) return '—';
+function fmtMs(ms: number | null | undefined): string {
+	if (ms == null) return '—';
 	return `${ms.toFixed(2)} ms`;
 }
 
@@ -170,7 +234,7 @@ const cfDash = 'https://dash.cloudflare.com';
 			</p>
 		</div>
 
-		<div class="flex gap-3 mb-8">
+		<div class="flex gap-3 mb-6">
 			<a href="/course-admin" class="text-xs font-semibold text-[var(--navy)] dark:text-white bg-[var(--navy)]/6 dark:bg-white/8 hover:bg-[var(--navy)]/12 dark:hover:bg-white/12 rounded-lg px-3 py-1.5 transition-colors">
 				Course Admin →
 			</a>
@@ -180,11 +244,12 @@ const cfDash = 'https://dash.cloudflare.com';
 		</div>
 
 		{!hasApi && (
-			<div class="mb-6 rounded-xl bg-[var(--olive)]/10 border border-[var(--olive)]/20 px-4 py-3 text-sm text-[var(--ink)]/70 dark:text-white/60">
-				<strong class="font-semibold">Workers analytics not connected.</strong>
-				{' '}Add <code class="text-xs bg-[var(--navy)]/8 dark:bg-white/10 rounded px-1.5 py-0.5">CF_ACCOUNT_ID</code> and{' '}
-				<code class="text-xs bg-[var(--navy)]/8 dark:bg-white/10 rounded px-1.5 py-0.5">CF_API_TOKEN</code> as Cloudflare dashboard Variables.
-				The token needs <em>Account Analytics → Read</em> permission.
+			<div class="mb-6 rounded-xl bg-[var(--red)]/8 border border-[var(--red)]/20 px-4 py-3">
+				<p class="text-sm font-semibold text-[var(--red)] mb-1">CF API not connected — limit usage unknown</p>
+				<p class="text-xs text-[var(--ink)]/65 dark:text-white/55">
+					Add <code class="bg-[var(--navy)]/8 dark:bg-white/10 rounded px-1 py-0.5">CF_ACCOUNT_ID</code> and <code class="bg-[var(--navy)]/8 dark:bg-white/10 rounded px-1 py-0.5">CF_API_TOKEN</code> as Cloudflare dashboard Variables to see real usage vs limits.
+					Token needs <em>Account Analytics → Read</em>.
+				</p>
 			</div>
 		)}
 
@@ -193,193 +258,154 @@ const cfDash = 'https://dash.cloudflare.com';
 			{/* ── Workers ───────────────────────────────────────────────────────── */}
 			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 				<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/6 dark:border-white/6">
-					<div>
-						<p class="font-semibold text-[var(--navy)] dark:text-white">Workers</p>
-						<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">family-church-website · today (UTC)</p>
+					<div class="flex items-center gap-2.5">
+						<span class={`w-2 h-2 rounded-full shrink-0 ${statusDot(workersStats?.requests, 100_000)}`} />
+						<div>
+							<p class="font-semibold text-[var(--navy)] dark:text-white">Workers</p>
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">family-church-website · today (UTC)</p>
+						</div>
 					</div>
-					<a
-						href={cfDash}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-xs font-semibold text-[var(--green)] hover:underline"
-					>
-						Dashboard →
-					</a>
+					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
 
 				<div class="px-5 py-4 space-y-4">
-					{/* Requests */}
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
-							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Requests</span>
+							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Requests today</span>
 							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(workersStats?.requests ?? null)}
-								<span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30"> / 100k/day</span>
+								{fmt(workersStats?.requests)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 100k</span>
 							</span>
 						</div>
-						<div class="h-1.5 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
-							<div
-								class={`h-full rounded-full transition-all ${barColor(pct(workersStats?.requests ?? null, 100_000))}`}
-								style={`width: ${pct(workersStats?.requests ?? null, 100_000) ?? 0}%`}
-							/>
+						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+							<div class={`h-full rounded-full ${barColor(workersStats?.requests, 100_000)}`} style={`width:${pct(workersStats?.requests, 100_000)}%`} />
 						</div>
 					</div>
 
-					{/* Errors + subrequests */}
-					<div class="grid grid-cols-2 gap-3 text-sm">
-						<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2.5">
+					<div class="grid grid-cols-3 gap-2 text-sm">
+						<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2">
 							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">Errors</p>
-							<p class="font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(workersStats?.errors ?? null)}
-							</p>
+							<p class="font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(workersStats?.errors)}</p>
 						</div>
-						<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2.5">
-							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">Subrequests</p>
-							<p class="font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(workersStats?.subrequests ?? null)}
-								<span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30"> / 50 each</span>
-							</p>
-						</div>
-					</div>
-
-					{/* CPU time */}
-					<div class="grid grid-cols-2 gap-3 text-sm">
-						<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2.5">
+						<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2">
 							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">CPU p50</p>
-							<p class="font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmtMs(workersStats ? workersStats.cpuP50ms : null)}
-							</p>
+							<p class="font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmtMs(workersStats?.cpuP50ms)}</p>
 						</div>
-						<div class={`rounded-xl px-3 py-2.5 ${workersStats && workersStats.cpuP99ms > 9 ? 'bg-[var(--red)]/10' : 'bg-[var(--navy)]/4 dark:bg-white/5'}`}>
-							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">
-								CPU p99 <span class="text-[var(--ink)]/35 dark:text-white/25 font-normal normal-case tracking-normal">/ 10ms limit</span>
-							</p>
-							<p class={`font-semibold tabular-nums ${workersStats && workersStats.cpuP99ms > 9 ? 'text-[var(--red)]' : 'text-[var(--navy)] dark:text-white'}`}>
-								{fmtMs(workersStats ? workersStats.cpuP99ms : null)}
-							</p>
+						<div class={`rounded-xl px-3 py-2 ${workersStats && workersStats.cpuP99ms > 9 ? 'bg-[var(--red)]/10' : 'bg-[var(--navy)]/4 dark:bg-white/5'}`}>
+							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">CPU p99 <span class="font-normal normal-case tracking-normal opacity-60">/ 10ms</span></p>
+							<p class={`font-semibold tabular-nums ${workersStats && workersStats.cpuP99ms > 9 ? 'text-[var(--red)]' : 'text-[var(--navy)] dark:text-white'}`}>{fmtMs(workersStats?.cpuP99ms)}</p>
 						</div>
 					</div>
 
-					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">
-						Free: 100k req/day · 10ms CPU/req · 128MB RAM · 50 subreq/req
-					</p>
+					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">100k req/day · 10ms CPU/req · resets midnight UTC</p>
 				</div>
 			</div>
 
-			{/* ── KV: LESSON_PROGRESS ───────────────────────────────────────────── */}
+			{/* ── KV (combined) ─────────────────────────────────────────────────── */}
 			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 				<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/6 dark:border-white/6">
-					<div>
-						<p class="font-semibold text-[var(--navy)] dark:text-white">KV — LESSON_PROGRESS</p>
-						<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Course completion records</p>
+					<div class="flex items-center gap-2.5">
+						<span class={`w-2 h-2 rounded-full shrink-0 ${statusDot(kvStats?.total.write, 1_000)}`} />
+						<div>
+							<p class="font-semibold text-[var(--navy)] dark:text-white">Workers KV</p>
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">LESSON_PROGRESS + STREAM_REPORTS · today</p>
+						</div>
 					</div>
-					<a
-						href={cfDash}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-xs font-semibold text-[var(--green)] hover:underline"
-					>
-						Dashboard →
-					</a>
+					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
-				<div class="px-5 py-4 space-y-3">
-					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Keys stored</span>
-						<span class="text-lg font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-							{lessonKeys !== null ? lessonKeys.toLocaleString() : '—'}
-						</span>
-					</div>
-					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">
-						Free: 100k reads/day · 1k writes/day · 1 GB total storage
-					</p>
-				</div>
-			</div>
 
-			{/* ── KV: STREAM_REPORTS ────────────────────────────────────────────── */}
-			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
-				<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/6 dark:border-white/6">
+				<div class="px-5 py-4 space-y-4">
+					{/* Reads */}
 					<div>
-						<p class="font-semibold text-[var(--navy)] dark:text-white">KV — STREAM_REPORTS</p>
-						<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Live stream problem reports · 7-day TTL</p>
+						<div class="flex justify-between items-baseline mb-1.5">
+							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Reads today</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
+								{fmt(kvStats?.total.read)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 100k</span>
+							</span>
+						</div>
+						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+							<div class={`h-full rounded-full ${barColor(kvStats?.total.read, 100_000)}`} style={`width:${pct(kvStats?.total.read, 100_000)}%`} />
+						</div>
 					</div>
-					<a
-						href={cfDash}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-xs font-semibold text-[var(--green)] hover:underline"
-					>
-						Dashboard →
-					</a>
-				</div>
-				<div class="px-5 py-4 space-y-3">
-					<div class="flex items-center justify-between">
-						<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Active keys</span>
-						<span class="text-lg font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-							{reportKeys !== null ? reportKeys.toLocaleString() : '—'}
-						</span>
+
+					{/* Writes — tightest limit */}
+					<div>
+						<div class="flex justify-between items-baseline mb-1.5">
+							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Writes today <span class="font-normal text-[var(--red)]/70">← tightest limit</span></span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
+								{fmt(kvStats?.total.write)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1k</span>
+							</span>
+						</div>
+						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+							<div class={`h-full rounded-full ${barColor(kvStats?.total.write, 1_000)}`} style={`width:${pct(kvStats?.total.write, 1_000)}%`} />
+						</div>
 					</div>
-					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">
-						Shared limits with LESSON_PROGRESS · auto-expires after 7 days
-					</p>
+
+					{/* Per-namespace breakdown */}
+					<div class="grid grid-cols-2 gap-2">
+						{Object.entries(KV_NS).map(([name, id]) => {
+							const ns = kvStats?.byNamespace[id];
+							return (
+								<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2.5">
+									<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-1.5">{name.replace('_', ' ')}</p>
+									<div class="flex gap-3 text-xs tabular-nums text-[var(--navy)]/70 dark:text-white/60">
+										<span><span class="font-semibold text-[var(--navy)] dark:text-white">{fmt(ns?.read ?? (hasApi ? 0 : null))}</span> reads</span>
+										<span><span class="font-semibold text-[var(--navy)] dark:text-white">{fmt(ns?.write ?? (hasApi ? 0 : null))}</span> writes</span>
+									</div>
+									{name === 'LESSON_PROGRESS' && lessonKeys !== null && (
+										<p class="text-[10px] text-[var(--ink)]/35 dark:text-white/25 mt-1">{lessonKeys.toLocaleString()} keys stored</p>
+									)}
+									{name === 'STREAM_REPORTS' && reportKeys !== null && (
+										<p class="text-[10px] text-[var(--ink)]/35 dark:text-white/25 mt-1">{reportKeys.toLocaleString()} active keys · 7d TTL</p>
+									)}
+								</div>
+							);
+						})}
+					</div>
+
+					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">100k reads/day · 1k writes/day · 1 GB storage · limits are account-wide · reset midnight UTC</p>
 				</div>
 			</div>
 
 			{/* ── Durable Objects ───────────────────────────────────────────────── */}
 			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 				<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/6 dark:border-white/6">
-					<div>
-						<p class="font-semibold text-[var(--navy)] dark:text-white">Durable Objects — StreamMonitor</p>
-						<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">WebSocket hub for live stream dashboard</p>
+					<div class="flex items-center gap-2.5">
+						<span class="w-2 h-2 rounded-full shrink-0 bg-[var(--navy)]/20 dark:bg-white/15" />
+						<div>
+							<p class="font-semibold text-[var(--navy)] dark:text-white">Durable Objects — StreamMonitor</p>
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">WebSocket hub for stream dashboard</p>
+						</div>
 					</div>
-					<a
-						href={cfDash}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-xs font-semibold text-[var(--green)] hover:underline"
-					>
-						Dashboard →
-					</a>
+					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
 				<div class="px-5 py-4">
-					<p class="text-xs text-[var(--ink)]/50 dark:text-white/40 mb-2">
-						Usage data requires CF Analytics API. Check the dashboard for request counts and compute duration.
-					</p>
-					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">
-						Free: 5 GB SQLite storage · soft limit 1k req/s per object
-					</p>
+					<p class="text-xs text-[var(--ink)]/50 dark:text-white/40 mb-2">Only used during live streams. Check dashboard for request counts and compute duration.</p>
+					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">Free: 5 GB SQLite storage · 1k req/s per object</p>
 				</div>
 			</div>
 
 			{/* ── R2 ────────────────────────────────────────────────────────────── */}
 			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 				<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/6 dark:border-white/6">
-					<div>
-						<p class="font-semibold text-[var(--navy)] dark:text-white">R2 — sermons</p>
-						<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Sermon audio · audio.familychurch.online</p>
+					<div class="flex items-center gap-2.5">
+						<span class="w-2 h-2 rounded-full shrink-0 bg-[var(--navy)]/20 dark:bg-white/15" />
+						<div>
+							<p class="font-semibold text-[var(--navy)] dark:text-white">R2 — sermons</p>
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Sermon audio · audio.familychurch.online</p>
+						</div>
 					</div>
-					<a
-						href={cfDash}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-xs font-semibold text-[var(--green)] hover:underline"
-					>
-						Dashboard →
-					</a>
+					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
 				<div class="px-5 py-4">
-					<p class="text-xs text-[var(--ink)]/50 dark:text-white/40 mb-2">
-						No R2 binding — accessed via S3 API from import scripts only. Check the dashboard for storage and operation counts.
-					</p>
-					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">
-						Free: 10 GB storage · 1M Class A ops/month · 10M Class B ops/month · no egress fees
-					</p>
+					<p class="text-xs text-[var(--ink)]/50 dark:text-white/40 mb-2">Accessed via S3 API from import scripts only — no Worker binding. Check the dashboard for storage and operation counts.</p>
+					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">Free: 10 GB storage · 1M Class A ops/month · 10M Class B ops/month · no egress fees</p>
 				</div>
 			</div>
 
 		</div>
 
 		<p class="text-[10px] text-[var(--ink)]/25 dark:text-white/20 text-center mt-8">
-			Workers limits reset at midnight UTC · KV limits reset daily · R2 limits reset monthly
+			Workers + KV limits reset midnight UTC · R2 limits reset monthly
 		</p>
 
 	</div>
