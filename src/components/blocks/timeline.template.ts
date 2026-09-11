@@ -19,6 +19,19 @@ export const timelineBlockSchema: Template = {
 				{ name: 'time', label: 'Time', type: 'string', description: 'e.g. 9:30 AM or ~9:45 AM' },
 				{ name: 'heading', label: 'Heading', type: 'string' },
 				{ name: 'body', label: 'Description', type: 'string', ui: { component: 'textarea' } },
+				{
+					name: 'links',
+					label: 'Links',
+					type: 'object',
+					list: true,
+					ui: {
+						itemProps: (item) => ({ label: item.label ?? item.url ?? 'Link' }),
+					},
+					fields: [
+						{ name: 'label', label: 'Label', type: 'string' },
+						{ name: 'url', label: 'URL', type: 'string' },
+					],
+				},
 			],
 		},
 		{ name: 'locationName', label: 'Location Name', type: 'string' },
