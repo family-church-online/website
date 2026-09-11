@@ -37,7 +37,7 @@ export const SermonNotesCollection: Collection = {
 			name: 'image',
 			label: 'Sermon Image',
 			type: 'image',
-			ui: { uploadDir: () => '/images/sermons' },
+			ui: { uploadDir: () => '/images/temp' },
 		},
 		{
 			name: 'body',
