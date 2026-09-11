@@ -72,11 +72,11 @@ Sveltia's config is auto-generated from the TinaCMS schema at every build by `sc
 | Three Minutes | `src/content/threeminutes/` | Sveltia | Short outreach articles |
 | Events | `src/content/events/` | Sveltia | Dated events with optional registration link |
 | Guides | `src/content/guides/` | Sveltia | Long-form reference articles |
-| Amplify | `src/content/amplify/` | Sveltia | Teen ministry lessons |
+| Amplify | `src/content/amplify/` | Sveltia | Teen ministry lessons (`mainScriptureText` is rich-text) |
 | Kids — Pre-School | `src/content/kids/preschool/` | Sveltia | Kids church lessons |
 | Kids — Junior | `src/content/kids/junior/` | Sveltia | Kids church lessons |
 | Kids — Senior | `src/content/kids/senior/` | Sveltia | Kids church lessons |
-| Global config | `src/content/config/config.json` | TinaCMS | Nav, SEO, contact links, auth copy |
+| Global config | `src/content/config/config.json` | TinaCMS | Nav, SEO, contact links, auth, admin list ID |
 
 ### TinaCMS schema changes
 
@@ -112,6 +112,27 @@ Sign-in uses passwordless magic links:
 2. The server checks it against Planning Center Online (PCO) People API
 3. If found, a time-limited sign-in link is emailed via Resend
 4. Clicking the link sets a session cookie; protected content becomes accessible
+
+The session cookie records which PCO lists the member belongs to, checked at login time. List IDs to track come from two sources: per-course `requiredListId` fields, and the global `auth.adminListId` in `config.json` (editable via TinaCMS → Global Config → Member Access). The admin list gates `/course-admin` and `/cf-status`.
+
+## Admin pages
+
+| Page | Purpose |
+|------|---------|
+| `/course-admin` | Shows all lesson completions from KV, looks up names and mobile numbers from PCO, grouped by course. Includes WhatsApp tap-to-message links. |
+| `/cf-status` | Cloudflare free-tier usage: Workers invocations, CPU time, KV reads/writes. Requires `CF_ACCOUNT_ID` and `CF_API_TOKEN` Worker vars for live analytics; falls back to KV key counts without them. |
+| `/stream-dashboard` | Live stream problem report dashboard (no auth required — obscure URL). |
+
+Both `/course-admin` and `/cf-status` are `noindex` and require membership of the `auth.adminListId` PCO list.
+
+## Ministry lesson pages
+
+| Component | Collection schema | Used by |
+|-----------|------------------|---------|
+| `AmplifyLessonPage.astro` | `tina/collections/amplify-lesson.ts` | `/amplify/[slug]` |
+| `KidsLessonPage.astro` | `tina/collections/kids-lesson.ts` | `/kids-church/[group]/[date]` |
+
+The `mainScriptureText` field on Amplify lessons is TinaCMS `rich-text`. `AmplifyLessonPage.astro` renders it via a `renderRichText()` helper that handles both the TinaCMS AST format (after editing via admin) and legacy plain-string content.
 
 ## On-demand routes (Cloudflare Worker)
 

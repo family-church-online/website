@@ -69,9 +69,15 @@ src/components/**/*.astro   ← Components receive typed props
 | `page` | `src/content/page/` | MDX | `/{slug}` (block-based CMS pages) |
 | `sermon` | `src/content/sermons/` | MDX | `/sermons/{date}-{slug}` |
 | `devotion` | `src/content/devotion/` | MDX | `/devotion/{YYYY-MM-DD}` |
-| `globalConfig` | `src/content/config/config.json` | JSON | global (nav, SEO, contact links) |
+| `amplify` | `src/content/amplify/` | MDX | `/amplify/{slug}` (teen ministry lessons) |
+| `kidsPreschool/Junior/Senior` | `src/content/kids/` | MDX | `/kids-church/{group}/{date}` |
+| `globalConfig` | `src/content/config/config.json` | JSON | global (nav, SEO, contact links, auth) |
 
 Sermon filenames follow the pattern `YYYY-MM-DD-slugified-title.mdx` (enforced by the collection's `slugify` function). Devotion filenames are simply `YYYY-MM-DD.mdx`.
+
+**Amplify lessons** use `tina/collections/amplify-lesson.ts`. The `mainScriptureText` field is `rich-text` — TinaCMS stores it as an AST object; `AmplifyLessonPage.astro` renders it via a `renderRichText()` helper that also handles legacy plain-string content (content not yet re-saved through the admin).
+
+**Kids Church lessons** use `tina/collections/kids-lesson.ts`. Both lesson collections are factory functions called in `tina/config.ts` with `name`, `label`, `path`, and `route` options.
 
 ### Pages and routing
 
@@ -79,8 +85,12 @@ Sermon filenames follow the pattern `YYYY-MM-DD-slugified-title.mdx` (enforced b
 - `src/pages/sermons/index.astro` — Sermon listing with client-side filtering and pagination (no SSR)
 - `src/pages/sermons/[slug].astro` — Individual sermon
 - `src/pages/devotion/[date].astro` — Date-specific devotion (`/devotion/2026-08-27`)
+- `src/pages/amplify/[slug].astro` — Amplify teen ministry lesson (uses `AmplifyLessonPage.astro`)
+- `src/pages/kids-church/[group]/[date].astro` — Kids Church lesson (uses `KidsLessonPage.astro`)
 - `src/pages/today.astro` — Static fallback; in production intercepted by `functions/today.ts`
 - `src/pages/tina-island/[name].ts` — Dynamic on-demand route powering TinaCMS visual editing
+- `src/pages/course-admin.astro` — Admin: course completion viewer (gated to `adminListId` PCO list); `noindex`
+- `src/pages/cf-status.astro` — Admin: Cloudflare free-tier usage dashboard (gated to `adminListId`); `noindex`
 - `src/pages/api/stream-status.ts` — GET; checks Vimeo API for live stream
 - `src/pages/api/stream-report.ts` — POST; writes problem report to `STREAM_REPORTS` KV, notifies DO
 - `src/pages/api/stream-reports.ts` — GET; returns report counts + recent (last 60 min) from KV
@@ -146,3 +156,6 @@ Dark mode is controlled by the `.dark` class on `<html>` (set by `ThemeToggle.as
 - **Cloudflare KV access** — use `import { env } from 'cloudflare:workers'` with a try/catch wrapper (see existing API routes for the pattern). Never access KV via `Astro.locals` or `process.env`.
 - **Stream report widget** — five icon+label tappable items (not buttons) in `LiveStream.astro`. The description text is CMS-editable via the `reportDescription` field on the Live Stream block. `GET /api/stream-reports` deletes KV entries older than 60 minutes as it reads them; the dashboard polls this endpoint every 60 s so counts drop to zero on expiry.
 - **DO bindings in `patch-wrangler.mjs` not `wrangler.jsonc`** — DO bindings must not be in `wrangler.jsonc` or Miniflare will try to resolve the class during the Vite build phase and fail. Always add them in `patch-wrangler.mjs` instead.
+- **Admin pages** — `/course-admin` and `/cf-status` are SSR pages gated to the PCO list ID stored in `config.auth.adminListId` (editable via TinaCMS Global Config → Member Access). Both are `noindex`. The `adminListId` is included in `allTrackedIds` at login time in `src/pages/api/auth/login.ts` so it is baked into the session cookie. `CF_ACCOUNT_ID` and `CF_API_TOKEN` are optional Worker vars that unlock the Cloudflare Analytics API on `cf-status`; without them the page shows key counts only.
+- **Sermon notes drawer mobile fix** — the drawer in `LiveStream.astro` uses `translate-x-full` to hide off-screen. On mobile WebKit, translated `fixed` elements bypass `overflow-x: hidden` on `html`/`body` and create horizontal scroll. The fix is a `fixed inset-0 overflow-hidden pointer-events-none` wrapper div that clips the drawer while allowing the slide animation to work.
+- **Sveltia `rich-text → markdown` mapping** — `generate-sveltia-config.mts` automatically maps TinaCMS `rich-text` fields to Sveltia `widget: markdown`. Do not hand-edit `public/edit/config.yml` for field type changes — change the TinaCMS schema and run `pnpm sveltia:config` instead.
