@@ -71,7 +71,7 @@ const items = (data.items ?? []).filter((i): i is TimelineItem => i !== null);
 								{item.links.filter((l): l is TimelineLink => l !== null && !!l.url).map((link) => (
 									<a
 										href={link.url!}
-										class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[var(--green)]/10 text-[var(--green)] border border-[var(--green)]/20 hover:bg-[var(--green)]/20 transition-colors no-underline"
+										class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[var(--navy)] text-white hover:bg-[var(--navy)]/80 dark:bg-[var(--green)]/10 dark:text-[var(--green)] dark:border dark:border-[var(--green)]/20 dark:hover:bg-[var(--green)]/20 transition-colors no-underline"
 									>
 										{link.label ?? link.url}
 									</a>

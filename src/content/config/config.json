@@ -16,16 +16,16 @@
       "link": "",
       "children": [
         {
+          "title": "Plan a visit",
+          "link": "/services"
+        },
+        {
           "title": "Who we are",
           "link": "/about"
         },
         {
           "title": "What we believe",
           "link": "/statement-of-faith"
-        },
-        {
-          "title": "Plan a visit",
-          "link": "/services"
         }
       ]
     },
@@ -121,7 +121,6 @@
     "link": "/today"
   },
   "auth": {
-    "adminListId": "5358919",
     "email": {
       "subject": "Your sign-in link for Family Church",
       "intro": "Click the link below to sign in. It expires in 10 minutes.",
@@ -137,6 +136,7 @@
       "heading": "Check your email",
       "body": "If your email address is registered with our church, you'll receive a sign-in link shortly. The link expires in 10 minutes."
     },
+    "adminListId": "5358919",
     "deniedPage": {
       "heading": "Registration Required",
       "body": "You need to be registered for this content. Please contact us to arrange access."

@@ -51,29 +51,30 @@ const ministries = Object.entries(mods)
     {ministries.map((m) => (
       <section id={m.slug} class="reveal bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8">
 
-        {m.frontmatter.image && (
-          <div class="aspect-[16/9] overflow-hidden rounded-t-xl">
-            <img src={m.frontmatter.image} alt={m.frontmatter.title ?? ''} class="w-full h-full object-cover" />
-          </div>
-        )}
-
         <div class="px-6 py-6">
-          <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">
-            {m.frontmatter.title}
-          </h2>
-
-          <div class="ministry-body space-y-4">
-            <m.Content />
-          </div>
-
-          {m.frontmatter.link?.url && (
-            <div class="mt-4">
-              <a href={m.frontmatter.link.url} target="_blank" rel="noopener noreferrer"
-                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[var(--green)]/10 text-[var(--green)] border border-[var(--green)]/20 hover:bg-[var(--green)]/20 transition-colors no-underline">
-                {m.frontmatter.link.label ?? m.frontmatter.link.url}
-              </a>
+          <div class="flex gap-5 items-start">
+            {m.frontmatter.image && (
+              <div class="hidden sm:block shrink-0 w-24 h-24 rounded-xl overflow-hidden shadow-sm ring-1 ring-black/10">
+                <img src={m.frontmatter.image} alt={m.frontmatter.title ?? ''} class="w-full h-full object-cover" />
+              </div>
+            )}
+            <div class="flex-1 min-w-0">
+              <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">
+                {m.frontmatter.title}
+              </h2>
+              <div class="ministry-body space-y-4">
+                <m.Content />
+              </div>
+              {m.frontmatter.link?.url && (
+                <div class="mt-4">
+                  <a href={m.frontmatter.link.url} target="_blank" rel="noopener noreferrer"
+                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[var(--navy)] text-white hover:bg-[var(--navy)]/80 dark:bg-[var(--green)]/10 dark:text-[var(--green)] dark:border dark:border-[var(--green)]/20 dark:hover:bg-[var(--green)]/20 transition-colors no-underline">
+                    {m.frontmatter.link.label ?? m.frontmatter.link.url}
+                  </a>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
       </section>
