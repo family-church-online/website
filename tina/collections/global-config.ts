@@ -221,6 +221,12 @@ export const GlobalConfigCollection: Collection = {
           ],
         },
         {
+          name: "adminListId",
+          label: "Admin PCO List ID",
+          type: "string",
+          description: "Planning Center list ID whose members can access admin pages (/course-admin, /cf-status). Find the ID in the PCO URL: people.planningcenteronline.com/lists/{id}.",
+        },
+        {
           name: "deniedPage",
           label: "Access Denied Page",
           type: "object",

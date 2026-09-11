@@ -10,16 +10,12 @@ const registryMods = import.meta.glob<{ requiredListId?: string }>(
 	{ eager: true },
 );
 
-// Admin list — must be tracked so requireAuth() can find it in user.lists
-const ADMIN_LIST_IDS = ['5358919'];
-
 const trackedListIds: string[] = [
-	...new Set([
-		...ADMIN_LIST_IDS,
-		...Object.values(registryMods)
+	...new Set(
+		Object.values(registryMods)
 			.map(r => r.requiredListId)
 			.filter((id): id is string => Boolean(id)),
-	]),
+	),
 ];
 
 function resolveRequiredListId(redirectPath: string): string | undefined {
@@ -48,6 +44,9 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
 	const [siteConfig] = await Promise.all([getConfig()]);
 	const emailConfig = siteConfig.data?.config?.auth?.email ?? undefined;
+	// Pull admin list ID from CMS config so it can be changed without a code deploy
+	const adminListId = (siteConfig.data?.config?.auth as Record<string, unknown> | null | undefined)?.adminListId as string | undefined;
+	const allTrackedIds = [...new Set([...trackedListIds, ...(adminListId ? [adminListId] : [])])];
 
 	// Always show the same response — don't leak whether email/list matched.
 	const sendAndRedirect = async () => {
@@ -56,7 +55,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 			const person = await lookupPersonByEmail(email);
 			if (!person) return;
 
-			const lists = await fetchListMemberships(person.pcoId, trackedListIds);
+			const lists = await fetchListMemberships(person.pcoId, allTrackedIds);
 
 			const exp = Date.now() + 10 * 60 * 1000;
 			const token = await createSession({ sub: person.pcoId, name: person.name, email, lists, exp });

@@ -4,11 +4,13 @@ export const prerender = false;
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
 import { requireAuth } from '../lib/auth';
+import { getConfig } from '../lib/data';
 import { getSecret } from 'astro:env/server';
 import { env } from 'cloudflare:workers';
 
-const ADMIN_LIST_ID = '5358919';
-const auth = requireAuth(Astro, ADMIN_LIST_ID);
+const siteConfig = await getConfig();
+const adminListId = (siteConfig.data?.config?.auth as Record<string, unknown> | null | undefined)?.adminListId as string | undefined;
+const auth = requireAuth(Astro, adminListId);
 if (auth instanceof Response) return auth;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

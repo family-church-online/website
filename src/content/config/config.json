@@ -121,6 +121,7 @@
     "link": "/today"
   },
   "auth": {
+    "adminListId": "5358919",
     "email": {
       "subject": "Your sign-in link for Family Church",
       "intro": "Click the link below to sign in. It expires in 10 minutes.",
