@@ -300,7 +300,7 @@ const reports: CourseReport[] = [...courseMap.values()]
 									<p class="font-semibold text-[var(--navy)] dark:text-white leading-snug truncate">
 										{user.name}
 									</p>
-									<p class="text-xs text-[var(--ink)]/45 dark:text-white/40 mt-0.5 truncate">
+									<p class="text-xs text-[var(--ink)]/65 dark:text-white/55 mt-0.5 truncate">
 										{user.email}
 									</p>
 								</div>
@@ -330,7 +330,7 @@ const reports: CourseReport[] = [...courseMap.values()]
 									if (done.length === 0) return null;
 									return (
 										<div>
-											<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-1.5">
+											<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--navy)] dark:text-white/70 mb-1.5">
 												{chapter.title}
 											</p>
 											<div class="flex flex-wrap gap-2">
@@ -342,7 +342,7 @@ const reports: CourseReport[] = [...courseMap.values()]
 															<span class={`text-xs font-semibold leading-snug ${perfect ? 'text-[var(--green)]' : 'text-[var(--navy)] dark:text-white'}`}>
 																{lesson.title}
 															</span>
-															<span class="text-[10px] text-[var(--ink)]/45 dark:text-white/40 tabular-nums">
+															<span class="text-[10px] text-[var(--ink)]/70 dark:text-white/60 tabular-nums">
 																{rec.score}/{rec.total} · {formatDuration(rec.durationSecs)}
 															</span>
 														</span>
@@ -354,7 +354,7 @@ const reports: CourseReport[] = [...courseMap.values()]
 								})}
 
 								{/* Summary line */}
-								<p class="text-[10px] text-[var(--ink)]/35 dark:text-white/30 pt-0.5">
+								<p class="text-[10px] text-[var(--ink)]/60 dark:text-white/50 pt-0.5">
 									{user.completedTotal} of {course.lessons.length} {course.lessons.length === 1 ? 'lesson' : 'lessons'} completed
 								</p>
 							</div>
