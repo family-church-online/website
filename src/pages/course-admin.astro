@@ -1,0 +1,368 @@
+---
+export const prerender = false;
+
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import { requireAuth } from '../lib/auth';
+import { getSecret } from 'astro:env/server';
+import { env } from 'cloudflare:workers';
+
+const ADMIN_LIST_ID = '5358919';
+const auth = requireAuth(Astro, ADMIN_LIST_ID);
+if (auth instanceof Response) return auth;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function pcoAuthHeader(): string {
+	const token = process.env['PCO_APP_TOKEN'] ?? getSecret('PCO_APP_TOKEN');
+	const secret = process.env['PCO_APP_SECRET'] ?? getSecret('PCO_APP_SECRET');
+	if (!token || !secret) throw new Error('Missing PCO credentials');
+	return `Basic ${btoa(`${token}:${secret}`)}`;
+}
+
+function getKV(): KVNamespace | null {
+	try {
+		return (env as unknown as CloudflareEnv).LESSON_PROGRESS ?? null;
+	} catch {
+		return null;
+	}
+}
+
+function formatDuration(secs: number): string {
+	if (secs < 60) return `${secs}s`;
+	const m = Math.floor(secs / 60);
+	const s = secs % 60;
+	return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
+function toWANumber(mobile: string): string | null {
+	const digits = mobile.replace(/\D/g, '');
+	if (!digits) return null;
+	// South African: 10-digit number starting with 0 → strip 0, prepend 27
+	if (digits.startsWith('0') && digits.length === 10) return `27${digits.slice(1)}`;
+	// Already international format
+	if (digits.length > 10) return digits;
+	return null;
+}
+
+// ── Course + lesson metadata ───────────────────────────────────────────────────
+
+interface CourseRegistry {
+	title: string;
+	order?: number;
+	chapters?: Array<{ slug: string; title: string }>;
+}
+interface LessonFrontmatter {
+	lesson?: string;
+	pointNumber?: number;
+}
+interface LessonMeta {
+	chapterSlug: string;
+	lessonSlug: string;
+	title: string;
+	pointNumber: number;
+}
+interface CourseMeta {
+	slug: string;
+	title: string;
+	order: number;
+	chapters: Array<{ slug: string; title: string }>;
+	lessons: LessonMeta[];
+}
+
+const registryMods = import.meta.glob<CourseRegistry>(
+	'../content/courses/*.json',
+	{ eager: true },
+);
+const lessonMods = import.meta.glob<{ frontmatter: LessonFrontmatter }>(
+	'../content/courses/**/*.mdx',
+	{ eager: true },
+);
+
+const courseMap = new Map<string, CourseMeta>();
+for (const [path, data] of Object.entries(registryMods)) {
+	const slug = path.replace('../content/courses/', '').replace('.json', '');
+	courseMap.set(slug, {
+		slug,
+		title: data.title,
+		order: data.order ?? 999,
+		chapters: data.chapters ?? [],
+		lessons: [],
+	});
+}
+
+for (const [path, mod] of Object.entries(lessonMods)) {
+	const parts = path.replace('../content/courses/', '').replace('.mdx', '').split('/');
+	const [courseSlug, chapterSlug, lessonSlug] = parts;
+	const course = courseMap.get(courseSlug);
+	if (!course) continue;
+	course.lessons.push({
+		chapterSlug,
+		lessonSlug,
+		title: mod.frontmatter.lesson ?? lessonSlug,
+		pointNumber: mod.frontmatter.pointNumber ?? 999,
+	});
+}
+
+// Sort lessons: by chapter order first, then pointNumber within chapter
+for (const course of courseMap.values()) {
+	course.lessons.sort((a, b) => {
+		const ca = course.chapters.findIndex(c => c.slug === a.chapterSlug);
+		const cb = course.chapters.findIndex(c => c.slug === b.chapterSlug);
+		return ca !== cb ? ca - cb : a.pointNumber - b.pointNumber;
+	});
+}
+
+// ── Read all KV progress records ───────────────────────────────────────────────
+
+interface ProgressRecord {
+	score: number;
+	total: number;
+	durationSecs: number;
+	completedAt: string;
+}
+
+// email → courseSlug → `chapterSlug/lessonSlug` → ProgressRecord
+const progressMap = new Map<string, Map<string, Map<string, ProgressRecord>>>();
+
+const kv = getKV();
+if (kv) {
+	let cursor: string | undefined;
+	do {
+		const result = await kv.list({ prefix: 'lesson:', limit: 1000, ...(cursor ? { cursor } : {}) });
+		cursor = result.list_complete ? undefined : (result.cursor || undefined);
+
+		await Promise.all(
+			result.keys.map(async ({ name: key }) => {
+				// key format: lesson:{email}:{courseSlug}:{chapterSlug}:{lessonSlug}
+				// Emails never contain ':', slugs are kebab-case — safe to split on ':'
+				const parts = key.split(':');
+				if (parts.length < 5) return;
+				const [, email, courseSlug, chapterSlug, ...rest] = parts;
+				const lessonSlug = rest.join(':');
+
+				const raw = await kv!.get(key);
+				if (!raw) return;
+				const record: ProgressRecord = JSON.parse(raw);
+
+				if (!progressMap.has(email)) progressMap.set(email, new Map());
+				const byEmail = progressMap.get(email)!;
+				if (!byEmail.has(courseSlug)) byEmail.set(courseSlug, new Map());
+				byEmail.get(courseSlug)!.set(`${chapterSlug}/${lessonSlug}`, record);
+			}),
+		);
+	} while (cursor);
+}
+
+// ── Fetch PCO person info for each unique email ────────────────────────────────
+
+interface PersonInfo {
+	name: string;
+	mobile: string | null;
+}
+
+async function fetchPersonInfo(email: string): Promise<PersonInfo> {
+	const authHeader = pcoAuthHeader();
+	try {
+		const emailRes = await fetch(
+			`https://api.planningcenteronline.com/people/v2/emails?where[address]=${encodeURIComponent(email)}&per_page=1`,
+			{ headers: { Authorization: authHeader } },
+		);
+		if (!emailRes.ok) return { name: email, mobile: null };
+		const emailJson = await emailRes.json() as {
+			data: Array<{ relationships: { person: { data: { id: string } } } }>;
+		};
+		if (!emailJson.data.length) return { name: email, mobile: null };
+		const pcoId = emailJson.data[0].relationships.person.data.id;
+
+		const [personRes, phoneRes] = await Promise.all([
+			fetch(
+				`https://api.planningcenteronline.com/people/v2/people/${pcoId}`,
+				{ headers: { Authorization: authHeader } },
+			),
+			fetch(
+				`https://api.planningcenteronline.com/people/v2/people/${pcoId}/phone_numbers?per_page=10`,
+				{ headers: { Authorization: authHeader } },
+			),
+		]);
+
+		const name = personRes.ok
+			? ((await personRes.json()) as { data: { attributes: { name: string } } }).data.attributes.name ?? email
+			: email;
+
+		let mobile: string | null = null;
+		if (phoneRes.ok) {
+			const phoneJson = await phoneRes.json() as {
+				data: Array<{ attributes: { number: string; location: string; primary: boolean } }>;
+			};
+			const phones = phoneJson.data;
+			const best =
+				phones.find(p => p.attributes.location === 'Mobile') ??
+				phones.find(p => p.attributes.primary) ??
+				phones[0];
+			mobile = best?.attributes.number ?? null;
+		}
+
+		return { name, mobile };
+	} catch {
+		return { name: email, mobile: null };
+	}
+}
+
+const emails = [...progressMap.keys()];
+const personInfoResults = await Promise.all(emails.map(fetchPersonInfo));
+const personInfo = new Map(emails.map((email, i) => [email, personInfoResults[i]]));
+
+// ── Build per-course report ────────────────────────────────────────────────────
+
+interface UserRow {
+	email: string;
+	name: string;
+	mobile: string | null;
+	waLink: string | null;
+	completedTotal: number;
+	completions: Map<string, ProgressRecord>;
+}
+
+interface CourseReport {
+	course: CourseMeta;
+	users: UserRow[];
+}
+
+const reports: CourseReport[] = [...courseMap.values()]
+	.sort((a, b) => a.order - b.order)
+	.map(course => {
+		const users: UserRow[] = [];
+		for (const [email, byEmail] of progressMap) {
+			const completions = byEmail.get(course.slug);
+			if (!completions?.size) continue;
+			const info = personInfo.get(email) ?? { name: email, mobile: null };
+			const waNum = info.mobile ? toWANumber(info.mobile) : null;
+			users.push({
+				email,
+				name: info.name,
+				mobile: info.mobile,
+				waLink: waNum ? `https://wa.me/${waNum}` : null,
+				completedTotal: completions.size,
+				completions,
+			});
+		}
+		users.sort((a, b) => a.name.localeCompare(b.name));
+		return { course, users };
+	})
+	.filter(r => r.users.length > 0);
+---
+
+<Base title="Course Admin" description="Course completion admin view">
+
+	<div class="max-w-2xl mx-auto px-4 sm:px-6 pt-10 pb-24">
+
+		<div class="mb-8">
+			<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-1">Admin</p>
+			<h1 class="font-display text-3xl font-semibold text-[var(--navy)] dark:text-white">Course Progress</h1>
+		</div>
+
+		{!kv && (
+			<p class="text-sm text-[var(--ink)]/50 dark:text-white/40 py-16 text-center">
+				KV not available in this environment.
+			</p>
+		)}
+
+		{kv && reports.length === 0 && (
+			<p class="text-sm text-[var(--ink)]/50 dark:text-white/40 py-16 text-center">
+				No course completions recorded yet.
+			</p>
+		)}
+
+		{reports.map(({ course, users }) => (
+			<section class="mb-10">
+
+				{/* Course heading */}
+				<div class="flex items-baseline gap-3 mb-3">
+					<h2 class="font-display text-xl font-semibold text-[var(--navy)] dark:text-white">
+						{course.title}
+					</h2>
+					<span class="text-xs font-semibold text-[var(--olive)]">
+						{users.length} {users.length === 1 ? 'student' : 'students'}
+					</span>
+				</div>
+
+				{/* User cards */}
+				<div class="space-y-3">
+					{users.map(user => (
+						<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
+
+							{/* Person header */}
+							<div class="flex items-start gap-3 px-4 py-4 border-b border-[var(--navy)]/6 dark:border-white/6">
+								<div class="flex-1 min-w-0">
+									<p class="font-semibold text-[var(--navy)] dark:text-white leading-snug truncate">
+										{user.name}
+									</p>
+									<p class="text-xs text-[var(--ink)]/45 dark:text-white/40 mt-0.5 truncate">
+										{user.email}
+									</p>
+								</div>
+								{/* WhatsApp / mobile link */}
+								{user.waLink ? (
+									<a
+										href={user.waLink}
+										class="shrink-0 flex items-center gap-1.5 text-sm font-semibold text-[#25D366] bg-[#25D366]/10 rounded-xl px-3 py-1.5 hover:bg-[#25D366]/20 transition-colors"
+									>
+										<Icon name="whatsapp" class="w-4 h-4" />
+										{user.mobile}
+									</a>
+								) : user.mobile ? (
+									<span class="shrink-0 text-sm text-[var(--ink)]/50 dark:text-white/40">
+										{user.mobile}
+									</span>
+								) : null}
+							</div>
+
+							{/* Lessons by chapter */}
+							<div class="px-4 py-3 space-y-3">
+								{course.chapters.map(chapter => {
+									const chapterLessons = course.lessons.filter(l => l.chapterSlug === chapter.slug);
+									const done = chapterLessons.filter(l =>
+										user.completions.has(`${l.chapterSlug}/${l.lessonSlug}`)
+									);
+									if (done.length === 0) return null;
+									return (
+										<div>
+											<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-1.5">
+												{chapter.title}
+											</p>
+											<div class="flex flex-wrap gap-2">
+												{done.map(lesson => {
+													const rec = user.completions.get(`${lesson.chapterSlug}/${lesson.lessonSlug}`)!;
+													const perfect = rec.score === rec.total;
+													return (
+														<span class={`inline-flex flex-col rounded-xl px-3 py-1.5 ${perfect ? 'bg-[var(--green)]/10' : 'bg-[var(--navy)]/5 dark:bg-white/5'}`}>
+															<span class={`text-xs font-semibold leading-snug ${perfect ? 'text-[var(--green)]' : 'text-[var(--navy)] dark:text-white'}`}>
+																{lesson.title}
+															</span>
+															<span class="text-[10px] text-[var(--ink)]/45 dark:text-white/40 tabular-nums">
+																{rec.score}/{rec.total} · {formatDuration(rec.durationSecs)}
+															</span>
+														</span>
+													);
+												})}
+											</div>
+										</div>
+									);
+								})}
+
+								{/* Summary line */}
+								<p class="text-[10px] text-[var(--ink)]/35 dark:text-white/30 pt-0.5">
+									{user.completedTotal} of {course.lessons.length} {course.lessons.length === 1 ? 'lesson' : 'lessons'} completed
+								</p>
+							</div>
+
+						</div>
+					))}
+				</div>
+			</section>
+		))}
+
+	</div>
+
+</Base>
