@@ -42,7 +42,8 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	// reliably carry a cookie set on this response into the very next
 	// request if that next request is itself an automatic redirect hop.
 	// Requiring a tap makes the next request a real user-initiated
-	// navigation, which every browser handles correctly.
+	// navigation, which every browser handles correctly. Astro merges
+	// the cookie set above into this Response automatically.
 	const href = escapeHtml(returnTo);
 	const html = `<!doctype html>
 <html lang="en">
@@ -107,7 +108,6 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 		status: 200,
 		headers: {
 			'content-type': 'text/html; charset=utf-8',
-			'set-cookie': cookies.headers().next().value ?? '',
 		},
 	});
 };
