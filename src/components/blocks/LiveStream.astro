@@ -139,9 +139,11 @@ const notesJson = JSON.stringify({
 			</div>
 		</div>
 
-	{/* Sermon Notes drawer */}
-	<div id="notes-overlay" class="hidden fixed inset-0 bg-black/50 z-40 cursor-pointer"></div>
-	<div id="notes-drawer" class="fixed inset-y-0 right-0 w-full sm:w-[520px] bg-white dark:bg-[var(--card)] z-50 shadow-2xl flex flex-col translate-x-full transition-transform duration-300">
+	{/* Sermon Notes drawer — fixed+overflow-hidden wrapper clips the off-screen drawer so it
+	    doesn't create horizontal overflow on mobile (translate-x-full on fixed bypasses overflow-x:hidden) */}
+	<div class="fixed inset-0 z-50 pointer-events-none overflow-hidden">
+	<div id="notes-overlay" class="hidden absolute inset-0 bg-black/50 cursor-pointer pointer-events-auto"></div>
+	<div id="notes-drawer" class="absolute inset-y-0 right-0 w-full sm:w-[520px] bg-white dark:bg-[var(--card)] shadow-2xl flex flex-col translate-x-full transition-transform duration-300 pointer-events-auto">
 		<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/10 dark:border-white/10 shrink-0">
 			<span class="font-semibold text-sm text-[var(--navy)] dark:text-white">Sermon Notes</span>
 			<button id="notes-close" class="text-[var(--ink)]/50 dark:text-white/50 hover:text-[var(--ink)] dark:hover:text-white transition-colors">
@@ -150,6 +152,7 @@ const notesJson = JSON.stringify({
 		</div>
 		<iframe id="notes-frame" class="flex-1 border-0 w-full" title="Sermon Notes"></iframe>
 	</div>
+	</div>{/* end notes container */}
 
 </div>
 )}
