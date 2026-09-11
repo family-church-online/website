@@ -22,44 +22,46 @@ interface Props {
 const { data } = Astro.props;
 const members = (data.members ?? []).filter(m => m !== null);
 ---
-<Section id="our-people" class="pt-6">
+<Section id="our-people">
 	<div class="mx-auto max-w-[var(--content-width)]">
 
-		<div class="mb-12">
-			{data.title && (
-				<h2 data-tina-field={tinaField(data, 'title')}
-					class="text-center text-4xl font-semibold lg:text-5xl">
-					{data.title}
-				</h2>
-			)}
-			{data.body && (
-				<div data-tina-field={tinaField(data, 'body')}
-					class="prose prose-lg mt-6 max-w-none text-muted-foreground">
-					<TinaMarkdown content={data.body} />
-				</div>
-			)}
-		</div>
+		{(data.title || data.body) && (
+			<div class="mb-10">
+				{data.title && (
+					<h2 data-tina-field={tinaField(data, 'title')}
+						class="font-display text-balance text-center text-4xl font-semibold lg:text-5xl mb-4">
+						{data.title}
+					</h2>
+				)}
+				{data.body && (
+					<div data-tina-field={tinaField(data, 'body')}
+						class="prose prose-lg mt-6 max-w-none text-[var(--ink)]/70 dark:text-white/60">
+						<TinaMarkdown content={data.body} />
+					</div>
+				)}
+			</div>
+		)}
 
 		{members.length === 1 && (() => {
 			const member = members[0];
 			return (
 				<div data-tina-field={tinaField(data, 'members')}>
-					<div data-tina-field={tinaField(member)} class="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+					<div data-tina-field={tinaField(member)} class="flex flex-col overflow-hidden rounded-xl bg-white dark:bg-[var(--card)] shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8">
 						{member.photo && (
-							<div data-tina-field={tinaField(member, 'photo')} class="overflow-hidden">
-								<img src={member.photo} alt={member.name ?? ''} class="w-full object-cover" />
+							<div data-tina-field={tinaField(member, 'photo')} class="aspect-[16/9] overflow-hidden">
+								<img src={member.photo} alt={member.name ?? ''} class="w-full h-full object-cover" />
 							</div>
 						)}
 						{(member.name || member.role || member.bio) && (
-							<div class="flex flex-col gap-1 p-5 text-center">
+							<div class="flex flex-col gap-1 p-6 text-center">
 								{member.name && (
-									<h3 data-tina-field={tinaField(member, 'name')} class="text-lg font-semibold">{member.name}</h3>
+									<h3 data-tina-field={tinaField(member, 'name')} class="text-lg font-semibold text-[var(--navy)] dark:text-white">{member.name}</h3>
 								)}
 								{member.role && (
 									<p data-tina-field={tinaField(member, 'role')} class="text-sm font-medium text-[var(--olive)]">{member.role}</p>
 								)}
 								{member.bio && (
-									<p data-tina-field={tinaField(member, 'bio')} class="mt-2 text-sm leading-relaxed text-muted-foreground">{member.bio}</p>
+									<p data-tina-field={tinaField(member, 'bio')} class="mt-2 text-sm leading-relaxed text-[var(--ink)]/70 dark:text-white/65">{member.bio}</p>
 								)}
 							</div>
 						)}
@@ -70,25 +72,25 @@ const members = (data.members ?? []).filter(m => m !== null);
 
 		{members.length > 1 && (
 			<ul data-tina-field={tinaField(data, 'members')}
-				class="grid gap-8"
+				class="grid gap-6"
 				style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
 				{members.map((member) => (
 					<li data-tina-field={tinaField(member)}
-						class="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+						class="flex flex-col overflow-hidden rounded-xl bg-white dark:bg-[var(--card)] shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8">
 						{member.photo && (
-							<div data-tina-field={tinaField(member, 'photo')} class="overflow-hidden">
-								<img src={member.photo} alt={member.name ?? ''} class="aspect-[4/3] w-full object-cover" />
+							<div data-tina-field={tinaField(member, 'photo')} class="aspect-[4/3] overflow-hidden">
+								<img src={member.photo} alt={member.name ?? ''} class="w-full h-full object-cover" />
 							</div>
 						)}
 						<div class="flex flex-col gap-1 p-5">
 							{member.name && (
-								<h3 data-tina-field={tinaField(member, 'name')} class="text-lg font-semibold">{member.name}</h3>
+								<h3 data-tina-field={tinaField(member, 'name')} class="text-lg font-semibold text-[var(--navy)] dark:text-white">{member.name}</h3>
 							)}
 							{member.role && (
 								<p data-tina-field={tinaField(member, 'role')} class="text-sm font-medium text-[var(--olive)]">{member.role}</p>
 							)}
 							{member.bio && (
-								<p data-tina-field={tinaField(member, 'bio')} class="mt-2 text-sm leading-relaxed text-muted-foreground">{member.bio}</p>
+								<p data-tina-field={tinaField(member, 'bio')} class="mt-2 text-sm leading-relaxed text-[var(--ink)]/70 dark:text-white/65">{member.bio}</p>
 							)}
 						</div>
 					</li>

@@ -11,6 +11,7 @@ import { CourseCollection } from "./collections/course";
 import { EventCollection } from "./collections/event";
 import { ThreeMinutesCollection } from "./collections/three-minutes";
 import { SermonNotesCollection } from "./collections/sermon-notes";
+import { MinistryCollection } from "./collections/ministry";
 import { ministryLessonCollection } from "./collections/amplify-lesson";
 import { kidsLessonCollection }     from "./collections/kids-lesson";
 import { courseLessonCollection }   from "./collections/course-lesson";
@@ -83,6 +84,7 @@ export default defineConfig({
       courseLessonCollection({ name: 'fourWallsScripture',   label: 'Four Walls — Scripture',           courseSlug: 'the-four-walls-of-the-church', chapterSlug: 'scripture' }),
       courseLessonCollection({ name: 'prayerHumility',       label: 'Four Walls — Prayer',              courseSlug: 'the-four-walls-of-the-church', chapterSlug: 'prayer' }),
       SermonNotesCollection,
+      MinistryCollection,
       GlobalConfigCollection,
     ],
   },

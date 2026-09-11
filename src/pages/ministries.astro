@@ -1,0 +1,93 @@
+---
+import Base from '../layouts/Base.astro';
+
+interface MinistryFrontmatter {
+  title?: string;
+  image?: string | null;
+  link?: { label?: string; url?: string } | null;
+}
+
+const mods = import.meta.glob<{ frontmatter: MinistryFrontmatter; default: any }>(
+  '../content/ministries/*.mdx',
+  { eager: true }
+);
+
+const ministries = Object.entries(mods)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([path, mod]) => ({
+    slug: path.replace('../content/ministries/', '').replace('.mdx', '').replace(/^\d+-/, ''),
+    frontmatter: mod.frontmatter,
+    Content: mod.default,
+  }));
+---
+
+<Base
+  title="Ministries — Family Church"
+  description="Find your place in our community — Friday Youth, Retirement fellowship, and Sport."
+>
+
+  {/* ── PAGE HEADER ─────────────────────────────────────────────────────── */}
+  <div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
+    <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Get Involved</p>
+    <h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-4">Ministries</h1>
+    <p class="mx-auto max-w-xl text-lg leading-relaxed text-[var(--ink)]/70 dark:text-white/60">
+      Whatever your age or stage, there is a place for you here.
+    </p>
+    <div class="flex flex-wrap justify-center gap-3 mt-6 text-sm">
+      {ministries.map((m, i) => (
+        <>
+          {i > 0 && <span class="text-[var(--ink)]/25 dark:text-white/25">·</span>}
+          <a href={`#${m.slug}`}
+            class="text-[var(--navy)] dark:text-[var(--green)] hover:text-[var(--green)] dark:hover:text-white font-medium transition-colors">
+            {m.frontmatter.title}
+          </a>
+        </>
+      ))}
+    </div>
+  </div>
+
+  {/* ── SECTIONS ────────────────────────────────────────────────────────── */}
+  <main class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-20 space-y-8">
+    {ministries.map((m) => (
+      <section id={m.slug} class="reveal bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8">
+
+        {m.frontmatter.image && (
+          <div class="aspect-[16/9] overflow-hidden rounded-t-xl">
+            <img src={m.frontmatter.image} alt={m.frontmatter.title ?? ''} class="w-full h-full object-cover" />
+          </div>
+        )}
+
+        <div class="px-6 py-6">
+          <h2 class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">
+            {m.frontmatter.title}
+          </h2>
+
+          <div class="ministry-body space-y-4">
+            <m.Content />
+          </div>
+
+          {m.frontmatter.link?.url && (
+            <div class="mt-4">
+              <a href={m.frontmatter.link.url} target="_blank" rel="noopener noreferrer"
+                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[var(--green)]/10 text-[var(--green)] border border-[var(--green)]/20 hover:bg-[var(--green)]/20 transition-colors no-underline">
+                {m.frontmatter.link.label ?? m.frontmatter.link.url}
+              </a>
+            </div>
+          )}
+        </div>
+
+      </section>
+    ))}
+  </main>
+
+</Base>
+
+<style>
+.ministry-body :global(p) {
+  color: rgba(20, 32, 47, 0.80);
+  line-height: 1.75;
+}
+:global(.dark) .ministry-body :global(p) {
+  color: rgba(255, 255, 255, 0.75);
+}
+</style>

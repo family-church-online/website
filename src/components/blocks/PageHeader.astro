@@ -2,6 +2,7 @@
 import { tinaField } from '@tinacms/astro/tina-field';
 import TinaMarkdown from '@tinacms/astro/TinaMarkdown.astro';
 import Section from '../ui/Section.astro';
+import { mdxComponents } from '../mdx/components';
 
 interface Props {
 	data: {
@@ -17,29 +18,68 @@ const { data } = Astro.props;
 ---
 <Section>
 	<div class="mx-auto max-w-[var(--content-width)]">
-		{data.label && (
-			<p data-tina-field={tinaField(data, 'label')}
-				class="mb-4 text-center text-xs font-semibold uppercase tracking-widest text-[var(--olive)]">
-				{data.label}
-			</p>
-		)}
-		{data.heading && (
-			<h1 data-tina-field={tinaField(data, 'heading')}
-				class="text-balance text-center text-4xl font-semibold lg:text-5xl">
-				{data.heading}
-			</h1>
-		)}
-		{data.subtitle && (
-			<p data-tina-field={tinaField(data, 'subtitle')}
-				class="mx-auto mt-4 max-w-xl text-center text-lg leading-relaxed text-muted-foreground">
-				{data.subtitle}
-			</p>
-		)}
+
+		<div class="text-center mb-10">
+			{data.label && (
+				<p data-tina-field={tinaField(data, 'label')}
+					class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">
+					{data.label}
+				</p>
+			)}
+			{data.heading && (
+				<h1 data-tina-field={tinaField(data, 'heading')}
+					class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-4">
+					{data.heading}
+				</h1>
+			)}
+			{data.subtitle && (
+				<p data-tina-field={tinaField(data, 'subtitle')}
+					class="mx-auto max-w-xl text-lg leading-relaxed text-[var(--ink)]/70 dark:text-white/60">
+					{data.subtitle}
+				</p>
+			)}
+		</div>
+
 		{data.body && (
-			<div data-tina-field={tinaField(data, 'body')}
-				class="prose prose-lg mt-12 max-w-none text-muted-foreground">
-				<TinaMarkdown content={data.body} />
+			<div data-tina-field={tinaField(data, 'body')} class="body-prose">
+				<TinaMarkdown content={data.body} components={mdxComponents} />
 			</div>
 		)}
+
 	</div>
 </Section>
+
+<style>
+.body-prose :global(p) {
+	color: rgba(20, 32, 47, 0.80);
+	line-height: 1.75;
+	margin-bottom: 1.25rem;
+}
+:global(.dark) .body-prose :global(p) {
+	color: rgba(255, 255, 255, 0.75);
+}
+.body-prose :global(h2) {
+	font-family: var(--font-body);
+	font-size: 0.75rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--olive);
+	margin-top: 2.5rem;
+	margin-bottom: 0.75rem;
+}
+.body-prose :global(blockquote) {
+	border-left: 4px solid var(--green);
+	padding-left: 1.25rem;
+	margin: 1.5rem 0;
+	font-style: italic;
+	color: rgba(20, 32, 47, 0.75);
+	line-height: 1.75;
+}
+:global(.dark) .body-prose :global(blockquote) {
+	color: rgba(255, 255, 255, 0.70);
+}
+.body-prose :global(blockquote p) {
+	margin-bottom: 0;
+}
+</style>
