@@ -2,12 +2,64 @@
 import Carousel from './Carousel.astro';
 import Icon from '../Icon.astro';
 
+// ── Rich-text renderer ───────────────────────────────────────────────────────
+// Renders a TinaCMS rich-text AST (stored as a YAML object after editing via
+// TinaCMS admin) to an HTML string. Falls back to treating the value as a
+// plain multi-line string for content not yet migrated through the admin.
+
+type RTNode = {
+	type?: string; text?: string;
+	bold?: boolean; italic?: boolean; underline?: boolean;
+	strikethrough?: boolean; code?: boolean; url?: string;
+	children?: RTNode[];
+};
+
+function rtNode(node: RTNode): string {
+	if (!node.type || node.type === 'text') {
+		let t = (node.text ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		if (node.code)          t = `<code>${t}</code>`;
+		if (node.bold)          t = `<strong>${t}</strong>`;
+		if (node.italic)        t = `<em>${t}</em>`;
+		if (node.underline)     t = `<u>${t}</u>`;
+		if (node.strikethrough) t = `<s>${t}</s>`;
+		return t;
+	}
+	const inner = (node.children ?? []).map(rtNode).join('');
+	switch (node.type) {
+		case 'root':       return inner;
+		case 'p':          return `<p>${inner}</p>`;
+		case 'h1': case 'h2': case 'h3':
+		case 'h4': case 'h5': case 'h6': return `<${node.type}>${inner}</${node.type}>`;
+		case 'blockquote': return `<blockquote>${inner}</blockquote>`;
+		case 'ul':         return `<ul>${inner}</ul>`;
+		case 'ol':         return `<ol>${inner}</ol>`;
+		case 'li':         return `<li>${inner}</li>`;
+		case 'lic':        return inner;
+		case 'a':          return `<a href="${node.url ?? ''}">${inner}</a>`;
+		case 'break':      return '<br>';
+		case 'hr':         return '<hr>';
+		case 'code_block': return `<pre><code>${inner}</code></pre>`;
+		default:           return inner;
+	}
+}
+
+function renderRichText(value: unknown): string {
+	if (!value) return '';
+	if (typeof value === 'string') {
+		// Legacy plain-string content — split on blank lines into paragraphs
+		return value.split('\n\n').map(p => `<p>${p.replace(/\n/g, ' ')}</p>`).join('');
+	}
+	return rtNode(value as RTNode);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface LessonFrontmatter {
 	title?: string;
 	date?: string;
 	scripture?: string;
 	image?: string;
-	mainScriptureText?: string;
+	mainScriptureText?: unknown;
 	additionalScriptures?: string[];
 	summary?: string;
 	about?: string;
@@ -93,8 +145,8 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 					{fm.scripture && (
 						<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">{fm.scripture}</p>
 					)}
-					<blockquote class="border-l-4 border-[var(--green)] pl-5">
-						<p class="text-[var(--ink)]/80 text-sm leading-relaxed italic">{fm.mainScriptureText}</p>
+					<blockquote class="border-l-4 border-[var(--green)] pl-5 space-y-3 [&_p]:text-[var(--ink)]/80 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:italic">
+						<Fragment set:html={renderRichText(fm.mainScriptureText)} />
 					</blockquote>
 				</div>
 			)}
@@ -110,7 +162,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 			{/* About */}
 			{fm.about && (
 				<div class="px-6 py-5 border-b border-[var(--ink)]/8 esv-crossref-ignore">
-					<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">About</p>
+					<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What This Is About</p>
 					<p class="text-sm text-[var(--ink)]/80 leading-relaxed">{fm.about}</p>
 				</div>
 			)}
@@ -120,7 +172,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 				<div class={`grid border-b border-[var(--ink)]/8 esv-crossref-ignore ${takeaway.length > 0 && forYou.length > 0 ? 'md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[var(--ink)]/8' : ''}`}>
 					{takeaway.length > 0 && (
 						<div class="px-6 py-5">
-							<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Takeaway</p>
+							<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What You Will Take Away</p>
 							<ul class="space-y-2">
 								{takeaway.map(t => (
 									<li class="flex gap-2 text-sm text-[var(--ink)]/75 leading-snug">
@@ -133,7 +185,7 @@ const pdfs        = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.fil
 					)}
 					{forYou.length > 0 && (
 						<div class="px-6 py-5">
-							<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">For You</p>
+							<p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">This Is For You If</p>
 							<ul class="space-y-2">
 								{forYou.map(t => (
 									<li class="flex gap-2 text-sm text-[var(--ink)]/75 leading-snug">

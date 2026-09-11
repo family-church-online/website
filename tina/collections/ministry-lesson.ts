@@ -56,8 +56,7 @@ export function ministryLessonCollection(opts: {
 			{
 				name: 'mainScriptureText',
 				label: 'Main Scripture Text',
-				type: 'string',
-				ui: { component: 'textarea' },
+				type: 'rich-text',
 				description: 'The full text of the key scripture passage',
 			},
 			{
