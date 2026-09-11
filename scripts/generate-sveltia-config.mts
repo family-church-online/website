@@ -118,7 +118,7 @@ import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
 import { EventCollection }          from '../tina/collections/event.ts';
 import { GuideCollection }          from '../tina/collections/guide.ts';
 import { SermonCollection }          from '../tina/collections/sermon.ts';
-import { ministryLessonCollection } from '../tina/collections/ministry-lesson.ts';
+import { ministryLessonCollection } from '../tina/collections/amplify-lesson.ts';
 import { kidsLessonCollection }     from '../tina/collections/kids-lesson.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
