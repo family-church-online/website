@@ -208,10 +208,14 @@ function readSermonNotes() {
     console.error(`Sermon notes not found: ${SERMON_NOTES}`);
     process.exit(1);
   }
-  const { data } = matter(readFileSync(SERMON_NOTES, 'utf8'));
-  // date field is an ISO datetime string like "2026-09-13T00:00:00.000+02:00"
-  const rawDate = data.date instanceof Date ? data.date.toISOString() : String(data.date || '');
-  const date = rawDate.slice(0, 10);
+  const raw = readFileSync(SERMON_NOTES, 'utf8');
+  const { data } = matter(raw);
+  // Extract date as a string from the raw YAML to avoid UTC conversion bugs.
+  // js-yaml parses ISO datetimes as Date objects; toISOString() shifts midnight SAST to the previous UTC day.
+  const dateMatch = raw.match(/^date:\s*(\d{4}-\d{2}-\d{2})/m);
+  const date = dateMatch ? dateMatch[1] : (data.date instanceof Date
+    ? `${data.date.getFullYear()}-${String(data.date.getMonth()+1).padStart(2,'0')}-${String(data.date.getDate()).padStart(2,'0')}`
+    : String(data.date || '').slice(0, 10));
   return {
     title:   (data.title  || '').trim(),
     speaker: (data.speaker || '').trim(),
@@ -926,7 +930,7 @@ function getNextMonday() {
   const diff = day === 0 ? 1 : (8 - day) % 7 || 7;
   const mon  = new Date(now);
   mon.setDate(now.getDate() + diff);
-  mon.setHours(0, 0, 0, 0);
+  mon.setUTCHours(0, 0, 0, 0);
   return mon;
 }
 
@@ -1217,7 +1221,7 @@ function writeWebsiteFiles(sermon, outputDir, date, slug) {
     const metaPath  = join(outputDir, `devotions-meta-${date}-${slug}.json`);
     let monday;
     if (existsSync(metaPath)) {
-      monday = new Date(JSON.parse(readFileSync(metaPath, 'utf8')).monday + 'T00:00:00');
+      monday = new Date(JSON.parse(readFileSync(metaPath, 'utf8')).monday + 'T00:00:00Z');
     } else {
       monday = getNextMonday();
       warn('No devotions-meta file — using next Monday as fallback');
