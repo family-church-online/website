@@ -23,22 +23,21 @@ const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] 
 	{ label: 'Picture Quality',icon: 'monitor'      },
 ];
 
-interface NotesFrontmatter { title?: string; speaker?: string; series?: string; image?: string; }
+interface NotesFrontmatter { title?: string; date?: string; speaker?: string; series?: string; image?: string; }
 const notesMods = import.meta.glob<{ frontmatter: NotesFrontmatter }>(
 	'../../content/sermon-notes/current.mdx',
 	{ eager: true }
 );
 const notesFm = Object.values(notesMods)[0]?.frontmatter ?? {};
-const notesJson = JSON.stringify({
-	title:   notesFm.title,
-	speaker: notesFm.speaker,
-	series:  notesFm.series,
-	image:   notesFm.image,
-});
+
+const nowSA = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
+const isSunday = nowSA.getDay() === 0;
+const todayStr = `${nowSA.getFullYear()}-${String(nowSA.getMonth() + 1).padStart(2, '0')}-${String(nowSA.getDate()).padStart(2, '0')}`;
+const showNotesCard = !!notesFm.title && (import.meta.env.DEV || (isSunday && notesFm.date === todayStr));
 ---
 
 {data.streamUrl && (
-	<div id="audio" class="max-w-[var(--content-width)] mx-auto px-6" data-sermon-notes={notesJson}>
+	<div id="audio" class="max-w-[var(--content-width)] mx-auto px-6">
 
 		{(data.heading || data.subheading) && (
 			<div class="pt-10 pb-8 text-center reveal">
@@ -96,25 +95,35 @@ const notesJson = JSON.stringify({
 			</div>
 		</div>
 
-		{/* Sunday Sermon Notes card — populated and revealed by JS on Sundays */}
-		<div id="notes-card" class="hidden py-4 reveal" data-reveal-delay="0.1">
-			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
-				<div class="px-6 pt-5 pb-4 flex items-start gap-4">
-					<img id="notes-card-img" alt="" class="hidden w-16 h-16 rounded-xl object-cover shrink-0" />
-					<div class="flex-1 min-w-0">
-						<p id="notes-card-series" class="hidden text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-1"></p>
-						<p id="notes-card-title" class="font-semibold text-[var(--navy)] dark:text-white leading-snug"></p>
-						<p id="notes-card-speaker" class="hidden text-sm text-[var(--ink)]/55 dark:text-white/45 mt-0.5"></p>
+		{/* Sunday Sermon Notes card — baked at build time */}
+		{showNotesCard && (
+			<div class="py-4 reveal" data-reveal-delay="0.1">
+				<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
+					<div class="px-6 pt-5 pb-4 flex items-start gap-4">
+						{notesFm.image && (
+							<div class="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+								<img src={notesFm.image} alt={notesFm.title ?? ''} class="w-full h-full object-cover scale-[1.35]" />
+							</div>
+						)}
+						<div class="flex-1 min-w-0">
+							{notesFm.series && (
+								<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-1">{notesFm.series}</p>
+							)}
+							<p class="font-semibold text-[var(--navy)] dark:text-white leading-snug">{notesFm.title ?? 'Sermon Notes'}</p>
+							{notesFm.speaker && (
+								<p class="text-sm text-[var(--ink)]/55 dark:text-white/45 mt-0.5">{notesFm.speaker}</p>
+							)}
+						</div>
+					</div>
+					<div class="px-6 pb-5">
+						<button id="notes-card-btn" class="w-full flex items-center justify-center gap-2 bg-[var(--navy)] hover:bg-[var(--green)] text-white font-semibold text-sm py-3 rounded-xl transition-colors">
+							<Icon name="note" class="w-4 h-4 shrink-0" />
+							Open Sermon Notes
+						</button>
 					</div>
 				</div>
-				<div class="px-6 pb-5">
-					<button id="notes-card-btn" class="w-full flex items-center justify-center gap-2 bg-[var(--navy)] hover:bg-[var(--green)] text-white font-semibold text-sm py-3 rounded-xl transition-colors">
-						<Icon name="note" class="w-4 h-4 shrink-0" />
-						Open Sermon Notes
-					</button>
-				</div>
 			</div>
-		</div>
+		)}
 
 		{/* Report a Problem — only visible while stream is live */}
 		<div id="report-widget" class="hidden py-4 reveal" data-reveal-delay="0.15">
@@ -224,33 +233,9 @@ function initReportButtons() {
 	});
 }
 
-function isSundaySA(): boolean {
-	const sa = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
-	return sa.getDay() === 0;
-}
-
 function initSermonNotes() {
-	if (!isSundaySA() && !new URLSearchParams(location.search).has('preview')) return;
-
-	// Read sermon notes metadata embedded server-side
-	const container = document.getElementById('audio');
-	let notes: { title?: string; speaker?: string; series?: string; image?: string } = {};
-	try { notes = JSON.parse(container?.dataset.sermonNotes ?? '{}'); } catch {}
-
-	const card        = document.getElementById('notes-card');
-	const cardImg     = document.getElementById('notes-card-img') as HTMLImageElement | null;
-	const cardSeries  = document.getElementById('notes-card-series');
-	const cardTitle   = document.getElementById('notes-card-title');
-	const cardSpeaker = document.getElementById('notes-card-speaker');
-	const cardBtn     = document.getElementById('notes-card-btn');
-	if (!card || !cardBtn) return;
-
-	if (notes.image   && cardImg)     { cardImg.src = notes.image; cardImg.classList.remove('hidden'); }
-	if (notes.series  && cardSeries)  { cardSeries.textContent  = notes.series;  cardSeries.classList.remove('hidden'); }
-	if (cardTitle)                      cardTitle.textContent   = notes.title ?? 'Sermon Notes';
-	if (notes.speaker && cardSpeaker) { cardSpeaker.textContent = notes.speaker; cardSpeaker.classList.remove('hidden'); }
-
-	card.classList.remove('hidden');
+	const cardBtn = document.getElementById('notes-card-btn');
+	if (!cardBtn) return;
 
 	const overlay = document.getElementById('notes-overlay');
 	const drawer  = document.getElementById('notes-drawer');
