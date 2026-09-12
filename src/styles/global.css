@@ -38,6 +38,7 @@ html:not(.dark) header {
    (#section) and cross-page links (/page#section). */
 html {
 	scroll-padding-top: 4.5rem;
+	font-size: 110%;
 }
 
 /* Scroll-reveal — add .reveal to any element; JS adds .is-visible on intersect */

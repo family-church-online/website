@@ -10,6 +10,14 @@ interface SermonFrontmatter {
 	review?: boolean;
 }
 
+interface NotesFrontmatter {
+	title?: string;
+	date?: string;
+	speaker?: string | null;
+	series?: string | null;
+	image?: string | null;
+}
+
 interface Props {
 	data: {
 		heading?: string | null;
@@ -26,6 +34,22 @@ const sermonModules = import.meta.glob<{ frontmatter: SermonFrontmatter }>(
 	{ eager: true },
 );
 
+const notesMods = import.meta.glob<{ frontmatter: NotesFrontmatter }>(
+	'../../content/sermon-notes/current.mdx',
+	{ eager: true },
+);
+const notesFm = Object.values(notesMods)[0]?.frontmatter ?? {};
+
+// Compute today in SA time (UTC+2) at build time
+const nowSA = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
+const isSunday = nowSA.getDay() === 0;
+const todayStr = `${nowSA.getFullYear()}-${String(nowSA.getMonth() + 1).padStart(2, '0')}-${String(nowSA.getDate()).padStart(2, '0')}`;
+
+const hasNotes         = !!Object.values(notesMods)[0];
+const notesAreForToday = notesFm.date === todayStr;
+const hasTodaySermon   = Object.values(sermonModules).some(m => m.frontmatter.date === todayStr);
+const showPlaceholder  = hasNotes && !hasTodaySermon && (import.meta.env.DEV || (isSunday && notesAreForToday));
+
 const recentSermons = Object.entries(sermonModules)
 	.map(([path, mod]) => ({
 		slug: path.replace('../../content/sermons/', '').replace('.mdx', ''),
@@ -33,7 +57,7 @@ const recentSermons = Object.entries(sermonModules)
 	}))
 	.filter(s => !s.review)
 	.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
-	.slice(0, count);
+	.slice(0, showPlaceholder ? count - 1 : count);
 
 function fmtDate(dateStr: string) {
 	return new Date(dateStr).toLocaleDateString('en-ZA', {
@@ -61,6 +85,39 @@ function fmtDate(dateStr: string) {
 				class="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
 				style="scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;"
 			>
+				{showPlaceholder && (
+					<li class="sermon-card scroll-snap-start shrink-0 w-[52vw] max-w-[180px] sm:w-[22%]">
+						<a
+							href="/sermon-notes"
+							target="_blank"
+							rel="noopener"
+							class="notes-card group flex flex-col bg-[var(--navy)] rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-shadow h-full"
+						>
+							<div class="aspect-video overflow-hidden">
+								{notesFm.image ? (
+									<img
+										src={notesFm.image}
+										alt={notesFm.title ?? ''}
+										class="w-full h-full object-cover scale-[1.70] opacity-50 group-hover:opacity-65 transition-opacity duration-300"
+										loading="eager"
+									/>
+								) : (
+									<div class="w-full h-full bg-[var(--navy)]/80"></div>
+								)}
+							</div>
+							<div class="px-4 py-3 flex-1 flex flex-col justify-between gap-1 text-center">
+								<p class="font-semibold text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-2 text-sm">
+									{notesFm.title ?? 'Sermon Notes'}
+								</p>
+								<p class="text-xs text-white/50">
+									{notesFm.date ? fmtDate(notesFm.date) : ''}
+									{notesFm.series ? ` · ${notesFm.series}` : ''}
+								</p>
+							</div>
+						</a>
+					</li>
+				)}
+
 				{recentSermons.map((s, i) => (
 					<li class="sermon-card scroll-snap-start shrink-0 w-[52vw] max-w-[180px] sm:w-[22%]">
 						<a
@@ -110,6 +167,7 @@ function fmtDate(dateStr: string) {
 .scrollbar-hide { scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scroll-snap-start { scroll-snap-align: start; }
+
 
 /* Cards start invisible; GSAP animates them in */
 .sermon-card { opacity: 0; transform: translateX(32px); }

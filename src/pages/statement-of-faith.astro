@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { getConfig, getStatementOfFaith } from '../lib/data';
 import Icon from '../components/Icon.astro';
+import EsvCrossref from '../components/EsvCrossref.astro';
 
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
@@ -82,6 +83,7 @@ const articles  = (sofData?.articles ?? []).filter(Boolean) as Array<{
     </ol>
   </main>
 
+  <EsvCrossref />
 </Base>
 
 <style>

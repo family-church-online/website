@@ -5,6 +5,7 @@ import Base from '../../../../layouts/Base.astro';
 import { getConfig } from '../../../../lib/data';
 import { requireAuth } from '../../../../lib/auth';
 import Icon from '../../../../components/Icon.astro';
+import EsvCrossref from '../../../../components/EsvCrossref.astro';
 
 interface QuestionOption {
   label: string;
@@ -203,7 +204,7 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
         </div>
 
         {/* Questions */}
-        <div class="divide-y divide-[var(--navy)]/8 dark:divide-white/8">
+        <div class="divide-y divide-[var(--navy)]/8 dark:divide-white/8 esv-crossref-ignore">
           {section.questions.map((q, qi) => {
             const qid = `${section.id}-${qi}`;
             return (
@@ -244,7 +245,7 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
 
     {/* ── TAKEAWAYS ──────────────────────────────────────────────────────────── */}
     {(fm.takeaways?.length ?? 0) > 0 && (
-      <div class="reveal takeaways-block rounded-2xl px-6 py-5 shadow-sm">
+      <div class="reveal takeaways-block rounded-2xl px-6 py-5 shadow-sm esv-crossref-ignore">
         <p class="text-xs font-bold uppercase tracking-widest text-white/50 mb-4">Key Takeaways</p>
         <ul class="space-y-3">
           {fm.takeaways!.map((t) => (
@@ -308,6 +309,7 @@ const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] :
 
   </main>
 
+  <EsvCrossref />
 </Base>
 
 <style>

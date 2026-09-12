@@ -7,8 +7,43 @@ const saDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/J
 const isSunday = saDate.getDay() === 0;
 const isPreview = Astro.url.searchParams.has('preview');
 
+const nextSunday = new Date(saDate);
+nextSunday.setDate(saDate.getDate() + ((7 - saDate.getDay()) % 7 || 7));
+const nextSundayStr = nextSunday.toLocaleDateString('en-ZA', {
+	weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Africa/Johannesburg',
+});
+
 if (!isSunday && !isPreview) {
-	return new Response(null, { status: 404 });
+	const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sermon Notes · Family Church</title>
+<meta name="robots" content="noindex, nofollow" />
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #fff; color: #14202f; display: flex; min-height: 100dvh; align-items: center; justify-content: center; padding: 2rem 1.5rem; }
+.wrap { max-width: 420px; text-align: center; }
+.label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8f926b; margin: 0 0 1.5rem; }
+h1 { font-size: 1.5rem; font-weight: 700; color: #273f61; margin: 0 0 0.75rem; line-height: 1.2; }
+p { font-size: 0.95rem; color: #14202f99; margin: 0 0 1.75rem; line-height: 1.6; }
+.next { display: inline-block; font-size: 0.8rem; font-weight: 600; color: #8f926b; background: #f5f5ee; border-radius: 2rem; padding: 0.4rem 1rem; margin-bottom: 1.75rem; }
+a { display: inline-block; font-size: 0.85rem; font-weight: 600; color: #fff; background: #273f61; border-radius: 0.5rem; padding: 0.55rem 1.25rem; text-decoration: none; }
+a:hover { background: #92c423; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<p class="label">Family Church</p>
+<h1>Sermon Notes</h1>
+<p>Sermon notes are available on Sunday mornings during our live service.</p>
+<p class="next">Next Sunday: ${nextSundayStr}</p><br/>
+<a href="https://familychurch.online">Back to the website</a>
+</div>
+</body>
+</html>`;
+	return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
 
 interface Frontmatter {
