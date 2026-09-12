@@ -62,6 +62,8 @@ const mod = Object.values(mods)[0] ?? {};
 const fm: Frontmatter = mod.frontmatter ?? {};
 const Content: any = mod.default;
 
+// TinaCMS datetime fields are auto-parsed to Date objects by Astro's YAML parser.
+// Pass directly to new Date() and format in SA timezone — never call .slice() on the value.
 const dateStr = fm.date
 	? new Date(fm.date as string).toLocaleDateString('en-ZA', {
 			weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Johannesburg',

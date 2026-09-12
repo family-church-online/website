@@ -47,6 +47,8 @@ const isSunday = nowSA.getDay() === 0;
 const todayStr = `${nowSA.getFullYear()}-${String(nowSA.getMonth() + 1).padStart(2, '0')}-${String(nowSA.getDate()).padStart(2, '0')}`;
 
 const hasNotes         = !!Object.values(notesMods)[0];
+// TinaCMS datetime fields are auto-parsed to Date objects by Astro's YAML parser.
+// Pass directly to new Date() and format in SA timezone — never call .slice() on the value.
 const notesDateYMD = notesFm.date
 	? new Date(notesFm.date as string).toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' })
 	: '';
