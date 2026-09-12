@@ -48,7 +48,7 @@ const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
 
 function fmtDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-ZA', {
+  return new Date(dateStr.slice(0, 10)).toLocaleDateString('en-ZA', {
     day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
   });
 }

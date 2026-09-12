@@ -63,7 +63,7 @@ const fm: Frontmatter = mod.frontmatter ?? {};
 const Content: any = mod.default;
 
 const dateStr = fm.date
-	? new Date(fm.date).toLocaleDateString('en-ZA', {
+	? new Date(fm.date.slice(0, 10)).toLocaleDateString('en-ZA', {
 			weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
 	  })
 	: saDate.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });

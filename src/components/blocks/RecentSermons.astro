@@ -47,7 +47,7 @@ const isSunday = nowSA.getDay() === 0;
 const todayStr = `${nowSA.getFullYear()}-${String(nowSA.getMonth() + 1).padStart(2, '0')}-${String(nowSA.getDate()).padStart(2, '0')}`;
 
 const hasNotes         = !!Object.values(notesMods)[0];
-const notesAreForToday = notesFm.date === todayStr;
+const notesAreForToday = (notesFm.date ?? '').slice(0, 10) === todayStr;
 const hasTodaySermon   = Object.values(sermonModules).some(m => m.frontmatter.date === todayStr);
 const showPlaceholder  = hasNotes && !hasTodaySermon && (import.meta.env.DEV || (isSunday && notesAreForToday));
 
@@ -61,7 +61,7 @@ const recentSermons = Object.entries(sermonModules)
 	.slice(0, showPlaceholder ? count - 1 : count);
 
 function fmtDate(dateStr: string) {
-	return new Date(dateStr).toLocaleDateString('en-ZA', {
+	return new Date(dateStr.slice(0, 10)).toLocaleDateString('en-ZA', {
 		day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
 	});
 }
@@ -111,7 +111,7 @@ function fmtDate(dateStr: string) {
 									{notesFm.title ?? 'Sermon Notes'}{notesFm.scripture ? `: ${notesFm.scripture}` : ''}
 								</p>
 								<p class="text-xs text-white/50">
-									{notesFm.date ? fmtDate(notesFm.date.slice(0, 10)) : ''}
+									{notesFm.date ? fmtDate(notesFm.date) : ''}
 									{notesFm.series ? ` · ${notesFm.series}` : ''}
 								</p>
 							</div>
