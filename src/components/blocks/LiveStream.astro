@@ -109,10 +109,7 @@ const showNotesCard = !!notesFm.title && (import.meta.env.DEV || (isSunday && no
 							{notesFm.series && (
 								<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-1">{notesFm.series}</p>
 							)}
-							<p class="font-semibold text-[var(--navy)] dark:text-white leading-snug">{notesFm.title ?? 'Sermon Notes'}</p>
-							{notesFm.scripture && (
-								<p class="text-xs text-[var(--ink)]/50 dark:text-white/40 mt-0.5">{notesFm.scripture}</p>
-							)}
+							<p class="font-semibold text-[var(--navy)] dark:text-white leading-snug">{notesFm.title ?? 'Sermon Notes'}{notesFm.scripture ? `: ${notesFm.scripture}` : ''}</p>
 							{notesFm.speaker && (
 								<p class="text-sm text-[var(--ink)]/55 dark:text-white/45 mt-0.5">{notesFm.speaker}</p>
 							)}
