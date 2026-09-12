@@ -111,7 +111,7 @@ function fmtDate(dateStr: string) {
 									{notesFm.title ?? 'Sermon Notes'}{notesFm.scripture ? `: ${notesFm.scripture}` : ''}
 								</p>
 								<p class="text-xs text-white/50">
-									{notesFm.date ? fmtDate(notesFm.date) : ''}
+									{notesFm.date ? fmtDate(notesFm.date.slice(0, 10)) : ''}
 									{notesFm.series ? ` · ${notesFm.series}` : ''}
 								</p>
 							</div>
