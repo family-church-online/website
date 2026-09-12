@@ -33,7 +33,10 @@ const notesFm = Object.values(notesMods)[0]?.frontmatter ?? {};
 const nowSA = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
 const isSunday = nowSA.getDay() === 0;
 const todayStr = `${nowSA.getFullYear()}-${String(nowSA.getMonth() + 1).padStart(2, '0')}-${String(nowSA.getDate()).padStart(2, '0')}`;
-const showNotesCard = !!notesFm.title && (import.meta.env.DEV || (isSunday && (notesFm.date ?? '').slice(0, 10) === todayStr));
+const notesDateYMD = notesFm.date
+	? new Date(notesFm.date as string).toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' })
+	: '';
+const showNotesCard = !!notesFm.title && (import.meta.env.DEV || (isSunday && notesDateYMD === todayStr));
 ---
 
 {data.streamUrl && (

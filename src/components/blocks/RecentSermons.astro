@@ -47,7 +47,10 @@ const isSunday = nowSA.getDay() === 0;
 const todayStr = `${nowSA.getFullYear()}-${String(nowSA.getMonth() + 1).padStart(2, '0')}-${String(nowSA.getDate()).padStart(2, '0')}`;
 
 const hasNotes         = !!Object.values(notesMods)[0];
-const notesAreForToday = (notesFm.date ?? '').slice(0, 10) === todayStr;
+const notesDateYMD = notesFm.date
+	? new Date(notesFm.date as string).toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' })
+	: '';
+const notesAreForToday = notesDateYMD === todayStr;
 const hasTodaySermon   = Object.values(sermonModules).some(m => m.frontmatter.date === todayStr);
 const showPlaceholder  = hasNotes && !hasTodaySermon && (import.meta.env.DEV || (isSunday && notesAreForToday));
 
@@ -60,9 +63,9 @@ const recentSermons = Object.entries(sermonModules)
 	.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
 	.slice(0, showPlaceholder ? count - 1 : count);
 
-function fmtDate(dateStr: string) {
-	return new Date(dateStr.slice(0, 10)).toLocaleDateString('en-ZA', {
-		day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+function fmtDate(dateStr: string | Date) {
+	return new Date(dateStr as string).toLocaleDateString('en-ZA', {
+		day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Johannesburg',
 	});
 }
 ---
