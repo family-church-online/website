@@ -15,6 +15,7 @@ interface NotesFrontmatter {
 	date?: string;
 	speaker?: string | null;
 	series?: string | null;
+	scripture?: string | null;
 	image?: string | null;
 }
 
@@ -107,7 +108,7 @@ function fmtDate(dateStr: string) {
 							</div>
 							<div class="px-4 py-3 flex-1 flex flex-col justify-between gap-1 text-center">
 								<p class="font-semibold text-white group-hover:text-[var(--green)] transition-colors leading-snug line-clamp-2 text-sm">
-									{notesFm.title ?? 'Sermon Notes'}
+									{notesFm.title ?? 'Sermon Notes'}{notesFm.scripture ? `: ${notesFm.scripture}` : ''}
 								</p>
 								<p class="text-xs text-white/50">
 									{notesFm.date ? fmtDate(notesFm.date) : ''}

@@ -29,6 +29,11 @@ export const SermonNotesCollection: Collection = {
 			type: 'string',
 		},
 		{
+			name: 'scripture',
+			label: 'Scripture Reference',
+			type: 'string',
+		},
+		{
 			name: 'series',
 			label: 'Series',
 			type: 'string',

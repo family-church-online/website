@@ -23,7 +23,7 @@ const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] 
 	{ label: 'Picture Quality',icon: 'monitor'      },
 ];
 
-interface NotesFrontmatter { title?: string; date?: string; speaker?: string; series?: string; image?: string; }
+interface NotesFrontmatter { title?: string; date?: string; speaker?: string; series?: string; scripture?: string; image?: string; }
 const notesMods = import.meta.glob<{ frontmatter: NotesFrontmatter }>(
 	'../../content/sermon-notes/current.mdx',
 	{ eager: true }
@@ -110,6 +110,9 @@ const showNotesCard = !!notesFm.title && (import.meta.env.DEV || (isSunday && no
 								<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-1">{notesFm.series}</p>
 							)}
 							<p class="font-semibold text-[var(--navy)] dark:text-white leading-snug">{notesFm.title ?? 'Sermon Notes'}</p>
+							{notesFm.scripture && (
+								<p class="text-xs text-[var(--ink)]/50 dark:text-white/40 mt-0.5">{notesFm.scripture}</p>
+							)}
 							{notesFm.speaker && (
 								<p class="text-sm text-[var(--ink)]/55 dark:text-white/45 mt-0.5">{notesFm.speaker}</p>
 							)}
