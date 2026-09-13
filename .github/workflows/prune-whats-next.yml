@@ -1,0 +1,38 @@
+name: Prune past What's Next services
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'  # Every Monday at 04:00 UTC (06:00 SA time)
+  workflow_dispatch:
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Delete past service files
+        run: |
+          TODAY=$(TZ="Africa/Johannesburg" date +%Y-%m-%d)
+          DELETED=0
+          for f in src/content/whats-next/*.mdx; do
+            [ -f "$f" ] || continue
+            DATE=$(basename "$f" .mdx)
+            if [[ "$DATE" < "$TODAY" ]]; then
+              echo "Removing $f ($DATE < $TODAY)"
+              rm "$f"
+              DELETED=$((DELETED + 1))
+            fi
+          done
+          echo "DELETED=$DELETED" >> "$GITHUB_ENV"
+
+      - name: Commit if anything was removed
+        if: env.DELETED != '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/content/whats-next/
+          git commit -m "chore(whats-next): auto-remove ${{ env.DELETED }} past service(s)"
+          git push
