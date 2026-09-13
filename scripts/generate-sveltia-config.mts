@@ -112,7 +112,7 @@ import { fileURLToPath } from 'node:url';
 // without any compile step. The `import type { Collection }` in each file
 // is a type-only import that is completely removed at runtime.
 import { SermonNotesCollection }     from '../tina/collections/sermon-notes.ts';
-import { ServiceScheduleCollection } from '../tina/collections/service-schedule.ts';
+import { WhatsNextCollection }        from '../tina/collections/whats-next.ts';
 import { AnnouncementCollection }   from '../tina/collections/announcement.ts';
 import { DevotionCollection }       from '../tina/collections/devotion.ts';
 import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
@@ -494,6 +494,18 @@ const folderCollections = [
     fields: translateFields(_kidsFields, 'kidsLesson'),
   },
   {
+    name: 'whats-next',
+    label: "What's Next",
+    folder: 'src/content/whats-next',
+    format: 'frontmatter',
+    extension: 'mdx',
+    create: true,
+    slug: '{{year}}-{{month}}-{{day}}',
+    editor: editorNoPreview,
+    preview_path: 'schedule',
+    fields: translateFields(WhatsNextCollection.fields as TinaField[], 'whatsNext'),
+  },
+  {
     name: 'kids-senior',
     label: 'Kids Church — Senior',
     folder: 'src/content/kids/senior',
@@ -510,21 +522,6 @@ const folderCollections = [
 ];
 
 const filesCollections: unknown[] = [
-  {
-    name:  'service-schedule',
-    label: 'Service Schedule',
-    editor: editorNoPreview,
-    preview_path: 'schedule',
-    files: [
-      {
-        name:   'schedule',
-        label:  'Service Schedule',
-        file:   'src/content/schedule/schedule.json',
-        format: 'json',
-        fields: translateFields(ServiceScheduleCollection.fields as TinaField[], 'serviceSchedule'),
-      },
-    ],
-  },
   {
     name:  'sermon-notes',
     label: 'Sunday Sermon Notes',

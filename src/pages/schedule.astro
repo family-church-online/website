@@ -3,22 +3,26 @@ export const prerender = true;
 
 import Base from '../layouts/Base.astro';
 import { getConfig } from '../lib/data';
-import rawData from '../content/schedule/schedule.json';
 
-type ServiceEntry = {
-	date: string;
+interface ServiceFrontmatter {
+	date: string | Date;
 	scripture?: string | null;
 	series?: string | null;
 	title?: string | null;
 	speaker?: string | null;
 	notes?: string | null;
-};
+}
 
-const services = ((rawData.services ?? []) as ServiceEntry[])
-	.map(s => ({
-		...s,
-		dateObj: new Date(s.date),
-		dateSA: new Date(s.date).toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' }),
+const modules = import.meta.glob<{ frontmatter: ServiceFrontmatter }>(
+	'../content/whats-next/*.mdx',
+	{ eager: true },
+);
+
+const services = Object.values(modules)
+	.map(m => ({
+		...m.frontmatter,
+		dateObj: new Date(m.frontmatter.date as string),
+		dateSA: new Date(m.frontmatter.date as string).toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' }),
 	}))
 	.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
 
