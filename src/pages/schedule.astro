@@ -58,12 +58,11 @@ function fmtFull(d: Date) {
 >
 	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-16">
 
-		<h1 class="font-display text-4xl lg:text-5xl font-semibold text-[var(--navy)] dark:text-white mb-2">
-			Service Schedule
-		</h1>
-		<p class="text-gray-500 dark:text-gray-400 mb-10">
-			Upcoming Sunday services at Family Church
-		</p>
+		<div class="text-center mb-14">
+			<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Sundays · 08:00</p>
+			<h1 class="text-4xl font-semibold lg:text-5xl text-balance mb-4">Service Schedule</h1>
+			<p class="text-lg text-muted-foreground">Upcoming Sunday services at Family Church</p>
+		</div>
 
 		{shown.length === 0 && (
 			<p class="text-center text-gray-400 py-24">No services scheduled yet.</p>
