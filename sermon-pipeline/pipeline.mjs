@@ -437,7 +437,7 @@ function generateSeoTitleSlug(sermon, htmlText) {
   const prompt = [
     'You are an SEO expert for a church website.',
     'Given a sermon\'s big idea, main scripture, and original title, produce:',
-    '1. An SEO-optimised title — compelling, searchable, under 65 characters; include the FULL scripture reference (book, chapter AND verses, e.g. "Revelation 4:1-4") — never abbreviate to chapter alone',
+    '1. An SEO-optimised title — compelling, searchable, under 65 characters; format EXACTLY as "Heading : Book Chapter:Verses" using " : " (space-colon-space) to separate the heading from the FULL scripture reference (e.g. "Fix Your Eyes on God\'s Throne : Revelation 4:1-4") — never abbreviate to chapter alone, never use a dash or em-dash as separator',
     '2. A URL slug — lowercase, hyphens only; include every word from the title (do NOT drop prepositions, articles, or any other word); include an abbreviated scripture reference (e.g. john-3-16); under 70 characters total',
     '',
     `Original title: ${sermon.title}`,
@@ -1119,15 +1119,16 @@ async function embedAndStore(date, mdText, taxonomyJson, htmlText) {
   const blockRows = blockRowsFromSfcData(content);
   const transcript = extractTranscriptBody(mdText);
 
-  // Voyage REST API (avoids SDK version uncertainty)
+  // Voyage contextualizedembeddings endpoint — inputs is a flat array of strings,
+  // wrapped in an outer array (API expects list-of-documents, each doc is a list of texts)
   async function voyageEmbed(inputs, inputType = 'document') {
-    const resp = await fetch('https://api.voyageai.com/v1/contextualize_and_embed', {
+    const resp = await fetch('https://api.voyageai.com/v1/contextualizedembeddings', {
       method: 'POST',
       headers: { Authorization: `Bearer ${VOYAGE_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: VOYAGE_MODEL, inputs: [inputs], input_type: inputType }),
     });
     if (!resp.ok) throw new Error(`Voyage API error: ${resp.status} ${await resp.text()}`);
-    return (await resp.json()).results[0].embeddings;
+    return (await resp.json()).data[0].data.map(d => d.embedding);
   }
 
   const headerChunks = chunkTranscript(transcript);
@@ -1139,21 +1140,25 @@ async function embedAndStore(date, mdText, taxonomyJson, htmlText) {
     chunkTexts  = allTexts;
     chunkStarts = [...blockRows.map(()=>null), ...headerChunks.map(([,s])=>s)];
   } else {
-    const blockEmbeds = blockRows.length ? await voyageEmbed(blockRows.map(([,t])=>t)) : [];
-    // Fallback: regular embed for transcript
-    const tResp = transcript ? await fetch('https://api.voyageai.com/v1/embeddings', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${VOYAGE_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: VOYAGE_MODEL, input: [transcript.replace(/\[\d{2}:\d{2}\]/g,'').trim()], input_type: 'document' }),
-    }).then(r => r.json()) : null;
-    const tEmbeds = tResp?.data?.map(d => d.embedding) ?? [];
-    chunkTexts  = [...blockRows.map(([,t])=>t), ...(tResp ? [transcript.replace(/\[\d{2}:\d{2}\]/g,'').trim()] : [])];
-    chunkStarts = chunkTexts.map(() => null);
-    embeddings  = [...blockEmbeds, ...tEmbeds];
+    const tClean = transcript ? transcript.replace(/\[\d{2}:\d{2}\]/g, '').trim() : null;
+    const allTexts = [...blockRows.map(([,t]) => t), ...(tClean ? [tClean] : [])];
+    embeddings  = allTexts.length ? await voyageEmbed(allTexts) : [];
+    chunkTexts  = allTexts;
+    chunkStarts = allTexts.map(() => null);
   }
 
-  const { registerTypes } = await import('pgvector/pg');
-  const db = new PgClient({ connectionString: DATABASE_URL });
+  const { registerTypes, toSql } = await import('pgvector/pg');
+  // pg's happy-eyeballs tries all IPs simultaneously; Neon rate-limits that.
+  // Resolve to one IPv4 and connect directly, same as psycopg2 does.
+  const { resolve4 } = await import('dns/promises');
+  const dbUrl = new URL(DATABASE_URL);
+  const [ip] = await resolve4(dbUrl.hostname);
+  const db = new PgClient({
+    host: ip, port: parseInt(dbUrl.port) || 5432,
+    database: dbUrl.pathname.slice(1),
+    user: decodeURIComponent(dbUrl.username), password: decodeURIComponent(dbUrl.password),
+    ssl: { rejectUnauthorized: false, servername: dbUrl.hostname },
+  });
   await db.connect();
   await registerTypes(db);
 
@@ -1171,7 +1176,7 @@ async function embedAndStore(date, mdText, taxonomyJson, htmlText) {
       await db.query(
         `INSERT INTO sermon_chunks (sermon_date,sermon_title,speaker,series,category,tags,sermon_scripture,section_type,content,embedding,audio_url,web_url,start_seconds)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-        [base.sermon_date,base.sermon_title,base.speaker,base.series,base.category,base.tags,base.sermon_scripture,stype,chunkTexts[i],embeddings[i],base.audio_url,base.web_url,chunkStarts[i]]
+        [base.sermon_date,base.sermon_title,base.speaker,base.series,base.category,base.tags,base.sermon_scripture,stype,chunkTexts[i],toSql(embeddings[i]),base.audio_url,base.web_url,chunkStarts[i]]
       );
     }
     await db.query('COMMIT');
