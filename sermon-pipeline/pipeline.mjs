@@ -437,7 +437,7 @@ function generateSeoTitleSlug(sermon, htmlText) {
   const prompt = [
     'You are an SEO expert for a church website.',
     'Given a sermon\'s big idea, main scripture, and original title, produce:',
-    '1. An SEO-optimised title — compelling, searchable, under 65 characters; naturally weave in the scripture reference',
+    '1. An SEO-optimised title — compelling, searchable, under 65 characters; include the FULL scripture reference (book, chapter AND verses, e.g. "Revelation 4:1-4") — never abbreviate to chapter alone',
     '2. A URL slug — lowercase, hyphens only; include every word from the title (do NOT drop prepositions, articles, or any other word); include an abbreviated scripture reference (e.g. john-3-16); under 70 characters total',
     '',
     `Original title: ${sermon.title}`,
@@ -448,7 +448,13 @@ function generateSeoTitleSlug(sermon, htmlText) {
   ].filter(Boolean).join('\n');
 
   const raw  = runClaude(prompt, 'seo-title-slug', 'claude-haiku-4-5');
-  const data = JSON.parse(stripJsonFences(raw));
+  let data;
+  try {
+    data = JSON.parse(stripJsonFences(raw));
+  } catch {
+    warn(`SEO slug: model returned non-JSON — ${raw.slice(0, 80)}`);
+    return null;
+  }
   return { title: (data.title || sermon.title).trim(), slug: slugify(data.slug || '') };
 }
 
@@ -1194,6 +1200,10 @@ function gitPushWebsite(newFiles) {
   const commit = git('commit', '-m', msg);
   if (commit.status !== 0) { console.error(`git commit failed: ${commit.stderr}`); return; }
   log(`  Committed: ${msg}`);
+  git('stash');
+  const pull = git('pull', '--rebase');
+  if (pull.status !== 0) { console.error(`git pull --rebase failed: ${pull.stderr}`); return; }
+  git('stash', 'pop');
   const push = git('push');
   if (push.status !== 0) { console.error(`git push failed: ${push.stderr}`); return; }
   log('  Pushed — Cloudflare build triggered');
@@ -1404,6 +1414,12 @@ async function runOptimizeSlug() {
   const htmlPath = join(outputDir, `${date}-${slug}.html`);
   if (!existsSync(htmlPath)) { console.error('Run step 4 first'); process.exit(1); }
   const htmlText = readFileSync(htmlPath, 'utf8');
+
+  const taxPath = join(outputDir, `${date}-${slug}.json`);
+  if (existsSync(taxPath) && !sermon.sermon_scripture) {
+    const tax = JSON.parse(readFileSync(taxPath, 'utf8'));
+    if (tax.sermon_scripture) sermon.sermon_scripture = tax.sermon_scripture;
+  }
 
   const seoResult = generateSeoTitleSlug(sermon, htmlText);
   if (!seoResult) return;
