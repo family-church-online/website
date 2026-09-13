@@ -400,7 +400,7 @@ const ldJsonVideo = vimeoId ? {
 
     {/* ── AUDIO PLAYER ───────────────────────────────────────────────────── */}
     {fm.audioUrl && (
-      <div class="reveal bg-[var(--navy)] rounded-2xl p-5 mb-6 shadow-lg esv-crossref-ignore" id="sermon-audio" data-reveal-delay="0.18">
+      <div class="bg-[var(--navy)] rounded-2xl p-5 mb-6 shadow-lg esv-crossref-ignore" id="sermon-audio">
         <audio id="audio-el" src={fm.audioUrl} preload="metadata" class="hidden"></audio>
 
         <div class="flex items-center gap-4 mb-3">
@@ -660,6 +660,7 @@ function initSermonPage() {
   }
 
   if (audio && playBtn) {
+    audio.load(); // View Transitions inserts the element via JS, not HTML parsing, so the browser never starts loading automatically
     audio.addEventListener('loadedmetadata', () => {
       if (timeTotal) timeTotal.textContent = fmt(audio.duration);
     }, { signal });
