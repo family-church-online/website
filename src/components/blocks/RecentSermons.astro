@@ -53,7 +53,13 @@ const notesDateYMD = notesFm.date
 	? new Date(notesFm.date as string).toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' })
 	: '';
 const notesAreForToday = notesDateYMD === todayStr;
-const hasTodaySermon   = Object.values(sermonModules).some(m => m.frontmatter.date === todayStr);
+const hasTodaySermon   = Object.values(sermonModules).some(m => {
+	const d = m.frontmatter.date;
+	if (!d) return false;
+	// js-yaml parses unquoted YYYY-MM-DD as a UTC midnight Date object
+	const ymd = d instanceof Date ? d.toISOString().slice(0, 10) : String(d);
+	return ymd === todayStr;
+});
 const showPlaceholder  = hasNotes && !hasTodaySermon && (import.meta.env.DEV || (isSunday && notesAreForToday));
 
 const recentSermons = Object.entries(sermonModules)

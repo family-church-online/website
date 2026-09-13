@@ -818,7 +818,7 @@ function buildSermonMdx(sermon, taxonomy, htmlText, transcriptMd) {
 
   const lines = ['---', '# ── IDENTITY ─────────────────────────────────────────────────────'];
   lines.push(`title: ${yamlStr(sermon.title || '')}`);
-  lines.push(`date: ${sermon.date}`);
+  lines.push(`date: "${sermon.date}"`);
   lines.push(`speaker: ${yamlStr(sermon.speaker || '')}`);
   if (series) lines.push(`series: ${yamlStr(series)}`);
 
