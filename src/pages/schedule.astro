@@ -1,0 +1,172 @@
+---
+export const prerender = true;
+
+import Base from '../layouts/Base.astro';
+import { getConfig } from '../lib/data';
+import rawData from '../content/schedule/schedule.json';
+
+type ServiceEntry = {
+	date: string;
+	scripture?: string | null;
+	series?: string | null;
+	title?: string | null;
+	speaker?: string | null;
+	notes?: string | null;
+};
+
+const services = ((rawData.services ?? []) as ServiceEntry[])
+	.map(s => ({
+		...s,
+		dateObj: new Date(s.date),
+		dateSA: new Date(s.date).toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' }),
+	}))
+	.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+const todaySA = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' });
+
+// Keep last 2 past services and all upcoming ones
+const past   = services.filter(s => s.dateSA < todaySA).slice(-2);
+const future = services.filter(s => s.dateSA >= todaySA);
+const shown  = [...past, ...future];
+
+// Index into `shown` of the next upcoming service
+const nextIdx = past.length < shown.length ? past.length : -1;
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+function fmtDay(d: Date) {
+	return d.toLocaleDateString('en-GB', { timeZone: 'Africa/Johannesburg', day: 'numeric' });
+}
+function fmtMonth(d: Date) {
+	return d.toLocaleDateString('en-GB', { timeZone: 'Africa/Johannesburg', month: 'short' }).toUpperCase();
+}
+function fmtFull(d: Date) {
+	return d.toLocaleDateString('en-GB', {
+		timeZone: 'Africa/Johannesburg',
+		weekday: 'long',
+		day: 'numeric',
+		month: 'long',
+		year: 'numeric',
+	});
+}
+---
+
+<Base
+	title={`Service Schedule | ${siteTitle}`}
+	description="Upcoming Sunday services at Family Church — scripture, series, and speaker for the weeks ahead."
+>
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-16">
+
+		<h1 class="font-display text-4xl lg:text-5xl font-semibold text-[var(--navy)] dark:text-white mb-2">
+			Service Schedule
+		</h1>
+		<p class="text-gray-500 dark:text-gray-400 mb-10">
+			Upcoming Sunday services at Family Church
+		</p>
+
+		{shown.length === 0 && (
+			<p class="text-center text-gray-400 py-24">No services scheduled yet.</p>
+		)}
+
+		<div class="relative">
+			{/* Vertical timeline line */}
+			<div class="absolute left-[2.6rem] top-0 bottom-0 w-px bg-gray-200 dark:bg-white/10 hidden sm:block" aria-hidden="true"></div>
+
+			<div class="space-y-5">
+				{shown.map((service, i) => {
+					const isNext = i === nextIdx;
+					const isPast = service.dateSA < todaySA;
+
+					return (
+						<div class={`relative flex gap-4 sm:gap-6 rounded-2xl p-5 border transition-all duration-200 ${
+							isNext
+								? 'bg-[var(--navy)] border-[var(--navy)] shadow-xl'
+								: isPast
+									? 'bg-gray-50 dark:bg-white/[0.03] border-gray-200 dark:border-white/10 opacity-55'
+									: 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 shadow-sm'
+						}`}>
+
+							{/* Date badge — sits on the timeline dot on sm+ */}
+							<div class="flex-shrink-0 flex flex-col items-center justify-start w-12 pt-0.5">
+								<span class={`text-2xl font-bold leading-none tabular-nums ${
+									isNext ? 'text-[var(--green)]' : 'text-[var(--navy)] dark:text-white'
+								}`}>
+									{fmtDay(service.dateObj)}
+								</span>
+								<span class={`text-[0.65rem] font-bold tracking-widest mt-0.5 ${
+									isNext ? 'text-[var(--green)]' : 'text-[var(--olive)]'
+								}`}>
+									{fmtMonth(service.dateObj)}
+								</span>
+							</div>
+
+							{/* Main content */}
+							<div class="flex-1 min-w-0">
+
+								{/* Full date + NEXT badge */}
+								<div class="flex flex-wrap items-center gap-2 mb-2">
+									<span class={`text-sm ${isNext ? 'text-white/60' : 'text-gray-500 dark:text-gray-400'}`}>
+										{fmtFull(service.dateObj)}
+									</span>
+									{isNext && (
+										<span class="text-[0.65rem] font-bold tracking-widest bg-[var(--green)] text-white px-2 py-0.5 rounded-full uppercase">
+											Next
+										</span>
+									)}
+								</div>
+
+								{/* Scripture — primary content */}
+								{service.scripture ? (
+									<p class={`font-display text-xl font-semibold leading-snug mb-1 ${
+										isNext ? 'text-white' : 'text-[var(--navy)] dark:text-white'
+									}`}>
+										{service.scripture}
+									</p>
+								) : !isPast && (
+									<p class={`font-display text-xl leading-snug mb-1 ${
+										isNext ? 'text-white/40' : 'text-gray-300 dark:text-white/20'
+									}`}>
+										Scripture TBC
+									</p>
+								)}
+
+								{/* Sermon title */}
+								{service.title && (
+									<p class={`text-base mb-1 ${isNext ? 'text-white/80' : 'text-gray-700 dark:text-gray-300'}`}>
+										&ldquo;{service.title}&rdquo;
+									</p>
+								)}
+
+								{/* Series · Speaker row */}
+								{(service.series || service.speaker) && (
+									<div class={`flex flex-wrap gap-x-2 gap-y-0.5 text-sm mt-1 ${
+										isNext ? 'text-white/60' : 'text-gray-500 dark:text-gray-400'
+									}`}>
+										{service.series && (
+											<span class={`font-medium ${isNext ? 'text-[var(--green)]' : 'text-[var(--olive)]'}`}>
+												{service.series}
+											</span>
+										)}
+										{service.series && service.speaker && (
+											<span class="opacity-40 select-none">&middot;</span>
+										)}
+										{service.speaker && <span>{service.speaker}</span>}
+									</div>
+								)}
+
+								{/* Notes */}
+								{service.notes && (
+									<p class={`mt-2 text-sm ${isNext ? 'text-white/55' : 'text-gray-400 dark:text-gray-500'}`}>
+										{service.notes}
+									</p>
+								)}
+							</div>
+						</div>
+					);
+				})}
+			</div>
+		</div>
+
+	</div>
+</Base>

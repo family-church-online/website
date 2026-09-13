@@ -112,6 +112,7 @@ import { fileURLToPath } from 'node:url';
 // without any compile step. The `import type { Collection }` in each file
 // is a type-only import that is completely removed at runtime.
 import { SermonNotesCollection }     from '../tina/collections/sermon-notes.ts';
+import { ServiceScheduleCollection } from '../tina/collections/service-schedule.ts';
 import { AnnouncementCollection }   from '../tina/collections/announcement.ts';
 import { DevotionCollection }       from '../tina/collections/devotion.ts';
 import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
@@ -509,6 +510,21 @@ const folderCollections = [
 ];
 
 const filesCollections: unknown[] = [
+  {
+    name:  'service-schedule',
+    label: 'Service Schedule',
+    editor: editorNoPreview,
+    preview_path: 'schedule',
+    files: [
+      {
+        name:   'schedule',
+        label:  'Service Schedule',
+        file:   'src/content/schedule/schedule.json',
+        format: 'json',
+        fields: translateFields(ServiceScheduleCollection.fields as TinaField[], 'serviceSchedule'),
+      },
+    ],
+  },
   {
     name:  'sermon-notes',
     label: 'Sunday Sermon Notes',
