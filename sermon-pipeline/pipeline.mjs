@@ -1464,6 +1464,21 @@ async function runOptimizeSlug() {
   sermon.image_local = imageLocal;
   sermon.image_url   = imageLocal ? `${SITE_URL}${imageLocal}` : sermon.image_url;
 
+  // Update title inside taxonomy JSON
+  const taxPath = join(newOutputDir, `${date}-${newSlug}.json`);
+  if (existsSync(taxPath)) {
+    const tax = JSON.parse(readFileSync(taxPath, 'utf8'));
+    tax.title = newTitle;
+    writeFileSync(taxPath, JSON.stringify(tax, null, 2));
+  }
+
+  // Update title inside transcript markdown frontmatter
+  const mdPath = join(newOutputDir, `${date}-${newSlug}.md`);
+  if (existsSync(mdPath)) {
+    const mdText = readFileSync(mdPath, 'utf8');
+    writeFileSync(mdPath, mdText.replace(/^title:.*$/m, `title: "${newTitle.replace(/"/g, "'")}"`));
+  }
+
   // Update session
   sermon.title    = newTitle;
   sermon.slug     = newSlug;
