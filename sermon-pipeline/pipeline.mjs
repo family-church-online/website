@@ -1472,11 +1472,15 @@ async function runOptimizeSlug() {
     writeFileSync(taxPath, JSON.stringify(tax, null, 2));
   }
 
-  // Update title inside transcript markdown frontmatter
+  // Update title, post_url, and taxonomy fields inside transcript markdown frontmatter
   const mdPath = join(newOutputDir, `${date}-${newSlug}.md`);
   if (existsSync(mdPath)) {
-    const mdText = readFileSync(mdPath, 'utf8');
-    writeFileSync(mdPath, mdText.replace(/^title:.*$/m, `title: "${newTitle.replace(/"/g, "'")}"`));
+    const newPostUrl = `${SITE_URL}/sermons/${date}-${newSlug}`;
+    let mdText = readFileSync(mdPath, 'utf8');
+    mdText = mdText.replace(/^title:.*$/m, `title: "${newTitle.replace(/"/g, "'")}"`);
+    mdText = mdText.replace(/^post_url:.*$/m, `post_url: "${newPostUrl}"`);
+    mdText = mdText.replace(/^taxonomy:.*$/m, `taxonomy: ${date}-${newSlug}.json`);
+    writeFileSync(mdPath, mdText);
   }
 
   // Update session
