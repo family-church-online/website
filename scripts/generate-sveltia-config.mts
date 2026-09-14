@@ -596,6 +596,13 @@ const filesCollections: unknown[] = [
   },
 ];
 
+// Sort each group alphabetically by its sidebar label. Folders and files stay
+// in two separate groups (rather than one combined sort) so folder collections
+// always appear above files collections in the Sveltia sidebar, per group order below.
+const byLabel = (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label);
+folderCollections.sort(byLabel);
+(filesCollections as { label: string }[]).sort(byLabel);
+
 // ── WRITE OUTPUT ──────────────────────────────────────────────────────────────
 
 const header = `\
