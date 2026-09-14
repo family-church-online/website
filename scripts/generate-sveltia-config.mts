@@ -113,6 +113,7 @@ import { fileURLToPath } from 'node:url';
 // is a type-only import that is completely removed at runtime.
 import { SermonNotesCollection }     from '../tina/collections/sermon-notes.ts';
 import { WhatsNextCollection }        from '../tina/collections/whats-next.ts';
+import { GroupCollection }            from '../tina/collections/group.ts';
 import { AnnouncementCollection }   from '../tina/collections/announcement.ts';
 import { DevotionCollection }       from '../tina/collections/devotion.ts';
 import { ThreeMinutesCollection }   from '../tina/collections/three-minutes.ts';
@@ -492,6 +493,19 @@ const folderCollections = [
     editor: editorNoPreview,
     preview_path: 'kids-church/junior/{{slug}}',
     fields: translateFields(_kidsFields, 'kidsLesson'),
+  },
+  {
+    name: 'group',
+    label: 'Groups',
+    folder: 'src/content/groups',
+    format: 'frontmatter',
+    extension: 'mdx',
+    create: true,
+    identifier_field: 'name',
+    slug: '{{slug}}',
+    editor: editorNoPreview,
+    preview_path: 'groups',
+    fields: translateFields(GroupCollection.fields as TinaField[], 'group'),
   },
   {
     name: 'whats-next',

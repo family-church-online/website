@@ -1,0 +1,240 @@
+---
+export const prerender = true;
+
+import Base from '../layouts/Base.astro';
+import { getConfig } from '../lib/data';
+
+interface GroupFrontmatter {
+	name?: string | null;
+	day?: string | null;
+	time?: string | null;
+	type?: string | null;
+	area?: string | null;
+	frequency?: string | null;
+	gender?: string | null;
+	lifeStage?: string | null;
+	contact?: string | null;
+	open?: boolean | null;
+}
+
+const DAY_ORDER = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const modules = import.meta.glob<{ frontmatter: GroupFrontmatter }>(
+	'../content/groups/*.mdx',
+	{ eager: true },
+);
+
+const groups = Object.values(modules)
+	.map(m => m.frontmatter)
+	.sort((a, b) => {
+		const d = DAY_ORDER.indexOf(a.day ?? '') - DAY_ORDER.indexOf(b.day ?? '');
+		return d !== 0 ? d : (a.time ?? '').localeCompare(b.time ?? '');
+	});
+
+function timeOfDay(time: string | null | undefined) {
+	if (!time) return '';
+	return time < '12:00' ? 'Morning' : 'Evening';
+}
+
+const allAreas   = [...new Set(groups.map(g => g.area).filter((a): a is string => !!a))].sort();
+const allDays    = DAY_ORDER.filter(d => groups.some(g => g.day === d));
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+---
+
+<Base
+	title={`Groups | ${siteTitle}`}
+	description="Small groups meeting across the week for Bible study, prayer, and community."
+>
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-16">
+
+		{/* Header */}
+		<div class="text-center mb-10">
+			<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Connect</p>
+			<h1 class="text-4xl font-semibold lg:text-5xl text-balance mb-4">Find a Group</h1>
+			<p class="text-lg text-muted-foreground">Small groups meeting across the week for Bible study, prayer, and community.</p>
+		</div>
+
+		{/* Filter bar */}
+		<div class="bg-[var(--background)] border-b border-[var(--ink)]/10 sticky top-20 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-8">
+			<div class="flex flex-wrap gap-2 items-center">
+
+				{/* Day pills */}
+				<div class="flex flex-wrap gap-1.5" id="day-filters">
+					<button data-filter="day" data-value="all" aria-pressed="true"
+						class="filter-pill active text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer">
+						All days
+					</button>
+					{allDays.map(day => (
+						<button data-filter="day" data-value={day} aria-pressed="false"
+							class="filter-pill text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer">
+							{day}
+						</button>
+					))}
+				</div>
+
+				{/* Area select */}
+				{allAreas.length > 1 && (
+					<select id="filter-area" class="filter-select text-sm border border-[var(--ink)]/18 dark:border-white/12 rounded-lg px-3 py-1.5 bg-white dark:bg-[var(--card)] cursor-pointer">
+						<option value="">All areas</option>
+						{allAreas.map(a => <option value={a}>{a}</option>)}
+					</select>
+				)}
+
+				{/* Open only toggle */}
+				<label class="ml-auto flex items-center gap-2 text-sm text-[var(--ink)]/70 dark:text-white/60 cursor-pointer select-none">
+					<input type="checkbox" id="filter-open" class="w-4 h-4 accent-[var(--green)]" />
+					Open only
+				</label>
+
+				<span id="result-count" class="text-sm text-[var(--ink)]/45 dark:text-white/45 tabular-nums hidden sm:block"></span>
+			</div>
+		</div>
+
+		{/* Group grid */}
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="group-grid">
+			{groups.map(g => (
+				<div
+					class="group-card flex flex-col rounded-2xl border border-[var(--ink)]/10 dark:border-white/10 bg-white dark:bg-[var(--card)] p-5 shadow-sm"
+					data-day={g.day ?? ''}
+					data-area={g.area ?? ''}
+					data-open={g.open ? 'true' : 'false'}
+				>
+					{/* Open / Full badge */}
+					<div class="flex justify-between items-start mb-3">
+						<span class={`text-[0.65rem] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full ${
+							g.open
+								? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+								: 'bg-gray-100 text-gray-400 dark:bg-white/8 dark:text-white/30'
+						}`}>
+							{g.open ? 'Open' : 'Full'}
+						</span>
+						{g.type && (
+							<span class="text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--olive)]">{g.type}</span>
+						)}
+					</div>
+
+					{/* Name */}
+					<h2 class={`font-display text-xl font-semibold leading-snug mb-3 ${!g.open ? 'opacity-50' : ''}`}>
+						{g.name}
+					</h2>
+
+					{/* Primary info */}
+					<div class={`flex flex-wrap gap-x-2 gap-y-0.5 text-sm font-medium mb-3 ${!g.open ? 'opacity-50' : ''}`}>
+						{g.day && timeOfDay(g.time) && (
+							<span class="text-[var(--navy)] dark:text-white">{g.day} {timeOfDay(g.time)}</span>
+						)}
+						{g.frequency && (
+							<>
+								<span class="text-[var(--ink)]/30 dark:text-white/25 select-none">·</span>
+								<span class="text-[var(--ink)]/70 dark:text-white/60">{g.frequency}</span>
+							</>
+						)}
+						{g.area && (
+							<>
+								<span class="text-[var(--ink)]/30 dark:text-white/25 select-none">·</span>
+								<span class="text-[var(--ink)]/70 dark:text-white/60">{g.area}</span>
+							</>
+						)}
+					</div>
+
+					{/* Tags */}
+					<div class={`flex flex-wrap gap-1.5 mb-4 ${!g.open ? 'opacity-40' : ''}`}>
+						{g.gender && g.gender !== 'Mixed' && (
+							<span class="text-[0.65rem] font-semibold uppercase tracking-wide bg-[var(--navy)]/8 dark:bg-white/8 text-[var(--navy)] dark:text-white/70 px-2 py-0.5 rounded-full">
+								{g.gender}
+							</span>
+						)}
+						{g.lifeStage && g.lifeStage !== 'All Ages' && (
+							<span class="text-[0.65rem] font-semibold uppercase tracking-wide bg-[var(--navy)]/8 dark:bg-white/8 text-[var(--navy)] dark:text-white/70 px-2 py-0.5 rounded-full">
+								{g.lifeStage}
+							</span>
+						)}
+					</div>
+
+					{/* Contact */}
+					{g.contact && (
+						<p class={`mt-auto text-sm text-[var(--ink)]/50 dark:text-white/40 ${!g.open ? 'opacity-50' : ''}`}>
+							Contact: {g.contact}
+						</p>
+					)}
+				</div>
+			))}
+		</div>
+
+		<p id="no-results" class="hidden text-center text-gray-400 py-16">No groups match your filters.</p>
+
+	</div>
+
+	<style>
+		.filter-pill {
+			background: white;
+			color: rgb(var(--ink) / 0.6);
+			border-color: rgb(var(--ink) / 0.15);
+		}
+		:global(.dark) .filter-pill {
+			background: var(--card);
+			color: rgba(255,255,255,0.55);
+			border-color: rgba(255,255,255,0.12);
+		}
+		.filter-pill.active,
+		.filter-pill[aria-pressed="true"] {
+			background: var(--navy);
+			color: white;
+			border-color: var(--navy);
+		}
+		:global(.dark) .filter-pill.active,
+		:global(.dark) .filter-pill[aria-pressed="true"] {
+			background: var(--green);
+			border-color: var(--green);
+		}
+	</style>
+
+	<script>
+		const cards      = Array.from(document.querySelectorAll<HTMLElement>('.group-card'));
+		const dayBtns    = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter="day"]'));
+		const areaSelect = document.querySelector<HTMLSelectElement>('#filter-area');
+		const openToggle = document.querySelector<HTMLInputElement>('#filter-open');
+		const countEl    = document.getElementById('result-count');
+		const noResults  = document.getElementById('no-results');
+
+		let activeDay  = 'all';
+		let activeArea = '';
+		let openOnly   = false;
+
+		function applyFilters() {
+			let visible = 0;
+			cards.forEach(card => {
+				const dayOk  = activeDay === 'all' || card.dataset.day === activeDay;
+				const areaOk = !activeArea || card.dataset.area === activeArea;
+				const openOk = !openOnly || card.dataset.open === 'true';
+				const show   = dayOk && areaOk && openOk;
+				card.hidden  = !show;
+				if (show) visible++;
+			});
+			if (countEl) countEl.textContent = `${visible} group${visible !== 1 ? 's' : ''}`;
+			if (noResults) noResults.hidden = visible > 0;
+		}
+
+		dayBtns.forEach(btn => {
+			btn.addEventListener('click', () => {
+				activeDay = btn.dataset.value!;
+				dayBtns.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+				applyFilters();
+			});
+		});
+
+		areaSelect?.addEventListener('change', () => {
+			activeArea = areaSelect.value;
+			applyFilters();
+		});
+
+		openToggle?.addEventListener('change', () => {
+			openOnly = openToggle.checked;
+			applyFilters();
+		});
+
+		applyFilters();
+	</script>
+</Base>
