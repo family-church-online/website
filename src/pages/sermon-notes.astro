@@ -3,9 +3,17 @@ export const prerender = false;
 
 // Only visible on Sundays (Africa/Johannesburg = UTC+2).
 // Add ?preview to the URL to bypass on other days (for prep / testing).
-const saDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
-const isSunday = saDate.getDay() === 0;
+const saDate    = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
+const isSunday  = saDate.getDay() === 0;
 const isPreview = Astro.url.searchParams.has('preview');
+
+interface Frontmatter { title?: string; date?: string; speaker?: string; series?: string; image?: string; }
+const _mods = import.meta.glob<{ frontmatter: Frontmatter; default: any }>(
+	'../content/sermon-notes/current.mdx',
+	{ eager: true }
+);
+const _mod = Object.values(_mods)[0] ?? {};
+const _fm: Frontmatter = _mod.frontmatter ?? {};
 
 const nextSunday = new Date(saDate);
 nextSunday.setDate(saDate.getDate() + ((7 - saDate.getDay()) % 7 || 7));
@@ -13,7 +21,7 @@ const nextSundayStr = nextSunday.toLocaleDateString('en-ZA', {
 	weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Africa/Johannesburg',
 });
 
-if (!isSunday && !isPreview) {
+if (!import.meta.env.DEV && !isSunday && !isPreview) {
 	const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -46,21 +54,8 @@ a:hover { background: #92c423; }
 	return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
 
-interface Frontmatter {
-	title?: string;
-	date?: string;
-	speaker?: string;
-	series?: string;
-	image?: string;
-}
-
-const mods = import.meta.glob<{ frontmatter: Frontmatter; default: any }>(
-	'../content/sermon-notes/current.mdx',
-	{ eager: true }
-);
-const mod = Object.values(mods)[0] ?? {};
-const fm: Frontmatter = mod.frontmatter ?? {};
-const Content: any = mod.default;
+const fm = _fm;
+const Content: any = _mod.default;
 
 // TinaCMS datetime fields are auto-parsed to Date objects by Astro's YAML parser.
 // Pass directly to new Date() and format in SA timezone — never call .slice() on the value.

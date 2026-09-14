@@ -94,6 +94,11 @@ const year = new Date().getFullYear();
 			&copy; {year}
 			<span data-tina-field={seo ? tinaField(seo, 'siteOwner') : undefined}>{seo?.siteOwner ?? seo?.title}</span>.
 			All rights reserved.
+			<span class="footer-legal">
+				<a href="/privacy-policy">Privacy Policy</a>
+				<span aria-hidden="true">·</span>
+				<a href="/terms-of-service">Terms of Service</a>
+			</span>
 		</p>
 	</div>
 </footer>
@@ -211,6 +216,18 @@ const year = new Date().getFullYear();
 		text-align: center;
 		padding-top: 1.5rem;
 	}
+
+	.footer-legal {
+		display: inline-flex;
+		gap: 0.5rem;
+		margin-left: 0.5rem;
+	}
+	.footer-legal a {
+		color: rgba(255, 255, 255, 0.2);
+		text-decoration: none;
+		transition: color 0.2s;
+	}
+	.footer-legal a:hover { color: rgba(255, 255, 255, 0.5); }
 
 	.sr-only {
 		position: absolute;

@@ -160,6 +160,22 @@ These routes run as Worker handlers — everything else is pre-rendered static H
 | `/courses/[course]/[chapter]/[lesson]` | Lesson page — reads/writes KV |
 | `/tina-island/[name]` | TinaCMS visual editing islands |
 
+## Sermon notes (Sunday placeholder)
+
+`src/content/sermon-notes/current.mdx` holds the notes for the current Sunday's sermon. The workflow is:
+
+1. **Notes saved before the sermon** — `current.mdx` is updated with the Sunday date, title, scripture, etc. No matching sermon exists in `src/content/sermons/` yet.
+2. **Sunday build (no sermon yet)** — at build time, `RecentSermons.astro` and `LiveStream.astro` both check: do notes exist for today AND is there no sermon in the archive for today's date? Both conditions true → the notes placeholder card is baked into the home page carousel and the `/video` page.
+3. **Sermon saved Sunday afternoon** — the sermon MDX is imported and the site rebuilds. Now a sermon exists for today's date → `hasTodaySermon` is true → neither page includes the notes card. The placeholder disappears automatically.
+4. **`/sermon-notes`** is a separate SSR page (the iframe content). It is only accessible on Sundays, in dev mode, or with `?preview` in the URL.
+
+The three-way gate used in both static components:
+```js
+!!notesFm.title && !hasTodaySermon && (import.meta.env.DEV || (isSunday && notesAreForToday))
+```
+
+**Do not change this to a day-range check (e.g. "today or yesterday").** The intended behaviour is Sunday-only. `!hasTodaySermon` is the key condition — without it the placeholder persists on the video page after the sermon is saved. `RecentSermons.astro` and `LiveStream.astro` must use identical logic.
+
 ## Stream reporting
 
 When a live stream is active, a "Report a Problem" widget appears on the `/video` page with five icon+label tappable items: No Sound, Low Volume, Sound Quality, No Picture, Picture Quality. The widget description text is editable via TinaCMS and Sveltia (`reportDescription` field on the Live Stream block).

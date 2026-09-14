@@ -122,6 +122,7 @@ import { GuideCollection }          from '../tina/collections/guide.ts';
 import { SermonCollection }          from '../tina/collections/sermon.ts';
 import { ministryLessonCollection } from '../tina/collections/amplify-lesson.ts';
 import { kidsLessonCollection }     from '../tina/collections/kids-lesson.ts';
+import { pageHeaderBlockSchema }    from '../src/components/blocks/page-header.template.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = resolve(__dirname, '..');
@@ -342,9 +343,10 @@ function translateFields(tinaFields: TinaField[], collectionName: string, parent
 // on the live site (site_url + preview_path).
 const editorNoPreview = { preview: false };
 
-const _sermonFields    = (SermonCollection.fields ?? []) as TinaField[];
-const _amplifyFields   = (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
-const _kidsFields      = (kidsLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
+const _sermonFields       = (SermonCollection.fields ?? []) as TinaField[];
+const _amplifyFields      = (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
+const _kidsFields         = (kidsLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
+const _pageHeaderFields   = (pageHeaderBlockSchema.fields ?? []) as TinaField[];
 
 /**
  * Sveltia only respects media_folder set at the collection level, not at the
@@ -535,7 +537,48 @@ const folderCollections = [
   },
 ];
 
+// Fields shared by both legal page files (privacy policy, terms of service).
+// These pages live in src/content/page/ (TinaCMS block-builder folder) but are
+// exposed here as a Sveltia files collection because they have a fixed single-block
+// structure that maps cleanly to plain frontmatter fields — no visual block selector needed.
+const _legalPageFields = [
+  { name: 'seoTitle', label: 'Meta Title (SEO)', widget: 'string' },
+  {
+    name: 'blocks',
+    label: 'Page Sections',
+    widget: 'list',
+    collapsed: false,
+    fields: [
+      ...translateFields(_pageHeaderFields, 'legalPage'),
+      { name: '_template', label: 'Template', widget: 'hidden', default: 'pageHeader' },
+    ],
+  },
+];
+
 const filesCollections: unknown[] = [
+  {
+    name:  'legal',
+    label: 'Legal Pages',
+    editor: editorNoPreview,
+    files: [
+      {
+        name:         'privacy-policy',
+        label:        'Privacy Policy',
+        file:         'src/content/page/privacy-policy.mdx',
+        format:       'frontmatter',
+        preview_path: 'privacy-policy',
+        fields:       _legalPageFields,
+      },
+      {
+        name:         'terms-of-service',
+        label:        'Terms of Service',
+        file:         'src/content/page/terms-of-service.mdx',
+        format:       'frontmatter',
+        preview_path: 'terms-of-service',
+        fields:       _legalPageFields,
+      },
+    ],
+  },
   {
     name:  'sermon-notes',
     label: 'Sunday Sermon Notes',

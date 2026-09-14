@@ -24,21 +24,30 @@ const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] 
 ];
 
 interface NotesFrontmatter { title?: string; date?: string; speaker?: string; series?: string; scripture?: string; image?: string; }
-const notesMods = import.meta.glob<{ frontmatter: NotesFrontmatter }>(
-	'../../content/sermon-notes/current.mdx',
-	{ eager: true }
-);
+interface SermonFrontmatter { date?: string; review?: boolean; }
+
+const notesMods  = import.meta.glob<{ frontmatter: NotesFrontmatter }>('../../content/sermon-notes/current.mdx', { eager: true });
+const sermonMods = import.meta.glob<{ frontmatter: SermonFrontmatter }>('../../content/sermons/*.mdx', { eager: true });
 const notesFm = Object.values(notesMods)[0]?.frontmatter ?? {};
 
-const nowSA = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
+const nowSA    = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
 const isSunday = nowSA.getDay() === 0;
-const todayStr = `${nowSA.getFullYear()}-${String(nowSA.getMonth() + 1).padStart(2, '0')}-${String(nowSA.getDate()).padStart(2, '0')}`;
+const todayStr = nowSA.toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' });
+
 // TinaCMS datetime fields are auto-parsed to Date objects by Astro's YAML parser.
 // Pass directly to new Date() and format in SA timezone — never call .slice() on the value.
-const notesDateYMD = notesFm.date
+const notesDateYMD  = notesFm.date
 	? new Date(notesFm.date as string).toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' })
 	: '';
-const showNotesCard = !!notesFm.title && (import.meta.env.DEV || (isSunday && notesDateYMD === todayStr));
+const notesAreForToday = notesDateYMD === todayStr;
+const hasTodaySermon   = Object.values(sermonMods).some(m => {
+	const d = m.frontmatter.date;
+	if (!d) return false;
+	// js-yaml parses unquoted YYYY-MM-DD as a UTC midnight Date object
+	const ymd = d instanceof Date ? d.toISOString().slice(0, 10) : String(d);
+	return ymd === todayStr;
+});
+const showNotesCard = !!notesFm.title && !hasTodaySermon && (import.meta.env.DEV || (isSunday && notesAreForToday));
 ---
 
 {data.streamUrl && (
