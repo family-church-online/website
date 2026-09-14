@@ -76,6 +76,7 @@ Sveltia's config is auto-generated from the TinaCMS schema at every build by `sc
 | Kids — Pre-School | `src/content/kids/preschool/` | Sveltia | Kids church lessons |
 | Kids — Junior | `src/content/kids/junior/` | Sveltia | Kids church lessons |
 | Kids — Senior | `src/content/kids/senior/` | Sveltia | Kids church lessons |
+| What's Next | `src/content/whats-next/` | Sveltia | One MDX per service (`YYYY-MM-DD.mdx`); displayed at `/whats-next` |
 | Global config | `src/content/config/config.json` | TinaCMS | Nav, SEO, contact links, auth, admin list ID |
 
 ### TinaCMS schema changes
@@ -163,9 +164,9 @@ These routes run as Worker handlers — everything else is pre-rendered static H
 
 When a live stream is active, a "Report a Problem" widget appears on the `/video` page with five icon+label tappable items: No Sound, Low Volume, Sound Quality, No Picture, Picture Quality. The widget description text is editable via TinaCMS and Sveltia (`reportDescription` field on the Live Stream block).
 
-- Reports are stored in the **`STREAM_REPORTS`** KV namespace with the button label, timestamp, and IP. Entries are deleted automatically when read if they are older than 60 minutes.
-- Each report also notifies the **`StreamMonitor`** Durable Object via `/notify`, which broadcasts to all connected dashboard WebSockets in real time
-- The dashboard at `/stream-dashboard` shows one tile per category with the count of reports in the last 60 minutes — green when none, red when active. It polls the server every 60 seconds so counts drop to zero once reports expire. It is responsive for narrow OBS custom dock windows (~300px)
+- Reports are stored in the **`STREAM_REPORTS`** KV namespace with the button label, timestamp, and IP (7-day TTL).
+- Each report also notifies the **`StreamMonitor`** Durable Object via `/notify`. The DO stores reports in memory (pruned to a 60-min window) and broadcasts authoritative counts to all connected WebSocket clients.
+- The dashboard at `/stream-dashboard` shows one tile per category with the count of reports in the last 60 minutes — green when none, red when active. It is driven entirely by WebSocket: on connect the DO sends a `sync` message with current counts; on each new report the DO broadcasts updated counts. A client-side timer expires stale counts every 5 minutes with no network calls. The dashboard does **not** poll the server. It is responsive for narrow OBS custom dock windows (~300px).
 
 ### Cloudflare setup (once)
 
