@@ -189,9 +189,8 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 	<script>
 		const BUTTONS = ['No Sound', 'Low Volume', 'Sound Quality', 'No Picture', 'Picture Quality'];
 
-		// State: recent (last 60 min) counts per button
-		const recent: Record<string, number>  = {};
-		const lastTs: Record<string, number>  = {};
+		const recent: Record<string, number> = {};
+		const lastTs: Record<string, number> = {};
 
 		function slug(s: string) { return s.replace(/\s+/g, '-'); }
 
@@ -200,12 +199,9 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 			const count = document.getElementById(`count-${slug(label)}`);
 			const last  = document.getElementById(`last-${slug(label)}`);
 			if (!tile || !count || !last) return;
-
-			const recentCount = recent[label] ?? 0;
-			const isRed       = recentCount > 0;
-			count.textContent = String(recentCount);
-			tile.className    = `tile ${isRed ? 'red' : ''}`;
-
+			const n = recent[label] ?? 0;
+			count.textContent = String(n);
+			tile.className    = `tile ${n > 0 ? 'red' : ''}`;
 			if (lastTs[label]) {
 				const mins = Math.round((Date.now() - lastTs[label]) / 60_000);
 				last.textContent = mins < 1 ? 'just now' : `${mins} min ago`;
@@ -220,16 +216,39 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 				'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 		}
 
+		function applySync(counts: Record<string, number>, lastTimestamps?: Record<string, string>) {
+			BUTTONS.forEach(b => { recent[b] = counts[b] ?? 0; });
+			if (lastTimestamps) {
+				for (const [b, ts] of Object.entries(lastTimestamps)) {
+					lastTs[b] = new Date(ts).getTime();
+				}
+			}
+			tick();
+		}
+
+		// Drop counts to zero for any button whose last report is older than 60 min.
+		// Runs every 5 min — no network, no KV.
+		function expireOldCounts() {
+			const cutoff = Date.now() - 60 * 60 * 1000;
+			let changed = false;
+			for (const b of BUTTONS) {
+				if (recent[b] && lastTs[b] && lastTs[b] < cutoff) {
+					recent[b] = 0;
+					changed = true;
+				}
+			}
+			if (changed) tick();
+		}
+
+		// One-time fallback fetch: covers the case where the DO hibernated and
+		// lost its in-memory state before the WebSocket connected.
 		async function loadInitial() {
 			try {
 				const res  = await fetch('/api/stream-reports');
-				const data = await res.json() as { counts: Record<string, number>; recent: Record<string, number> };
-				// Replace entirely so expired reports drop to zero
+				const data = await res.json() as { recent: Record<string, number> };
 				BUTTONS.forEach(b => { recent[b] = data.recent[b] ?? 0; });
 				tick();
-			} catch {
-				/* ignore — WS will keep us updated */
-			}
+			} catch { /* ignore — WS sync will cover it */ }
 		}
 
 		function connectWS() {
@@ -240,24 +259,40 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 			let retryMs = 1_000;
 
 			ws.onopen = () => {
-				dot.className   = 'ws-dot';
+				dot.className     = 'ws-dot';
 				label.textContent = 'Live';
 				retryMs = 1_000;
 			};
 
 			ws.onmessage = (ev: MessageEvent) => {
 				try {
-					const msg = JSON.parse(ev.data as string) as { type: string; button?: string; timestamp?: string };
-					if (msg.type === 'report' && msg.button) {
-						recent[msg.button] = (recent[msg.button] ?? 0) + 1;
-						if (msg.timestamp) lastTs[msg.button] = new Date(msg.timestamp).getTime();
-						tick();
+					const msg = JSON.parse(ev.data as string) as {
+						type: string;
+						button?: string;
+						timestamp?: string;
+						counts?: Record<string, number>;
+						lastTimestamps?: Record<string, string>;
+					};
+					if (msg.type === 'sync') {
+						// Authoritative state from DO on connect
+						applySync(msg.counts ?? {}, msg.lastTimestamps);
+					} else if (msg.type === 'report') {
+						if (msg.counts) {
+							// Authoritative counts bundled with the report
+							applySync(msg.counts);
+						} else if (msg.button) {
+							recent[msg.button] = (recent[msg.button] ?? 0) + 1;
+							tick();
+						}
+						if (msg.button && msg.timestamp) {
+							lastTs[msg.button] = new Date(msg.timestamp).getTime();
+						}
 					}
 				} catch { /* ignore */ }
 			};
 
 			ws.onclose = () => {
-				dot.className    = 'ws-dot disconnected';
+				dot.className     = 'ws-dot disconnected';
 				label.textContent = 'Reconnecting…';
 				setTimeout(connectWS, retryMs);
 				retryMs = Math.min(retryMs * 2, 30_000);
@@ -266,12 +301,10 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 			ws.onerror = () => ws.close();
 		}
 
-		// Refresh "X min ago" labels every 30 s
-		setInterval(tick, 30_000);
-		// Refresh counts from server every 60 s so expired reports drop to zero
-		setInterval(loadInitial, 60_000);
+		setInterval(tick, 30_000);           // refresh "X min ago" labels
+		setInterval(expireOldCounts, 5 * 60_000); // client-side expiry, no KV
 
-		loadInitial();
+		loadInitial();  // one-time fetch in case DO has no memory
 		connectWS();
 	</script>
 </body>
