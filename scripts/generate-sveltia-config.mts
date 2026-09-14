@@ -123,6 +123,7 @@ import { SermonCollection }          from '../tina/collections/sermon.ts';
 import { ministryLessonCollection } from '../tina/collections/amplify-lesson.ts';
 import { kidsLessonCollection }     from '../tina/collections/kids-lesson.ts';
 import { pageHeaderBlockSchema }    from '../src/components/blocks/page-header.template.ts';
+import { timelineBlockSchema }      from '../src/components/blocks/timeline.template.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = resolve(__dirname, '..');
@@ -347,6 +348,7 @@ const _sermonFields       = (SermonCollection.fields ?? []) as TinaField[];
 const _amplifyFields      = (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
 const _kidsFields         = (kidsLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
 const _pageHeaderFields   = (pageHeaderBlockSchema.fields ?? []) as TinaField[];
+const _timelineFields     = (timelineBlockSchema.fields ?? []) as TinaField[];
 
 /**
  * Sveltia only respects media_folder set at the collection level, not at the
@@ -537,6 +539,22 @@ const folderCollections = [
   },
 ];
 
+// Fields for the Plan a Visit page (services.mdx) — a fixed single timeline block.
+// Same pattern as legal pages: translate the block's fields and pin _template via hidden widget.
+const _planAVisitFields = [
+  { name: 'seoTitle', label: 'Meta Title (SEO)', widget: 'string' },
+  {
+    name: 'blocks',
+    label: 'Page Sections',
+    widget: 'list',
+    collapsed: false,
+    fields: [
+      ...translateFields(_timelineFields, 'planAVisit'),
+      { name: '_template', label: 'Template', widget: 'hidden', default: 'timeline' },
+    ],
+  },
+];
+
 // Fields shared by both legal page files (privacy policy, terms of service).
 // These pages live in src/content/page/ (TinaCMS block-builder folder) but are
 // exposed here as a Sveltia files collection because they have a fixed single-block
@@ -576,6 +594,21 @@ const filesCollections: unknown[] = [
         format:       'frontmatter',
         preview_path: 'terms-of-service',
         fields:       _legalPageFields,
+      },
+    ],
+  },
+  {
+    name:  'plan-a-visit',
+    label: 'Plan a Visit',
+    editor: editorNoPreview,
+    files: [
+      {
+        name:         'services',
+        label:        'Plan a Visit Page',
+        file:         'src/content/page/services.mdx',
+        format:       'frontmatter',
+        preview_path: 'services',
+        fields:       _planAVisitFields,
       },
     ],
   },
