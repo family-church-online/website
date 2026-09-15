@@ -2,7 +2,9 @@
   "name": "sermon-pipeline",
   "version": "1.0.0",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node pipeline.mjs"
   },
@@ -11,8 +13,10 @@
     "@deepgram/sdk": "^3",
     "googleapis": "^140",
     "gray-matter": "^4",
+    "marked": "^14.1.4",
     "node-html-parser": "^6",
     "pg": "^8",
-    "pgvector": "^0.2"
+    "pgvector": "^0.2",
+    "puppeteer": "^23.11.1"
   }
 }

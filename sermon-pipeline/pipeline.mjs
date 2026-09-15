@@ -34,6 +34,8 @@ import { createInterface } from 'node:readline';
 import { homedir } from 'node:os';
 
 import matter from 'gray-matter';
+import { marked } from 'marked';
+import puppeteer from 'puppeteer';
 import { createClient as createDeepgram } from '@deepgram/sdk';
 import { google } from 'googleapis';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -212,7 +214,7 @@ function readSermonNotes() {
   const { data } = matter(raw);
   // Extract date as a string from the raw YAML to avoid UTC conversion bugs.
   // js-yaml parses ISO datetimes as Date objects; toISOString() shifts midnight SAST to the previous UTC day.
-  const dateMatch = raw.match(/^date:\s*(\d{4}-\d{2}-\d{2})/m);
+  const dateMatch = raw.match(/^date:\s*["']?(\d{4}-\d{2}-\d{2})/m);
   const date = dateMatch ? dateMatch[1] : (data.date instanceof Date
     ? `${data.date.getFullYear()}-${String(data.date.getMonth()+1).padStart(2,'0')}-${String(data.date.getDate()).padStart(2,'0')}`
     : String(data.date || '').slice(0, 10));
@@ -223,6 +225,157 @@ function readSermonNotes() {
     image:   (data.image   || '').trim(), // e.g. /images/temp/filename.webp
     date,
   };
+}
+
+// ─── Sermon notes PDF ────────────────────────────────────────────────────────
+
+function buildSermonNotesHtml(fm, bodyMarkdown, dateStr) {
+  const notesHtml = bodyMarkdown.trim()
+    ? marked.parse(bodyMarkdown)
+    : '<p class="notes-empty">No notes.</p>';
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>${hEscape(fm.title ?? 'Sermon Notes')} · Family Church</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Georgia, 'Times New Roman', serif; background: #fff; color: #14202f; font-size: 15px; line-height: 1.7; }
+.page { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.church-name { font-family: system-ui, sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8f926b; margin: 0 0 2rem; }
+.sermon-image { width: 100%; max-height: 240px; object-fit: cover; border-radius: 0.75rem; margin-bottom: 1.5rem; }
+.series-label { font-family: system-ui, sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8f926b; margin: 0 0 0.5rem; }
+h1 { font-family: system-ui, sans-serif; font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.75rem; color: #273f61; }
+.meta { font-family: system-ui, sans-serif; font-size: 0.85rem; color: #14202f99; margin-bottom: 2rem; display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+.meta .sep { color: #14202f40; }
+hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5rem 0 2rem; }
+.notes h1 { font-size: 1.3rem; margin: 1.5rem 0 0.5rem; color: #273f61; }
+.notes h2 { font-family: system-ui, sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #8f926b; margin: 2rem 0 0.75rem; }
+.notes h3 { font-family: system-ui, sans-serif; font-size: 1rem; font-weight: 700; margin: 1.25rem 0 0.4rem; color: #273f61; }
+.notes h4 { font-family: system-ui, sans-serif; font-size: 0.9rem; font-weight: 700; margin: 1rem 0 0.3rem; color: #273f61; }
+.notes p { margin: 0 0 1rem; }
+.notes ul { margin: 0 0 1rem; padding-left: 1.5rem; }
+.notes li { margin-bottom: 0.3rem; }
+.notes strong { font-weight: 700; color: #273f61; }
+.notes em { font-style: italic; }
+.notes-empty { color: #14202f60; font-style: italic; font-family: system-ui, sans-serif; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="church-name">Family Church</p>
+  ${fm.image ? `<img src="${hEscape(fm.image)}" alt="${hEscape(fm.title ?? '')}" class="sermon-image" />` : ''}
+  ${fm.series ? `<p class="series-label">${hEscape(fm.series)}</p>` : ''}
+  <h1>${hEscape(fm.title ?? 'Sermon Notes')}</h1>
+  <div class="meta">
+    <span>${hEscape(dateStr)}</span>
+    ${fm.speaker ? `<span class="sep">·</span><span>${hEscape(fm.speaker)}</span>` : ''}
+    ${fm.scripture ? `<span class="sep">·</span><span>${hEscape(fm.scripture)}</span>` : ''}
+  </div>
+  <hr />
+  <div class="notes">${notesHtml}</div>
+</div>
+</body>
+</html>`;
+}
+
+async function generateSermonNotesPdf(outputDir, date, slug) {
+  if (!existsSync(SERMON_NOTES)) { warn('current.mdx not found — skipping PDF'); return null; }
+
+  const raw   = readFileSync(SERMON_NOTES, 'utf8');
+  const parts = raw.split(/^---\s*$/m);
+  // parts: ['', frontmatter, body] for a file that starts with ---
+  const { data: fm } = matter(raw);
+  const body = parts.length >= 3 ? parts.slice(2).join('---').trim() : '';
+
+  // Format date for display
+  const dateMatch = raw.match(/^date:\s*["']?(\d{4}-\d{2}-\d{2})/m);
+  const dateStr = dateMatch
+    ? new Date(`${dateMatch[1]}T08:00:00+02:00`).toLocaleDateString('en-ZA', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Johannesburg',
+      })
+    : date;
+
+  // Resolve image to base64 so Puppeteer can embed it without network/file access issues
+  if (fm.image && fm.image.startsWith('/')) {
+    const localPath = join(WEBSITE_DIR, 'public', fm.image);
+    if (existsSync(localPath)) {
+      const ext = localPath.split('.').pop().toLowerCase();
+      const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+      fm.image = `data:${mime};base64,${readFileSync(localPath).toString('base64')}`;
+    } else {
+      fm.image = '';
+    }
+  }
+  const html    = buildSermonNotesHtml(fm, body, dateStr);
+  const pdfPath = join(outputDir, `${date}-${slug}-sermon-notes.pdf`);
+
+  log('Generating sermon notes PDF...');
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.pdf({
+      path: pdfPath,
+      format: 'A4',
+      margin: { top: '20mm', bottom: '20mm', left: '18mm', right: '18mm' },
+      printBackground: false,
+    });
+  } finally {
+    await browser.close();
+  }
+
+  const mb = (statSync(pdfPath).size / 1048576).toFixed(1);
+  log(`  PDF saved: ${basename(pdfPath)} (${mb} MB)`);
+  return pdfPath;
+}
+
+// ─── Next week's sermon notes ────────────────────────────────────────────────
+
+const WHATS_NEXT_DIR = join(WEBSITE_DIR, 'src', 'content', 'whats-next');
+
+function findNextWhatsNext(afterDate) {
+  // afterDate: YYYY-MM-DD — returns the first whats-next entry strictly after this date
+  if (!existsSync(WHATS_NEXT_DIR)) return null;
+  const files = readdirSync(WHATS_NEXT_DIR)
+    .filter(f => /^\d{4}-\d{2}-\d{2}\.mdx$/.test(f))
+    .sort();
+  for (const file of files) {
+    const fileDate = file.slice(0, 10);
+    if (fileDate <= afterDate) continue;
+    const raw = readFileSync(join(WHATS_NEXT_DIR, file), 'utf8');
+    const { data } = matter(raw);
+    // Extract date string directly from raw YAML to avoid js-yaml Date conversion
+    const dateMatch = raw.match(/^date:\s*["']?(\d{4}-\d{2}-\d{2})/m);
+    const date = dateMatch ? dateMatch[1] : fileDate;
+    return {
+      date,
+      title:     (data.title    || '').trim(),
+      speaker:   (data.speaker  || '').trim(),
+      series:    (data.series   || '').trim(),
+      scripture: (data.scripture || '').trim(),
+    };
+  }
+  return null;
+}
+
+function buildNextSermonNotesMdx(next) {
+  // Produces a blank current.mdx pre-filled from the whats-next entry.
+  // image is intentionally empty — set it via CMS before Sunday.
+  // Body is empty; the SSR gate hides the page on non-Sundays.
+  const isoDate = `${next.date}T08:00:00.000+02:00`;
+  return [
+    '---',
+    `title: ${yamlStr(next.title || '')}`,
+    `date: "${isoDate}"`,
+    `speaker: ${yamlStr(next.speaker || '')}`,
+    `scripture: ${yamlStr(next.scripture || '')}`,
+    `series: ${yamlStr(next.series || '')}`,
+    'image: ""',
+    '---',
+    '',
+  ].join('\n');
 }
 
 // ─── claude -p ────────────────────────────────────────────────────────────────
@@ -1214,7 +1367,7 @@ function gitPushWebsite(newFiles) {
   log('  Pushed — Cloudflare build triggered');
 }
 
-function writeWebsiteFiles(sermon, outputDir, date, slug) {
+async function writeWebsiteFiles(sermon, outputDir, date, slug) {
   const devotionsPath = join(outputDir, `devotions-${date}-${slug}.json`);
   const taxPath       = join(outputDir, `${date}-${slug}.json`);
   const htmlPath      = join(outputDir, `${date}-${slug}.html`);
@@ -1276,6 +1429,19 @@ function writeWebsiteFiles(sermon, outputDir, date, slug) {
     writeFileSync(sermonMdxPath, mdxStr);
     newFiles.push(relative(WEBSITE_DIR, sermonMdxPath));
     log(`Sermon MDX written: ${basename(sermonMdxPath)}`);
+  }
+
+  // ── PDF archive of current sermon notes ──
+  await generateSermonNotesPdf(outputDir, date, slug);
+
+  // ── Reset current.mdx for next Sunday ──
+  const nextService = findNextWhatsNext(date);
+  if (nextService) {
+    writeFileSync(SERMON_NOTES, buildNextSermonNotesMdx(nextService));
+    newFiles.push(relative(WEBSITE_DIR, SERMON_NOTES));
+    log(`Sermon notes reset for ${nextService.date}: "${nextService.title || '(untitled)'}"`);
+  } else {
+    warn('No upcoming whats-next entry found — current.mdx not updated');
   }
 
   gitPushWebsite(newFiles);
@@ -1465,11 +1631,11 @@ async function runOptimizeSlug() {
   sermon.image_url   = imageLocal ? `${SITE_URL}${imageLocal}` : sermon.image_url;
 
   // Update title inside taxonomy JSON
-  const taxPath = join(newOutputDir, `${date}-${newSlug}.json`);
-  if (existsSync(taxPath)) {
-    const tax = JSON.parse(readFileSync(taxPath, 'utf8'));
+  const newTaxPath = join(newOutputDir, `${date}-${newSlug}.json`);
+  if (existsSync(newTaxPath)) {
+    const tax = JSON.parse(readFileSync(newTaxPath, 'utf8'));
     tax.title = newTitle;
-    writeFileSync(taxPath, JSON.stringify(tax, null, 2));
+    writeFileSync(newTaxPath, JSON.stringify(tax, null, 2));
   }
 
   // Update title, post_url, and taxonomy fields inside transcript markdown frontmatter
@@ -1580,7 +1746,7 @@ async function runIngestToDb() {
 
 async function runWriteWebsiteFiles() {
   const { sermon, outputDir } = loadSession();
-  writeWebsiteFiles(sermon, outputDir, sermon.date, sermon.slug);
+  await writeWebsiteFiles(sermon, outputDir, sermon.date, sermon.slug);
 }
 
 async function runTestCalendar() {
@@ -1616,7 +1782,7 @@ async function runFullPipeline() {
   await runUploadAudioR2();
   await runDevotions();
   await runUploadDevotions();
-  runWriteWebsiteFiles();
+  await runWriteWebsiteFiles();
   await runUploadToDrive();
   await runIngestToDb();
   console.log('\n' + '='.repeat(60) + '\nPipeline complete.\n' + '='.repeat(60));
