@@ -129,32 +129,32 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 					<div class="flex justify-between items-start mb-3">
 						<span class={`text-[0.65rem] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full ${
 							g.open
-								? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+								? 'bg-[var(--navy)] text-white'
 								: 'bg-gray-100 text-gray-400 dark:bg-white/8 dark:text-white/30'
 						}`}>
 							{g.open ? 'Open' : 'Full'}
 						</span>
 						{g.type && (
-							<span class="text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--olive)]">{g.type}</span>
+							<span class="text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--green)]">{g.type}</span>
 						)}
 					</div>
 
 					{/* Name */}
-					<h2 class={`font-display text-xl font-semibold leading-snug mb-2 ${!g.open ? 'opacity-50' : ''}`}>
+					<h2 class={`font-display text-xl font-semibold leading-snug mb-1 ${!g.open ? 'opacity-50' : ''}`}>
 						{g.name}
 					</h2>
 
-					{/* Interval */}
-					{g.interval && (
-						<p class={`text-sm font-medium text-[var(--olive)] mb-1 ${!g.open ? 'opacity-50' : ''}`}>
-							{g.interval}
+					{/* Area */}
+					{g.area && (
+						<p class={`text-sm font-medium text-[var(--olive)] mb-2 ${!g.open ? 'opacity-50' : ''}`}>
+							{g.area}
 						</p>
 					)}
 
-					{/* Day / time */}
-					{g.day && (
+					{/* Interval + Day / time */}
+					{(g.interval || g.day) && (
 						<p class={`text-sm font-medium text-[var(--navy)] dark:text-white mb-1 ${!g.open ? 'opacity-50' : ''}`}>
-							{g.day} {timeOfDay(g.time)}{g.time ? ` ${g.time}` : ''}
+							{[g.interval, g.day && `${g.day} ${timeOfDay(g.time)}${g.time ? ` ${g.time}` : ''}`].filter(Boolean).join(' · ')}
 						</p>
 					)}
 
