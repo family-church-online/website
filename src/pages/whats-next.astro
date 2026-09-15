@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
 import { getConfig } from '../lib/data';
 
 interface ServiceFrontmatter {
@@ -74,7 +75,7 @@ function fmtFull(d: Date) {
 
 		<div class="relative">
 			{/* Vertical timeline line */}
-			<div class="absolute left-[2.6rem] top-0 bottom-0 w-px bg-gray-200 dark:bg-white/10 hidden sm:block" aria-hidden="true"></div>
+			<div class="absolute left-12 top-0 bottom-0 w-px bg-gray-200 dark:bg-white/10 hidden sm:block" aria-hidden="true"></div>
 
 			<div class="space-y-5">
 				{shown.map((service, i) => {
@@ -90,18 +91,24 @@ function fmtFull(d: Date) {
 									: 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 shadow-sm'
 						}`}>
 
-							{/* Date badge — sits on the timeline dot on sm+ */}
-							<div class="flex-shrink-0 flex flex-col items-center justify-start w-12 pt-0.5">
-								<span class={`text-2xl font-bold leading-none tabular-nums ${
-									isNext ? 'text-[var(--green)]' : 'text-[var(--navy)] dark:text-white'
-								}`}>
-									{fmtDay(service.dateObj)}
-								</span>
-								<span class={`text-[0.65rem] font-bold tracking-widest mt-0.5 ${
-									isNext ? 'text-[var(--green)]' : 'text-[var(--olive)]'
-								}`}>
-									{fmtMonth(service.dateObj)}
-								</span>
+							{/* Date badge — calendar style matching /events */}
+							<div class={`flex-shrink-0 self-start w-14 rounded-xl overflow-hidden text-center ring-1 ${
+								isNext
+									? 'ring-[var(--green)]/30'
+									: 'ring-[var(--red)]/20 dark:ring-white/12'
+							}`}>
+								<div class={`py-1 ${isNext ? 'bg-[var(--green)]' : 'bg-[var(--red)]'}`}>
+									<span class="text-white text-[10px] font-bold uppercase tracking-widest">
+										{fmtMonth(service.dateObj)}
+									</span>
+								</div>
+								<div class={`py-2 ${isNext ? 'bg-white/10' : 'bg-white dark:bg-[var(--card)]'}`}>
+									<span class={`text-2xl font-bold leading-none tabular-nums ${
+										isNext ? 'text-white' : 'text-[var(--navy)] dark:text-white'
+									}`}>
+										{fmtDay(service.dateObj)}
+									</span>
+								</div>
 							</div>
 
 							{/* Main content */}
@@ -151,10 +158,12 @@ function fmtFull(d: Date) {
 												{service.series}
 											</span>
 										)}
-										{service.series && service.speaker && (
-											<span class="opacity-40 select-none">&middot;</span>
+										{service.speaker && (
+											<span class="flex items-center gap-1">
+												<Icon name="user" class="w-3.5 h-3.5 shrink-0 opacity-70" />
+												<span>{service.speaker}</span>
+											</span>
 										)}
-										{service.speaker && <span>{service.speaker}</span>}
 									</div>
 								)}
 

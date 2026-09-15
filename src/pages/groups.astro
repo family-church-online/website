@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
 import { getConfig } from '../lib/data';
 
 interface GroupFrontmatter {
@@ -11,6 +12,7 @@ interface GroupFrontmatter {
 	type?: string | null;
 	area?: string | null;
 	frequency?: string | null;
+	interval?: string | null;
 	gender?: string | null;
 	lifeStage?: string | null;
 	contact?: string | null;
@@ -138,41 +140,52 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 					</div>
 
 					{/* Name */}
-					<h2 class={`font-display text-xl font-semibold leading-snug mb-3 ${!g.open ? 'opacity-50' : ''}`}>
+					<h2 class={`font-display text-xl font-semibold leading-snug mb-2 ${!g.open ? 'opacity-50' : ''}`}>
 						{g.name}
 					</h2>
 
-					{/* Primary info */}
-					<div class={`flex flex-col gap-0.5 text-sm font-medium mb-3 ${!g.open ? 'opacity-50' : ''}`}>
-						{g.area && (
-							<span class="text-[var(--ink)]/70 dark:text-white/60">{g.area}</span>
-						)}
-						{g.day && (
-							<span class="text-[var(--navy)] dark:text-white">{g.day} {timeOfDay(g.time)}{g.time ? ` ${g.time}` : ''}</span>
-						)}
-						{g.frequency && (
-							<span class="text-[var(--ink)]/70 dark:text-white/60">{g.frequency}</span>
-						)}
-					</div>
+					{/* Interval */}
+					{g.interval && (
+						<p class={`text-sm font-medium text-[var(--olive)] mb-1 ${!g.open ? 'opacity-50' : ''}`}>
+							{g.interval}
+						</p>
+					)}
 
-					{/* Tags */}
-					<div class={`flex flex-wrap gap-1.5 mb-4 ${!g.open ? 'opacity-40' : ''}`}>
-						{g.gender && g.gender !== 'Mixed' && (
-							<span class="text-[0.65rem] font-semibold uppercase tracking-wide bg-[var(--navy)]/8 dark:bg-white/8 text-[var(--navy)] dark:text-white/70 px-2 py-0.5 rounded-full">
-								{g.gender}
-							</span>
-						)}
-						{g.lifeStage && g.lifeStage !== 'All Ages' && (
-							<span class="text-[0.65rem] font-semibold uppercase tracking-wide bg-[var(--navy)]/8 dark:bg-white/8 text-[var(--navy)] dark:text-white/70 px-2 py-0.5 rounded-full">
-								{g.lifeStage}
-							</span>
-						)}
-					</div>
+					{/* Day / time */}
+					{g.day && (
+						<p class={`text-sm font-medium text-[var(--navy)] dark:text-white mb-1 ${!g.open ? 'opacity-50' : ''}`}>
+							{g.day} {timeOfDay(g.time)}{g.time ? ` ${g.time}` : ''}
+						</p>
+					)}
+
+					{/* Frequency */}
+					{g.frequency && (
+						<p class={`text-sm text-[var(--ink)]/60 dark:text-white/50 mb-3 ${!g.open ? 'opacity-50' : ''}`}>
+							{g.frequency}
+						</p>
+					)}
+
+					{/* Tags — Life Stage then Gender */}
+					{(g.lifeStage && g.lifeStage !== 'All Ages' || g.gender && g.gender !== 'Mixed') && (
+						<div class={`flex flex-wrap gap-1.5 mb-4 ${!g.open ? 'opacity-40' : ''}`}>
+							{g.lifeStage && g.lifeStage !== 'All Ages' && (
+								<span class="text-[0.65rem] font-semibold uppercase tracking-wide bg-[var(--navy)]/8 dark:bg-white/8 text-[var(--navy)] dark:text-white/70 px-2 py-0.5 rounded-full">
+									{g.lifeStage}
+								</span>
+							)}
+							{g.gender && g.gender !== 'Mixed' && (
+								<span class="text-[0.65rem] font-semibold uppercase tracking-wide bg-[var(--navy)]/8 dark:bg-white/8 text-[var(--navy)] dark:text-white/70 px-2 py-0.5 rounded-full">
+									{g.gender}
+								</span>
+							)}
+						</div>
+					)}
 
 					{/* Contact */}
 					{g.contact && (
-						<p class={`mt-auto text-sm text-[var(--ink)]/50 dark:text-white/40 ${!g.open ? 'opacity-50' : ''}`}>
-							Contact: {g.contact}
+						<p class={`mt-auto flex items-center gap-1.5 text-sm text-[var(--ink)]/50 dark:text-white/40 ${!g.open ? 'opacity-50' : ''}`}>
+							<Icon name="user" class="w-3.5 h-3.5 shrink-0" />
+							{g.contact}
 						</p>
 					)}
 				</div>

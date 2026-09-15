@@ -52,7 +52,13 @@ export const GroupCollection: Collection = {
 			name: 'frequency',
 			label: 'Frequency',
 			type: 'string',
-			options: ['Weekly', 'Bi-weekly', 'Monthly', '1st of month', '1st & 3rd', '2nd & 4th'],
+			options: ['Weekly', 'Bi-weekly', 'Monthly'],
+		},
+		{
+			name: 'interval',
+			label: 'Interval',
+			type: 'string',
+			options: ['1st', '1st & 3rd', '2nd', '2nd & 4th', '3rd', '4th'],
 		},
 		{
 			name: 'gender',
