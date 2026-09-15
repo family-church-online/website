@@ -44,6 +44,14 @@
         {
           "title": "Events",
           "link": "/events"
+        },
+        {
+          "title": "What's Next",
+          "link": "/whats-next"
+        },
+        {
+          "title": "Groups",
+          "link": "/groups"
         }
       ]
     },

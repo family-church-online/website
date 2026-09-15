@@ -33,11 +33,16 @@ const groups = Object.values(modules)
 
 function timeOfDay(time: string | null | undefined) {
 	if (!time) return '';
-	return time < '12:00' ? 'Morning' : 'Evening';
+	if (time < '12:00') return 'Morning';
+	if (time < '18:00') return 'Afternoon';
+	return 'Evening';
 }
+
+const TOD_ORDER  = ['Morning', 'Afternoon', 'Evening'];
 
 const allAreas   = [...new Set(groups.map(g => g.area).filter((a): a is string => !!a))].sort();
 const allDays    = DAY_ORDER.filter(d => groups.some(g => g.day === d));
+const allTods    = TOD_ORDER.filter(t => groups.some(g => timeOfDay(g.time) === t));
 
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
@@ -74,6 +79,22 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 					))}
 				</div>
 
+				{/* Time-of-day pills */}
+				{allTods.length > 1 && (
+					<div class="flex flex-wrap gap-1.5" id="tod-filters">
+						<button data-filter="tod" data-value="all" aria-pressed="true"
+							class="filter-pill active text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer">
+							All times
+						</button>
+						{allTods.map(t => (
+							<button data-filter="tod" data-value={t} aria-pressed="false"
+								class="filter-pill text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer">
+								{t}
+							</button>
+						))}
+					</div>
+				)}
+
 				{/* Area select */}
 				{allAreas.length > 1 && (
 					<select id="filter-area" class="filter-select text-sm border border-[var(--ink)]/18 dark:border-white/12 rounded-lg px-3 py-1.5 bg-white dark:bg-[var(--card)] cursor-pointer">
@@ -98,6 +119,7 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 				<div
 					class="group-card flex flex-col rounded-2xl border border-[var(--ink)]/10 dark:border-white/10 bg-white dark:bg-[var(--card)] p-5 shadow-sm"
 					data-day={g.day ?? ''}
+					data-tod={timeOfDay(g.time)}
 					data-area={g.area ?? ''}
 					data-open={g.open ? 'true' : 'false'}
 				>
@@ -121,21 +143,15 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 					</h2>
 
 					{/* Primary info */}
-					<div class={`flex flex-wrap gap-x-2 gap-y-0.5 text-sm font-medium mb-3 ${!g.open ? 'opacity-50' : ''}`}>
-						{g.day && timeOfDay(g.time) && (
-							<span class="text-[var(--navy)] dark:text-white">{g.day} {timeOfDay(g.time)}</span>
+					<div class={`flex flex-col gap-0.5 text-sm font-medium mb-3 ${!g.open ? 'opacity-50' : ''}`}>
+						{g.area && (
+							<span class="text-[var(--ink)]/70 dark:text-white/60">{g.area}</span>
+						)}
+						{g.day && (
+							<span class="text-[var(--navy)] dark:text-white">{g.day} {timeOfDay(g.time)}{g.time ? ` ${g.time}` : ''}</span>
 						)}
 						{g.frequency && (
-							<>
-								<span class="text-[var(--ink)]/30 dark:text-white/25 select-none">·</span>
-								<span class="text-[var(--ink)]/70 dark:text-white/60">{g.frequency}</span>
-							</>
-						)}
-						{g.area && (
-							<>
-								<span class="text-[var(--ink)]/30 dark:text-white/25 select-none">·</span>
-								<span class="text-[var(--ink)]/70 dark:text-white/60">{g.area}</span>
-							</>
+							<span class="text-[var(--ink)]/70 dark:text-white/60">{g.frequency}</span>
 						)}
 					</div>
 
@@ -194,12 +210,14 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 	<script>
 		const cards      = Array.from(document.querySelectorAll<HTMLElement>('.group-card'));
 		const dayBtns    = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter="day"]'));
+		const todBtns    = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter="tod"]'));
 		const areaSelect = document.querySelector<HTMLSelectElement>('#filter-area');
 		const openToggle = document.querySelector<HTMLInputElement>('#filter-open');
 		const countEl    = document.getElementById('result-count');
 		const noResults  = document.getElementById('no-results');
 
 		let activeDay  = 'all';
+		let activeTod  = 'all';
 		let activeArea = '';
 		let openOnly   = false;
 
@@ -207,9 +225,10 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 			let visible = 0;
 			cards.forEach(card => {
 				const dayOk  = activeDay === 'all' || card.dataset.day === activeDay;
+				const todOk  = activeTod === 'all' || card.dataset.tod === activeTod;
 				const areaOk = !activeArea || card.dataset.area === activeArea;
 				const openOk = !openOnly || card.dataset.open === 'true';
-				const show   = dayOk && areaOk && openOk;
+				const show   = dayOk && todOk && areaOk && openOk;
 				card.hidden  = !show;
 				if (show) visible++;
 			});
@@ -221,6 +240,14 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 			btn.addEventListener('click', () => {
 				activeDay = btn.dataset.value!;
 				dayBtns.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+				applyFilters();
+			});
+		});
+
+		todBtns.forEach(btn => {
+			btn.addEventListener('click', () => {
+				activeTod = btn.dataset.value!;
+				todBtns.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
 				applyFilters();
 			});
 		});
