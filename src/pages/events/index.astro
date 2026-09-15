@@ -22,6 +22,8 @@ const modules = import.meta.glob<{ frontmatter: EventFrontmatter }>(
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
 
+const TZ = 'Africa/Johannesburg';
+
 const today = new Date().toISOString().split('T')[0];
 
 const all = Object.entries(modules).map(([path, mod]) => ({
@@ -39,12 +41,12 @@ const past = all
 
 function fmtDate(iso: string) {
 	return new Date(iso).toLocaleDateString('en-GB', {
-		weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+		weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: TZ,
 	});
 }
 
 function fmtTime(iso: string) {
-	const t = new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+	const t = new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
 	return t === '00:00' ? null : t;
 }
 
@@ -68,14 +70,14 @@ function parsePoint(raw: string | null | undefined): { lat: number; lng: number 
 
 function dateLabel(iso: string) {
 	return new Date(iso).toLocaleDateString('en-GB', {
-		weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+		weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: TZ,
 	});
 }
 
 function calParts(iso: string) {
 	return {
-		day:   new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'UTC' }),
-		month: new Date(iso).toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }).toUpperCase(),
+		day:   new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', timeZone: TZ }),
+		month: new Date(iso).toLocaleDateString('en-GB', { month: 'short', timeZone: TZ }).toUpperCase(),
 	};
 }
 ---
