@@ -680,6 +680,18 @@ const configObj = {
   },
   site_url:      'https://dev.familychurch.online',
   logo_url:      '/images/NavyLogo.png',
+  // Force double-quoted strings in every YAML frontmatter value Sveltia writes.
+  // Without this, an unquoted ambiguous scalar (e.g. a group's time: 19:00) is
+  // valid YAML but gets misread by consumers using an older/stricter parser —
+  // notably @tinacms/graphql, which pins js-yaml v3 and parses unquoted HH:MM
+  // as a sexagesimal integer, not a string. That mismatch crashed TinaCloud's
+  // indexing. Quoting every string on save removes this whole class of
+  // ambiguity (also covers yes/no/on/off, leading zeros, etc.) without needing
+  // a per-field workaround, and it's a Sveltia-native output option — see
+  // https://sveltiacms.app/en/docs/data-output
+  output: {
+    yaml: { quote: 'double' },
+  },
   // Sveltia uploads go to public/images/ in the repo, committed via GitHub API.
   // Keep upload dirs consistent with TinaCMS uploadDir values in tina/collections/*.ts.
   media_folder:  'public/images/uploads',
