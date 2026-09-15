@@ -74,13 +74,11 @@ node_modules/
 # Astro
 .astro
 
-# TODO: After scaffolding from this template, DELETE the block below so your
-# chosen lockfile (we recommend pnpm-lock.yaml) is committed. See README → "Commit your lockfile".
-# Package Manager Lock Files
+# Package manager lock files — pnpm-lock.yaml is intentionally committed
+# (this project uses pnpm); ignore the others in case anyone runs a
+# different package manager locally.
 package-lock.json
-pnpm-lock.yaml
 yarn.lock
-.yarn/cache
 bun.lockb
 deno.lock
 
