@@ -21,7 +21,7 @@ const isNavy   = data.background === 'navy';
 const isAccent = data.background === 'accent';
 ---
 {isAccent ? (
-	<section class="bg-[var(--background)] py-8 lg:pt-14">
+	<section class="bg-[var(--background)] py-8 lg:pt-16">
 		<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6">
 			{data.heading && (
 				<div class="text-center mb-5">
@@ -45,7 +45,7 @@ const isAccent = data.background === 'accent';
 					</p>
 				)}
 				{data.links && data.links.length > 0 && (
-					<div class="flex flex-wrap justify-center gap-2 mt-4" data-tina-field={tinaField(data, 'links')}>
+					<div class="flex flex-wrap justify-start gap-2 mt-4" data-tina-field={tinaField(data, 'links')}>
 						{data.links.filter(l => l?.label && l?.href).map(l => (
 							<a
 								href={l.href!}
