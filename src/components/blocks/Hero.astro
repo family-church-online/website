@@ -31,12 +31,12 @@ const actions = (data.actions ?? []).filter(a => a !== null);
 	<div class="hero-content" style={{ position: 'relative', zIndex: '2', marginTop: '5rem' }}>
 
 		{data.tagline && (
-			<p
+			<h1
 				data-tina-field={tinaField(data, 'tagline')}
 				class="hero-tagline"
 			>
 				{data.tagline}
-			</p>
+			</h1>
 		)}
 
 		{(data.serviceInfo ?? 'Sundays 09:30 · Dainfern College, Johannesburg') && (

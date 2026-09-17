@@ -21,6 +21,7 @@ const banner  = config?.banner;
 const bannerActive = !!(banner?.enabled && banner.text);
 const siteUrl = new URL('/', Astro.site).toString().replace(/\/$/, '');
 
+const addr = config?.seo?.address;
 const orgLd = {
 	'@context': 'https://schema.org',
 	'@type': 'Church',
@@ -28,6 +29,16 @@ const orgLd = {
 	url: siteUrl,
 	...(config?.seo?.description && { description: config.seo.description }),
 	logo: `${siteUrl}/images/logo-stone.png`,
+	...(addr?.streetAddress && {
+		address: {
+			'@type': 'PostalAddress',
+			streetAddress: addr.streetAddress,
+			...(addr.locality    && { addressLocality: addr.locality }),
+			...(addr.region      && { addressRegion:   addr.region }),
+			...(addr.postalCode  && { postalCode:       addr.postalCode }),
+			...(addr.country     && { addressCountry:   addr.country }),
+		},
+	}),
 	sameAs: (config?.contactLinks ?? [])
 		.filter((l): l is NonNullable<typeof l> => !!l?.link)
 		.map(l => l.link),

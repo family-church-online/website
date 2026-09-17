@@ -55,6 +55,18 @@ export const GlobalConfigCollection: Collection = {
           type: 'string',
           description: 'Used for the WhatsApp chat button. Include country code, no + or spaces (e.g. 27821234567).',
         },
+        {
+          name: 'address',
+          label: 'Church Address',
+          type: 'object',
+          fields: [
+            { name: 'streetAddress', label: 'Street Address', type: 'string' },
+            { name: 'locality',      label: 'Suburb / City',  type: 'string' },
+            { name: 'region',        label: 'Province',       type: 'string' },
+            { name: 'postalCode',    label: 'Postal Code',    type: 'string' },
+            { name: 'country',       label: 'Country Code',   type: 'string', description: 'Two-letter ISO code, e.g. ZA' },
+          ],
+        },
         //Add more site settings here...
       ],
     },
