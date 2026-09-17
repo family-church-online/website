@@ -36,6 +36,7 @@
     "sermons:check": "node scripts/import-sermons.mjs --check",
     "sermons:latest": "node scripts/import-sermons.mjs --latest",
     "sermons:import": "node scripts/import-sermons.mjs",
+    "sermons:related": "node scripts/build-related-sermons.mjs",
     "lesson:import": "node scripts/import-lessons.mjs",
     "lesson:manifest": "node scripts/import-lessons.mjs --manifest",
     "lesson:convert": "node scripts/convert-lesson.mjs",

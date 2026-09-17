@@ -5,6 +5,7 @@ import Base from '../../layouts/Base.astro';
 import EsvCrossref from '../../components/EsvCrossref.astro';
 import { getConfig } from '../../lib/data';
 import Icon from '../../components/Icon.astro';
+import relatedMap from '../../data/related-sermons.json';
 
 interface SermonFrontmatter {
   title?: string;
@@ -40,6 +41,14 @@ interface SermonFrontmatter {
   wordCount?: number | null;
 }
 
+interface RelatedSermon {
+  slug: string;
+  title?: string;
+  date?: string;
+  series?: string | null;
+  shortDescription?: string | null;
+}
+
 export function getStaticPaths() {
   const mods = import.meta.glob<{ frontmatter: SermonFrontmatter; default: any }>(
     '../../content/sermons/*.mdx',
@@ -55,21 +64,40 @@ export function getStaticPaths() {
     .filter(s => !s.frontmatter.review)
     .sort((a, b) => (a.frontmatter.date ?? '').localeCompare(b.frontmatter.date ?? ''));
 
-  return all.map((sermon, i) => ({
-    params: { slug: sermon.slug },
-    props: {
-      frontmatter: sermon.frontmatter,
-      Content: sermon.Content,
-      prev: i > 0 ? { slug: all[i - 1].slug, title: all[i - 1].frontmatter.title } : null,
-      next: i < all.length - 1 ? { slug: all[i + 1].slug, title: all[i + 1].frontmatter.title } : null,
-    },
-  }));
+  const bySlug = new Map(all.map(s => [s.slug, s]));
+
+  return all.map((sermon, i) => {
+    const relatedSlugs = (relatedMap as Record<string, string[]>)[sermon.slug] ?? [];
+    const related: RelatedSermon[] = relatedSlugs.flatMap(rs => {
+      const s = bySlug.get(rs);
+      if (!s) return [];
+      return [{
+        slug: s.slug,
+        title: s.frontmatter.title,
+        date: s.frontmatter.date,
+        series: s.frontmatter.series,
+        shortDescription: s.frontmatter.shortDescription,
+      }];
+    });
+
+    return {
+      params: { slug: sermon.slug },
+      props: {
+        frontmatter: sermon.frontmatter,
+        Content: sermon.Content,
+        related,
+        prev: i > 0 ? { slug: all[i - 1].slug, title: all[i - 1].frontmatter.title } : null,
+        next: i < all.length - 1 ? { slug: all[i + 1].slug, title: all[i + 1].frontmatter.title } : null,
+      },
+    };
+  });
 }
 
 const { slug } = Astro.params;
-const { frontmatter: fm, Content, prev, next } = Astro.props as {
+const { frontmatter: fm, Content, related, prev, next } = Astro.props as {
   frontmatter: SermonFrontmatter;
   Content: any;
+  related: RelatedSermon[];
   prev: { slug: string; title?: string } | null;
   next: { slug: string; title?: string } | null;
 };
@@ -468,6 +496,25 @@ const ldJsonVideo = vimeoId ? {
           ></iframe>
         </div>
       </div>
+    )}
+
+    {/* ── RELATED SERMONS ────────────────────────────────────────────────── */}
+    {related.length > 0 && (
+      <section class="reveal mt-2 mb-8 esv-crossref-ignore">
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/35 mb-3">You might also like</p>
+        <div class="grid gap-3 sm:grid-cols-3">
+          {related.map(r => (
+            <a href={`/sermons/${r.slug}`} class="group block bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/10 px-5 py-4 hover:shadow-md transition-shadow">
+              <p class="text-xs text-[var(--olive)] mb-1.5">
+                {r.date && fmtDate(r.date)}
+                {r.series && <span class="text-[var(--ink)]/30 dark:text-white/25"> · {r.series}</span>}
+              </p>
+              <p class="text-sm font-semibold text-[var(--navy)] dark:text-[#8bbcde] group-hover:text-[var(--green)] transition-colors leading-snug mb-2">{r.title}</p>
+              {r.shortDescription && <p class="text-xs text-[var(--ink)]/55 dark:text-white/45 line-clamp-3 leading-relaxed">{r.shortDescription}</p>}
+            </a>
+          ))}
+        </div>
+      </section>
     )}
 
     {/* ── PREV / NEXT ────────────────────────────────────────────────────── */}
