@@ -1,0 +1,115 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+import { getConfig } from '../../lib/data';
+
+export async function getStaticPaths() {
+	const mods = import.meta.glob<{ frontmatter: Record<string, unknown> }>(
+		'../../content/memorial/*.mdx',
+		{ eager: true },
+	);
+	return Object.entries(mods).map(([path, mod]) => {
+		const slug = path.split('/').pop()!.replace(/\.mdx$/, '');
+		return { params: { slug }, props: { frontmatter: mod.frontmatter } };
+	});
+}
+
+interface Frontmatter {
+	title?: string;
+	date?: string | Date;
+	image?: string;
+	vimeoUrl?: string;
+	pdfs?: Array<{ file?: string; label?: string }>;
+}
+
+const { frontmatter: fm } = Astro.props as { frontmatter: Frontmatter };
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+const pdfs = (fm.pdfs ?? []).filter(p => p?.file);
+
+const dateStr = fm.date
+	? new Date(fm.date as string).toLocaleDateString('en-ZA', {
+			day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Johannesburg',
+	  })
+	: null;
+
+function vimeoEmbedUrl(url: string | undefined): string | null {
+	if (!url) return null;
+	// Already an embed URL — use as-is
+	if (url.includes('/embed')) return url;
+	// Vimeo event: vimeo.com/event/ID → vimeo.com/event/ID/embed
+	const eventMatch = url.match(/vimeo\.com\/event\/(\d+)/);
+	if (eventMatch) return `https://vimeo.com/event/${eventMatch[1]}/embed`;
+	// Standard video: vimeo.com/ID or player.vimeo.com/video/ID
+	const videoMatch = url.match(/(?:player\.vimeo\.com\/video\/|vimeo\.com\/)(\d+)/);
+	return videoMatch ? `https://player.vimeo.com/video/${videoMatch[1]}?dnt=1` : null;
+}
+
+const embedUrl = vimeoEmbedUrl(fm.vimeoUrl);
+---
+
+<Base title={`${fm.title || 'Memorial'} · ${siteTitle}`}>
+
+	<!-- Headline -->
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-6 text-center">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">In Loving Memory</p>
+		<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-2">
+			{fm.title || 'Memorial'}
+		</h1>
+		{dateStr && (
+			<p class="text-base text-[var(--ink)]/60 dark:text-white/60 mt-3 mb-1">{dateStr}</p>
+		)}
+	</div>
+
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pb-16 space-y-10">
+
+		<!-- Image -->
+		{fm.image && (
+			<div>
+				<img
+					src={fm.image}
+					alt={fm.title ?? 'Memorial'}
+					class="w-full rounded-xl object-cover max-h-[32rem] shadow-md"
+				/>
+			</div>
+		)}
+
+		<!-- Vimeo embed -->
+		{embedUrl && (
+			<div class="rounded-xl overflow-hidden shadow-md aspect-video">
+				<iframe
+					src={embedUrl}
+					class="w-full h-full"
+					frameborder="0"
+					allow="autoplay; fullscreen; picture-in-picture"
+					allowfullscreen
+					title={fm.title ?? 'Memorial video'}
+				></iframe>
+			</div>
+		)}
+
+		<!-- Downloads -->
+		{pdfs.length > 0 && (
+			<section>
+				<h2 class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">Downloads</h2>
+				<div class="flex flex-wrap gap-3">
+					{pdfs.map(p => (
+						<a
+							href={p.file}
+							download
+							class="inline-flex items-center gap-2 rounded-lg bg-white dark:bg-[var(--card)] ring-1 ring-[var(--navy)]/10 dark:ring-white/10 px-4 py-3 text-sm font-semibold text-[var(--navy)] dark:text-white hover:ring-[var(--green)]/50 hover:text-[var(--green)] transition-all no-underline shadow-sm"
+						>
+							<Icon name="download" class="w-4 h-4 shrink-0" />
+							{p.label || 'Download'}
+						</a>
+					))}
+				</div>
+			</section>
+		)}
+
+	</div>
+</Base>

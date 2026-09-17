@@ -1,0 +1,64 @@
+---
+export const prerender = true;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+
+const config    = (await getConfig()).data?.config ?? null;
+const siteTitle = config?.seo?.title ?? 'Family Church';
+
+interface Frontmatter { title?: string; image?: string; date?: string | Date; }
+
+const mods = import.meta.glob<{ frontmatter: Frontmatter }>(
+	'../../content/memorial/*.mdx',
+	{ eager: true },
+);
+
+function fmtDate(d: string | Date | undefined): string | null {
+	if (!d) return null;
+	return new Date(d as string).toLocaleDateString('en-ZA', {
+		day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Johannesburg',
+	});
+}
+
+const memorials = Object.entries(mods)
+	.map(([path, mod]) => ({
+		slug: path.split('/').pop()!.replace(/\.mdx$/, ''),
+		title: mod.frontmatter.title ?? 'In Loving Memory',
+		image: mod.frontmatter.image,
+		date: fmtDate(mod.frontmatter.date),
+	}))
+	.filter(m => m.title);
+---
+
+<Base title={`In Loving Memory · ${siteTitle}`}>
+	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-16">
+		<div class="text-center mb-10">
+			<h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-4">In Loving Memory</h1>
+			<p class="text-base text-[var(--ink)]/60 dark:text-white/60 max-w-lg mx-auto leading-relaxed">
+				Celebrating the lives of those who were part of our church family. These pages honour their memory and preserve the services held in their name.
+			</p>
+		</div>
+
+		<div class="grid gap-4 sm:grid-cols-2">
+			{memorials.map(m => (
+				<a
+					href={`/memorial/${m.slug}`}
+					class="group block rounded-2xl overflow-hidden bg-white dark:bg-[var(--card)] shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 hover:shadow-md transition-shadow no-underline"
+				>
+					{m.image && (
+						<img src={m.image} alt={m.title} class="w-full h-48 object-cover" />
+					)}
+					<div class="px-5 py-4">
+						<p class="text-base font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors">
+							{m.title}
+						</p>
+						{m.date && (
+							<p class="text-sm text-[var(--ink)]/50 dark:text-white/50 mt-1">{m.date}</p>
+						)}
+					</div>
+				</a>
+			))}
+		</div>
+	</div>
+</Base>

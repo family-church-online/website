@@ -122,6 +122,7 @@ import { GuideCollection }          from '../tina/collections/guide.ts';
 import { SermonCollection }          from '../tina/collections/sermon.ts';
 import { ministryLessonCollection } from '../tina/collections/amplify-lesson.ts';
 import { kidsLessonCollection }     from '../tina/collections/kids-lesson.ts';
+import { MemorialCollection }       from '../tina/collections/memorial.ts';
 import { pageHeaderBlockSchema }    from '../src/components/blocks/page-header.template.ts';
 import { timelineBlockSchema }      from '../src/components/blocks/timeline.template.ts';
 
@@ -230,8 +231,9 @@ type SveltiaField = Record<string, unknown>;
 const FIELD_OVERRIDES: Record<string, SveltiaField | null> = {
   // pdfs[].file is type:image in TinaCMS (only upload type available) but must
   // be widget:file in Sveltia so editors can actually pick PDF files.
-  'lesson.pdfs.file':     { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/amplify', public_folder: '/images/amplify', required: false },
-  'kidsLesson.pdfs.file': { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/lessons', public_folder: '/images/lessons', required: false },
+  'lesson.pdfs.file':     { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/amplify',  public_folder: '/images/amplify',  required: false },
+  'kidsLesson.pdfs.file': { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/lessons',  public_folder: '/images/lessons',  required: false },
+  'memorial.pdfs.file':   { name: 'file', label: 'File',  widget: 'file', media_folder: '/public/images/memorial', public_folder: '/images/memorial', required: false },
 
   // sermon.style has options but existing data includes "Teaching" (not in the list).
   // Use widget:string to avoid breaking existing sermon data with an invalid select value.
@@ -347,6 +349,7 @@ const editorNoPreview = { preview: false };
 const _sermonFields       = (SermonCollection.fields ?? []) as TinaField[];
 const _amplifyFields      = (ministryLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
 const _kidsFields         = (kidsLessonCollection({ name: '_', label: '_', path: '_', route: '_' }).fields ?? []) as TinaField[];
+const _memorialFields     = (MemorialCollection.fields ?? []) as TinaField[];
 const _pageHeaderFields   = (pageHeaderBlockSchema.fields ?? []) as TinaField[];
 const _timelineFields     = (timelineBlockSchema.fields ?? []) as TinaField[];
 
@@ -497,6 +500,21 @@ const folderCollections = [
     editor: editorNoPreview,
     preview_path: 'kids-church/junior/{{slug}}',
     fields: translateFields(_kidsFields, 'kidsLesson'),
+  },
+  {
+    name: 'memorial',
+    label: 'Memorial',
+    folder: 'src/content/memorial',
+    format: 'frontmatter',
+    extension: 'mdx',
+    create: true,
+    identifier_field: 'title',
+    slug: '{{slug}}',
+    media_folder: '/public/images/memorial',
+    public_folder: '/images/memorial',
+    editor: editorNoPreview,
+    preview_path: 'memorial',
+    fields: translateFields(_memorialFields, 'memorial'),
   },
   {
     name: 'group',

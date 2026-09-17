@@ -17,6 +17,7 @@ import { MinistryCollection } from "./collections/ministry";
 import { ministryLessonCollection } from "./collections/amplify-lesson";
 import { kidsLessonCollection }     from "./collections/kids-lesson";
 import { courseLessonCollection }   from "./collections/course-lesson";
+import { MemorialCollection }       from "./collections/memorial";
 
 // Your hosting provider likely exposes this as an environment variable
 const branch =
@@ -87,6 +88,7 @@ export default defineConfig({
       courseLessonCollection({ name: 'prayerHumility',       label: 'Four Walls — Prayer',              courseSlug: 'the-four-walls-of-the-church', chapterSlug: 'prayer' }),
       SermonNotesCollection,
       WhatsNextCollection,
+      MemorialCollection,
       GroupCollection,
       MinistryCollection,
       GlobalConfigCollection,
