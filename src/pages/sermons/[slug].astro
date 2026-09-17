@@ -40,6 +40,18 @@ interface SermonFrontmatter {
   wordCount?: number | null;
 }
 
+function topicTags(tags: string[] | null | undefined): string[] {
+  return (tags ?? []).filter(t => !/^(Ref|Book|Series):/.test(t));
+}
+
+function jaccardScore(a: string[], b: string[]): number {
+  if (a.length === 0 || b.length === 0) return 0;
+  const setA = new Set(a);
+  const intersection = b.filter(t => setA.has(t)).length;
+  const union = new Set([...a, ...b]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
 export function getStaticPaths() {
   const mods = import.meta.glob<{ frontmatter: SermonFrontmatter; default: any }>(
     '../../content/sermons/*.mdx',
@@ -55,23 +67,56 @@ export function getStaticPaths() {
     .filter(s => !s.frontmatter.review)
     .sort((a, b) => (a.frontmatter.date ?? '').localeCompare(b.frontmatter.date ?? ''));
 
-  return all.map((sermon, i) => ({
-    params: { slug: sermon.slug },
-    props: {
-      frontmatter: sermon.frontmatter,
-      Content: sermon.Content,
-      prev: i > 0 ? { slug: all[i - 1].slug, title: all[i - 1].frontmatter.title } : null,
-      next: i < all.length - 1 ? { slug: all[i + 1].slug, title: all[i + 1].frontmatter.title } : null,
-    },
-  }));
+  return all.map((sermon, i) => {
+    const currentTags = topicTags(sermon.frontmatter.tags);
+    const related = all
+      .filter((_, j) => j !== i)
+      .map(other => ({ other, score: jaccardScore(currentTags, topicTags(other.frontmatter.tags)) }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map(({ other }) => ({
+        slug: other.slug,
+        title: other.frontmatter.title,
+        date: other.frontmatter.date,
+        series: other.frontmatter.series,
+        scripture: other.frontmatter.scripture,
+        image: other.frontmatter.image,
+        shortDescription: other.frontmatter.shortDescription,
+        durationMinutes: other.frontmatter.durationMinutes,
+      }));
+
+    return {
+      params: { slug: sermon.slug },
+      props: {
+        frontmatter: sermon.frontmatter,
+        Content: sermon.Content,
+        prev: i > 0 ? { slug: all[i - 1].slug, title: all[i - 1].frontmatter.title } : null,
+        next: i < all.length - 1 ? { slug: all[i + 1].slug, title: all[i + 1].frontmatter.title } : null,
+        related,
+      },
+    };
+  });
 }
 
+type RelatedSermon = {
+  slug: string;
+  title?: string;
+  date?: string;
+  series?: string | null;
+  scripture?: string;
+  image?: string | null;
+  shortDescription?: string | null;
+  durationMinutes?: number | null;
+};
+
 const { slug } = Astro.params;
-const { frontmatter: fm, Content, prev, next } = Astro.props as {
+const { frontmatter: fm, Content, prev, next, related } = Astro.props as {
   frontmatter: SermonFrontmatter;
   Content: any;
   prev: { slug: string; title?: string } | null;
   next: { slug: string; title?: string } | null;
+  related: RelatedSermon[];
 };
 
 const config    = (await getConfig()).data?.config ?? null;
@@ -493,6 +538,52 @@ const ldJsonVideo = vimeoId ? {
           </a>
         ) : <div class="flex-1" />}
       </nav>
+    )}
+
+    {/* ── MORE ON THIS TOPIC ─────────────────────────────────────────────────── */}
+    {related.length > 0 && (
+      <section class="reveal mb-8 esv-crossref-ignore">
+        <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">More on this topic</p>
+        <ul class="space-y-3">
+          {related.map(s => (
+            <li>
+              <a
+                href={`/sermons/${s.slug}`}
+                class="group flex gap-4 items-start bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 p-4 hover:shadow-md transition-shadow text-[var(--ink)] dark:text-white"
+              >
+                <div class="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-[var(--navy)]/10 dark:bg-white/5">
+                  {s.image ? (
+                    <img src={s.image} alt="" aria-hidden="true" class="w-full h-full object-cover scale-[1.70]" loading="lazy" />
+                  ) : (
+                    <div class="w-full h-full flex items-center justify-center">
+                      <Icon name="music-note" class="w-6 h-6 text-[var(--navy)]/30 dark:text-white/20" />
+                    </div>
+                  )}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-display text-base font-semibold text-[var(--navy)] dark:text-white group-hover:text-[var(--green)] transition-colors leading-snug mb-1 line-clamp-2">
+                    {s.title}
+                  </h3>
+                  <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    {s.scripture && (
+                      <span class="text-xs font-medium text-[var(--ink)]/60 dark:text-white/55">{s.scripture}</span>
+                    )}
+                    {s.series && (
+                      <span class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)]">{s.series}</span>
+                    )}
+                    {s.date && (
+                      <time class="text-xs text-[var(--ink)]/45 dark:text-white/40 tabular-nums">
+                        {new Date(s.date.slice(0, 10)).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}
+                      </time>
+                    )}
+                  </div>
+                </div>
+                <Icon name="caret-right" class="shrink-0 self-center w-4 h-4 text-[var(--navy)]/30 dark:text-white/30 group-hover:text-[var(--green)] transition-colors" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     )}
 
   </main>

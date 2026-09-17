@@ -14,7 +14,7 @@ interface SermonFrontmatter {
   shortDescription?: string | null;
   durationMinutes?: number | null;
   image?: string | null;
-  categories?: string[] | null;
+  tags?: string[] | null;
   review?: boolean;
 }
 
@@ -36,9 +36,15 @@ const allSeries = [...new Set(
   sermons.map(s => s.series).filter((s): s is string => !!s)
 )].sort((a, b) => a.localeCompare(b));
 
-const allCategories = [...new Set(
-  sermons.flatMap(s => s.categories ?? []).filter(Boolean)
-)].sort((a, b) => a.localeCompare(b));
+const tagCounts = new Map<string, number>();
+sermons.forEach(s => {
+  (s.tags ?? [])
+    .filter((t): t is string => !!t && !/^(Ref|Book|Series):/.test(t))
+    .forEach(t => tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1));
+});
+const allTags = [...tagCounts.entries()]
+  .sort((a, b) => b[1] - a[1])
+  .map(([t]) => t);
 
 const allYears = [...new Set(
   sermons.map(s => s.date?.slice(0, 4)).filter((y): y is string => !!y)
@@ -103,9 +109,9 @@ function fmtMins(mins: number | null | undefined) {
       </div>
 
       <div class="filter-wrap">
-        <select id="filter-category" class="filter-select">
-          <option value="">All categories</option>
-          {allCategories.map(c => <option value={c}>{c}</option>)}
+        <select id="filter-tag" class="filter-select">
+          <option value="">All topics</option>
+          {allTags.map(t => <option value={t}>{t}</option>)}
         </select>
       </div>
 
@@ -133,7 +139,7 @@ function fmtMins(mins: number | null | undefined) {
           class="reveal"
           data-sermon
           data-series={s.series ?? ''}
-          data-cats={(s.categories ?? []).join('|')}
+          data-tags={(s.tags ?? []).filter(t => !/^(Ref|Book|Series):/.test(t)).join('|')}
           data-year={s.date?.slice(0, 4) ?? ''}
         >
           <a
@@ -292,11 +298,11 @@ const PAGE_SIZE = 20;
 function init() {
   let page = 1;
 
-  const seriesEl   = document.getElementById('filter-series')   as HTMLSelectElement | null;
-  const catEl      = document.getElementById('filter-category') as HTMLSelectElement | null;
-  const yearEl     = document.getElementById('filter-year')     as HTMLSelectElement | null;
-  const clearBtn   = document.getElementById('filter-clear')    as HTMLButtonElement | null;
-  if (!seriesEl || !catEl || !yearEl) return;
+  const seriesEl   = document.getElementById('filter-series') as HTMLSelectElement | null;
+  const tagEl      = document.getElementById('filter-tag')    as HTMLSelectElement | null;
+  const yearEl     = document.getElementById('filter-year')   as HTMLSelectElement | null;
+  const clearBtn   = document.getElementById('filter-clear')  as HTMLButtonElement | null;
+  if (!seriesEl || !tagEl || !yearEl) return;
 
   const countEl    = document.getElementById('result-count')!;
   const prevBtn    = document.getElementById('page-prev')       as HTMLButtonElement;
@@ -308,11 +314,11 @@ function init() {
 
   function getFiltered() {
     const series = seriesEl!.value;
-    const cat    = catEl!.value;
+    const tag    = tagEl!.value;
     const year   = yearEl!.value;
     return allItems.filter(el => {
       if (series && el.dataset.series !== series) return false;
-      if (cat    && !(el.dataset.cats ?? '').split('|').includes(cat)) return false;
+      if (tag    && !(el.dataset.tags ?? '').split('|').includes(tag)) return false;
       if (year   && el.dataset.year !== year) return false;
       return true;
     });
@@ -337,7 +343,7 @@ function init() {
     prevBtn.disabled = page <= 1;
     nextBtn.disabled = page >= maxPage;
 
-    const anyActive = !!(seriesEl!.value || catEl!.value || yearEl!.value);
+    const anyActive = !!(seriesEl!.value || tagEl!.value || yearEl!.value);
     if (clearBtn) clearBtn.style.display = anyActive ? '' : 'none';
   }
 
@@ -346,11 +352,11 @@ function init() {
   }
 
   seriesEl.addEventListener('change', () => { page = 1; render(); });
-  catEl.addEventListener('change',    () => { page = 1; render(); });
+  tagEl.addEventListener('change',    () => { page = 1; render(); });
   yearEl.addEventListener('change',   () => { page = 1; render(); });
   clearBtn?.addEventListener('click', () => {
     seriesEl!.value = '';
-    catEl!.value    = '';
+    tagEl!.value    = '';
     yearEl!.value   = '';
     page = 1;
     render();
