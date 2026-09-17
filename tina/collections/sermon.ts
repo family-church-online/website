@@ -8,14 +8,18 @@ export const SermonCollection: Collection = {
 	ui: {
 		router: ({ document }) => `/sermons/${document._sys.filename}`,
 		filename: {
-			slugify: (values) => {
-				const date = values.date
-					? new Date(values.date).toISOString().split('T')[0]
-					: 'undated';
-				const slug = values.title
+						slugify: (values) => {
+				const ts = values.title
 					? values.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 					: 'untitled';
-				return `${date}-${slug}`;
+				if (!values.scripture) return ts;
+				const ss = values.scripture
+					.replace(/\s+(ESV|NIV|NKJV|NLT|KJV|CSB|NASB|NET|MSG|AMP|CEV|BSB|LSB)$/i, '')
+					.toLowerCase()
+					.replace(/[^a-z0-9]+/g, '-')
+					.replace(/(^-|-$)/g, '');
+				if (ts.endsWith(ss)) return ts;
+				return `${ts}-${ss}`;
 			},
 		},
 	},

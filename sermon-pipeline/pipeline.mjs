@@ -1376,7 +1376,7 @@ async function writeWebsiteFiles(sermon, outputDir, date, slug) {
 
   const imageLocal = sermon.image_local || '';
   const imageUrl   = imageLocal ? `${SITE_URL}${imageLocal}` : '';
-  const sermonUrl  = `${SITE_URL}/sermons/${date}-${slug}`;
+  const sermonUrl  = `${SITE_URL}/sermons/${slug}`;
 
   // ── Devotion MDX ──
   const devotionDir = join(WEBSITE_DIR, 'src', 'content', 'devotion');
@@ -1413,7 +1413,7 @@ async function writeWebsiteFiles(sermon, outputDir, date, slug) {
 
   // ── Sermon MDX ──
   const sermonDir    = join(WEBSITE_DIR, 'src', 'content', 'sermons');
-  const sermonMdxPath = join(sermonDir, `${date}-${slug}.mdx`);
+  const sermonMdxPath = join(sermonDir, `${slug}.mdx`);
   mkdirSync(sermonDir, { recursive: true });
 
   if (existsSync(sermonMdxPath)) {
@@ -1429,6 +1429,15 @@ async function writeWebsiteFiles(sermon, outputDir, date, slug) {
     writeFileSync(sermonMdxPath, mdxStr);
     newFiles.push(relative(WEBSITE_DIR, sermonMdxPath));
     log(`Sermon MDX written: ${basename(sermonMdxPath)}`);
+
+    // Rebuild related-sermons.json so the new sermon gets neighbours in the same commit
+    const relatedResult = spawnSync('node', ['scripts/build-related-sermons.mjs'], { cwd: WEBSITE_DIR, encoding: 'utf8' });
+    if (relatedResult.status === 0) {
+      newFiles.push('src/data/related-sermons.json');
+      log('Related sermons rebuilt');
+    } else {
+      warn(`build-related-sermons.mjs failed: ${relatedResult.stderr || relatedResult.stdout}`);
+    }
   }
 
   // ── PDF archive of current sermon notes ──
@@ -1495,7 +1504,7 @@ async function runSetup() {
   unlinkSync(videoPath);
   log('  Video file removed');
 
-  const postUrl = `${SITE_URL}/sermons/${notes.date}-${slug}`;
+  const postUrl = `${SITE_URL}/sermons/${slug}`;
   const sermon  = {
     date:     notes.date,
     title:    notes.title,
@@ -1641,7 +1650,7 @@ async function runOptimizeSlug() {
   // Update title, post_url, and taxonomy fields inside transcript markdown frontmatter
   const mdPath = join(newOutputDir, `${date}-${newSlug}.md`);
   if (existsSync(mdPath)) {
-    const newPostUrl = `${SITE_URL}/sermons/${date}-${newSlug}`;
+    const newPostUrl = `${SITE_URL}/sermons/${newSlug}`;
     let mdText = readFileSync(mdPath, 'utf8');
     mdText = mdText.replace(/^title:.*$/m, `title: "${newTitle.replace(/"/g, "'")}"`);
     mdText = mdText.replace(/^post_url:.*$/m, `post_url: "${newPostUrl}"`);
@@ -1652,7 +1661,7 @@ async function runOptimizeSlug() {
   // Update session
   sermon.title    = newTitle;
   sermon.slug     = newSlug;
-  sermon.post_url = `${SITE_URL}/sermons/${date}-${newSlug}`;
+  sermon.post_url = `${SITE_URL}/sermons/${newSlug}`;
   saveSession(sermon);
   log(`  Title: ${newTitle}\n  Slug: ${newSlug}`);
 }

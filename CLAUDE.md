@@ -23,7 +23,7 @@ Run in order when importing new sermons from Google Drive:
 pnpm sermons:download      # Download raw sermon data from Drive → scripts/drive/
 pnpm sermons:images        # Download sermon images
 pnpm sermons:audio         # Upload audio to Cloudflare R2
-pnpm sermons:import        # Write MDX files into src/content/sermons/
+pnpm sermons:import        # Write MDX files into src/content/sermons/ + rebuild src/data/related-sermons.json
 
 # Dry-run / status variants:
 pnpm sermons:check         # Report which sermons are missing locally
@@ -68,9 +68,18 @@ src/components/**/*.astro   ← Components receive typed props
 |-----------|------|--------|-------|
 | `page` | `src/content/page/` | MDX | `/{slug}` (block-based CMS pages) |
 | `sermon` | `src/content/sermons/` | MDX | `/sermons/{date}-{slug}` |
+| `sermonNotes` | `src/content/sermon-notes/` | MDX | `/sermon-notes` (single `current.mdx`) |
 | `devotion` | `src/content/devotion/` | MDX | `/devotion/{YYYY-MM-DD}` |
+| `announcement` | `src/content/announcements/` | MDX | global (displayed on home/nav) |
+| `event` | `src/content/events/` | MDX | `/events/{slug}` |
+| `guide` | `src/content/guides/` | MDX | `/guides/{slug}` |
+| `threeMinutes` | `src/content/threeminutes/` | MDX | `/threeminutes/{slug}` |
+| `group` | `src/content/groups/` | MDX | `/groups` (listing page only) |
+| `ministry` | `src/content/ministries/` | MDX | `/ministries` (listing page only) |
+| `memorial` | `src/content/memorial/` | MDX | `/memorial/{slug}` |
 | `amplify` | `src/content/amplify/` | MDX | `/amplify/{slug}` (teen ministry lessons) |
 | `kidsPreschool/Junior/Senior` | `src/content/kids/` | MDX | `/kids-church/{group}/{date}` |
+| `course` / `courseLesson` | `src/content/courses/` | MDX | `/courses/{slug}`, `/courses/{course}/{chapter}/{lesson}` |
 | `globalConfig` | `src/content/config/config.json` | JSON | global (nav, SEO, contact links, auth) |
 | `whatsNext` | `src/content/whats-next/` | MDX | one file per service (`YYYY-MM-DD.mdx`); `/whats-next` page reads via `import.meta.glob` not the TinaCMS client |
 
@@ -83,11 +92,16 @@ Sermon filenames follow the pattern `YYYY-MM-DD-slugified-title.mdx` (enforced b
 ### Pages and routing
 
 - `src/pages/[...slug].astro` — Catch-all for TinaCMS block-builder pages
-- `src/pages/sermons/index.astro` — Sermon listing with client-side filtering and pagination (no SSR)
-- `src/pages/sermons/[slug].astro` — Individual sermon
+- `src/pages/sermons/index.astro` — Sermon listing with client-side filtering (series, topics, year) and pagination (no SSR)
+- `src/pages/sermons/[slug].astro` — Individual sermon; loads related sermons from `src/data/related-sermons.json`
 - `src/pages/devotion/[date].astro` — Date-specific devotion (`/devotion/2026-08-27`)
+- `src/pages/amplify/index.astro` — Amplify lesson listing
 - `src/pages/amplify/[slug].astro` — Amplify teen ministry lesson (uses `AmplifyLessonPage.astro`)
+- `src/pages/kids-church/index.astro` — Kids Church group listing
 - `src/pages/kids-church/[group]/[date].astro` — Kids Church lesson (uses `KidsLessonPage.astro`)
+- `src/pages/groups.astro` — Small groups listing (static)
+- `src/pages/ministries.astro` — Ministries listing (static)
+- `src/pages/memorial/[slug].astro` — Memorial tribute pages
 - `src/pages/today.astro` — Static fallback; in production intercepted by `functions/today.ts`
 - `src/pages/tina-island/[name].ts` — Dynamic on-demand route powering TinaCMS visual editing
 - `src/pages/course-admin.astro` — Admin: course completion viewer (gated to `adminListId` PCO list); `noindex`
@@ -162,3 +176,6 @@ Dark mode is controlled by the `.dark` class on `<html>` (set by `ThemeToggle.as
 - **Sermon notes drawer mobile fix** — the drawer in `LiveStream.astro` uses `translate-x-full` to hide off-screen. On mobile WebKit, translated `fixed` elements bypass `overflow-x: hidden` on `html`/`body` and create horizontal scroll. The fix is a `fixed inset-0 overflow-hidden pointer-events-none` wrapper div that clips the drawer while allowing the slide animation to work.
 - **Sveltia `rich-text → markdown` mapping** — `generate-sveltia-config.mts` automatically maps TinaCMS `rich-text` fields to Sveltia `widget: markdown`. Do not hand-edit `public/edit/config.yml` for field type changes — change the TinaCMS schema and run `pnpm sveltia:config` instead.
 - **TinaCMS `datetime` frontmatter → JS Date objects** — Astro's YAML parser (`import.meta.glob` on MDX) auto-converts ISO datetime strings like `2026-09-13T00:00:00.000+02:00` into JavaScript `Date` objects. Calling `.slice(0, 10)` on a `Date` silently produces garbage. Rule: **never call string methods on TinaCMS datetime values**. Always pass them directly to `new Date(value as string)` and format with `timeZone: 'Africa/Johannesburg'` (not `'UTC'`). For date-equality comparisons, derive a `YYYY-MM-DD` string via `.toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' })`. Plain date strings from the sermon import pipeline (`YYYY-MM-DD`, no time component) are unaffected.
+- **Related sermons** — `src/data/related-sermons.json` maps each sermon slug to a short list of related sermon slugs, computed via Jaccard similarity on the canonical tag set. Generated by `scripts/build-related-sermons.mjs` and automatically rebuilt at the end of `pnpm sermons:import`. The individual sermon page imports it statically at build time — no runtime computation. The file is committed to the repo.
+- **Canonical sermon tags** — sermons carry a 65-tag taxonomy (e.g. `Topic:Faith`, `Book:John`, `Series:...`). The sermon listing page (`sermons/index.astro`) builds a topic dropdown from tags that don't match the `Ref:`, `Book:`, or `Series:` prefix pattern. Filtering is fully client-side.
+- **Google Analytics 4** — loaded in `BaseHead.astro` only when `window.location.hostname` matches `familychurch.online` or `www.familychurch.online`. Tracking ID `G-RE6W1FEYEF`. Uses the `astro:page-load` event for SPA-style page tracking via `ClientRouter`.

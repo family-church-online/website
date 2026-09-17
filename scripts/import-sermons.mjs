@@ -78,6 +78,24 @@ const tick  = `${c.green}✓${c.reset}`;
 const cross = `${c.red}✗${c.reset}`;
 const warn  = `${c.yellow}⚠${c.reset}`;
 
+// ─── Slug helpers ─────────────────────────────────────────────────────────────
+
+const TRANSLATION_RE = /\s+(ESV|NIV|NKJV|NLT|KJV|CSB|NASB|NET|MSG|AMP|CEV|BSB|LSB)$/i;
+
+// Compute the MDX filename slug from a sermon's title and scripture fields.
+// Mirrors the slugify in tina/collections/sermon.ts exactly.
+function computeMdxSlug(title, scripture) {
+  const ts = (title ?? 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  if (!scripture) return ts;
+  const ss = scripture
+    .replace(TRANSLATION_RE, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+  if (ts.endsWith(ss)) return ts;
+  return `${ts}-${ss}`;
+}
+
 // ─── File helpers ─────────────────────────────────────────────────────────────
 
 function readCache(dir, slug, ext) {
@@ -103,6 +121,15 @@ function importedSlugs() {
       .filter(f => f.endsWith('.mdx'))
       .map(f => f.replace(/\.mdx$/, ''))
   );
+}
+
+// Given a date-prefixed Drive slug, return the expected MDX slug.
+// Reads the comp-tax JSON to get title + scripture.
+function expectedMdxSlug(driveSlug) {
+  const jsonText = readCache(DIR.compTax, driveSlug, 'json');
+  if (!jsonText) return null;
+  const d = JSON.parse(jsonText);
+  return computeMdxSlug(d.title, d.sermon_scripture ?? null);
 }
 
 // ─── Parsers ──────────────────────────────────────────────────────────────────
@@ -482,9 +509,10 @@ function importOne(slug) {
 
   const data       = mergeData(slug, compTax, fm, block);
   const mdxContent = generateMDX(data, body);
+  const mdxSlug    = computeMdxSlug(data.title, data.scripture);
 
   mkdirSync(SERMONS_DIR, { recursive: true });
-  writeFileSync(join(SERMONS_DIR, `${slug}.mdx`), mdxContent, 'utf-8');
+  writeFileSync(join(SERMONS_DIR, `${mdxSlug}.mdx`), mdxContent, 'utf-8');
   return true;
 }
 
@@ -501,7 +529,8 @@ function cmdCheck() {
   for (const slug of all) {
     const hasEnriched = existsSync(join(DIR.enriched,     `${slug}.md`));
     const hasBlock    = existsSync(join(DIR.sermonBlocks, `${slug}.html`));
-    const isImported  = imported.has(slug);
+    const mdxSlug     = expectedMdxSlug(slug);
+    const isImported  = mdxSlug ? imported.has(mdxSlug) : imported.has(slug);
 
     const blockNote = hasBlock ? '' : `${c.dim} (no block)${c.reset}`;
 
@@ -510,9 +539,9 @@ function cmdCheck() {
       continue;
     }
     if (isImported) {
-      console.log(`${tick} ${c.dim}imported${c.reset}  ${slug}${blockNote}`);
+      console.log(`${tick} ${c.dim}imported${c.reset}  ${mdxSlug ?? slug}${blockNote}`);
     } else {
-      console.log(`${cross} ${c.red}missing${c.reset}   ${slug}${blockNote}`);
+      console.log(`${cross} ${c.red}missing${c.reset}   ${mdxSlug ?? slug}${blockNote}`);
       missing++;
     }
   }
@@ -532,10 +561,12 @@ function cmdImport({ latest = false, limit = Infinity, force = false } = {}) {
   const all      = compTaxSlugs();
   const imported = importedSlugs();
 
-  let candidates = all.filter(slug =>
-    existsSync(join(DIR.enriched, `${slug}.md`)) &&
-    (force || !imported.has(slug))
-  );
+  let candidates = all.filter(slug => {
+    if (!existsSync(join(DIR.enriched, `${slug}.md`))) return false;
+    if (force) return true;
+    const mdxSlug = expectedMdxSlug(slug);
+    return mdxSlug ? !imported.has(mdxSlug) : !imported.has(slug);
+  });
 
   if (candidates.length === 0) {
     console.log(`\n${tick} Nothing to import — all sermons are already local.\n`);
@@ -549,7 +580,8 @@ function cmdImport({ latest = false, limit = Infinity, force = false } = {}) {
 
   let ok = 0, skipped = 0;
   for (const slug of candidates) {
-    process.stdout.write(`  ${c.dim}importing${c.reset} ${slug} … `);
+    const mdxSlug = expectedMdxSlug(slug) ?? slug;
+    process.stdout.write(`  ${c.dim}importing${c.reset} ${mdxSlug} … `);
     try {
       const result = importOne(slug);
       if (result) { process.stdout.write(`${tick}\n`); ok++; }
