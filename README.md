@@ -109,7 +109,7 @@ pnpm sermons:check      # Report what's missing without writing anything
 
 Sermon files are named `{title-slug}-{scripture-slug}.mdx` (no date prefix) and their titles follow the format `"Title : Book Chapter:Verse"`. Sermons with `review: true` in frontmatter are hidden from the listing page until the flag is removed.
 
-Each sermon carries a 65-tag canonical taxonomy (`Topic:...`, `Book:...`, `Series:...`). The listing page at `/sermons` exposes a topic dropdown that filters by these tags client-side. `pnpm sermons:import` also rebuilds `src/data/related-sermons.json` — a precomputed map of related sermon slugs (Jaccard similarity on tags) used on individual sermon pages.
+Each sermon carries a 65-tag canonical taxonomy (`Topic:...`, `Book:...`, `Series:...`, `Ref:...`). Each sermon has exactly one `Book:` tag (the primary book preached from) and multiple `Ref:` tags for secondary references. The listing page at `/sermons` exposes client-side dropdowns for series, topic, book of the Bible, and year. `pnpm sermons:import` also rebuilds `src/data/related-sermons.json` — a precomputed map of related sermon slugs (Jaccard similarity on tags) used on individual sermon pages.
 
 ## Member auth
 

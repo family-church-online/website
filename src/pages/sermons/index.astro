@@ -46,6 +46,14 @@ const allTags = [...tagCounts.entries()]
   .sort((a, b) => b[1] - a[1])
   .map(([t]) => t);
 
+const allBooks = [...new Set(
+  sermons.flatMap(s =>
+    (s.tags ?? [])
+      .filter((t): t is string => !!t && t.startsWith('Book:'))
+      .map(t => t.replace(/^Book:\s*/, '').replace(/\s+\d.*$/, '').trim())
+  )
+)].sort((a, b) => a.localeCompare(b));
+
 const allYears = [...new Set(
   sermons.map(s => s.date?.slice(0, 4)).filter((y): y is string => !!y)
 )].sort((a, b) => b.localeCompare(a));
@@ -116,6 +124,13 @@ function fmtMins(mins: number | null | undefined) {
       </div>
 
       <div class="filter-wrap">
+        <select id="filter-book" class="filter-select">
+          <option value="">All books</option>
+          {allBooks.map(b => <option value={b}>{b}</option>)}
+        </select>
+      </div>
+
+      <div class="filter-wrap">
         <select id="filter-year" class="filter-select">
           <option value="">All years</option>
           {allYears.map(y => <option value={y}>{y}</option>)}
@@ -140,6 +155,7 @@ function fmtMins(mins: number | null | undefined) {
           data-sermon
           data-series={s.series ?? ''}
           data-tags={(s.tags ?? []).filter(t => !/^(Ref|Book|Series):/.test(t)).join('|')}
+          data-book={(s.tags ?? []).find((t): t is string => !!t && t.startsWith('Book:'))?.replace(/^Book:\s*/, '').replace(/\s+\d.*$/, '').trim() ?? ''}
           data-year={s.date?.slice(0, 4) ?? ''}
         >
           <a
@@ -300,9 +316,10 @@ function init() {
 
   const seriesEl   = document.getElementById('filter-series') as HTMLSelectElement | null;
   const tagEl      = document.getElementById('filter-tag')    as HTMLSelectElement | null;
+  const bookEl     = document.getElementById('filter-book')   as HTMLSelectElement | null;
   const yearEl     = document.getElementById('filter-year')   as HTMLSelectElement | null;
   const clearBtn   = document.getElementById('filter-clear')  as HTMLButtonElement | null;
-  if (!seriesEl || !tagEl || !yearEl) return;
+  if (!seriesEl || !tagEl || !bookEl || !yearEl) return;
 
   const countEl    = document.getElementById('result-count')!;
   const prevBtn    = document.getElementById('page-prev')       as HTMLButtonElement;
@@ -315,10 +332,12 @@ function init() {
   function getFiltered() {
     const series = seriesEl!.value;
     const tag    = tagEl!.value;
+    const book   = bookEl!.value;
     const year   = yearEl!.value;
     return allItems.filter(el => {
       if (series && el.dataset.series !== series) return false;
-      if (tag    && !(el.dataset.tags ?? '').split('|').includes(tag)) return false;
+      if (tag    && !(el.dataset.tags  ?? '').split('|').includes(tag))  return false;
+      if (book   && el.dataset.book !== book) return false;
       if (year   && el.dataset.year !== year) return false;
       return true;
     });
@@ -343,7 +362,7 @@ function init() {
     prevBtn.disabled = page <= 1;
     nextBtn.disabled = page >= maxPage;
 
-    const anyActive = !!(seriesEl!.value || tagEl!.value || yearEl!.value);
+    const anyActive = !!(seriesEl!.value || tagEl!.value || bookEl!.value || yearEl!.value);
     if (clearBtn) clearBtn.style.display = anyActive ? '' : 'none';
   }
 
@@ -353,10 +372,12 @@ function init() {
 
   seriesEl.addEventListener('change', () => { page = 1; render(); });
   tagEl.addEventListener('change',    () => { page = 1; render(); });
+  bookEl.addEventListener('change',   () => { page = 1; render(); });
   yearEl.addEventListener('change',   () => { page = 1; render(); });
   clearBtn?.addEventListener('click', () => {
     seriesEl!.value = '';
     tagEl!.value    = '';
+    bookEl!.value   = '';
     yearEl!.value   = '';
     page = 1;
     render();
