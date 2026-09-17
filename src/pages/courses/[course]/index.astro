@@ -105,7 +105,7 @@ const pageTitle = `${registry.title ?? 'Course'} · ${siteTitle}`;
 const pageDesc  = registry.description ?? `A course from ${siteTitle}.`;
 ---
 
-<Base title={pageTitle} description={pageDesc}>
+<Base title={pageTitle} description={pageDesc} noindex={true}>
 
   {/* ── HEADER ─────────────────────────────────────────────────────────────── */}
   <div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">

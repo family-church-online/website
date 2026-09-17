@@ -100,7 +100,7 @@ const prevLesson = currentIdx > 0               ? siblings[currentIdx - 1] : nul
 const nextLesson = currentIdx < siblings.length - 1 ? siblings[currentIdx + 1] : null;
 ---
 
-<Base title={pageTitle} description={pageDesc}>
+<Base title={pageTitle} description={pageDesc} noindex={true}>
 
   {/* ── BREADCRUMB + HEADER ────────────────────────────────────────────────── */}
   <div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">

@@ -6,6 +6,7 @@ export const GET: APIRoute = ({ site }) => {
   const sitemapUrl = new URL('sitemap-index.xml', site ?? 'https://familychurch.online');
   const body = `User-agent: *
 Allow: /
+Disallow: /tina-island/
 
 Sitemap: ${sitemapUrl}
 `;
