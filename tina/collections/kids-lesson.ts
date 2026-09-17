@@ -48,6 +48,12 @@ export function kidsLessonCollection(opts: {
 				ui: { uploadDir: () => '/images/lessons' },
 			},
 			{
+				name: 'scripture',
+				label: 'Scripture',
+				type: 'string',
+				ui: { component: 'textarea' },
+			},
+			{
 				name: 'paragraphs',
 				label: 'Paragraphs',
 				type: 'object',
@@ -85,6 +91,18 @@ export function kidsLessonCollection(opts: {
 					{ name: 'url', label: 'URL', type: 'string' },
 					{ name: 'description', label: 'Description', type: 'string' },
 				],
+			},
+			{
+				name: 'memoryVerse',
+				label: 'Memory Verse',
+				type: 'string',
+				ui: { component: 'textarea' },
+			},
+			{
+				name: 'prayer',
+				label: 'Prayer',
+				type: 'string',
+				ui: { component: 'textarea' },
 			},
 			{
 				name: 'pdfs',
