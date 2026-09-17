@@ -20,7 +20,6 @@ interface Props {
 }
 
 const { data } = Astro.props;
-const heading     = data.heading    ?? 'Upcoming Events';
 const count       = data.count      ?? 3;
 const showViewAll = data.showViewAll ?? true;
 
@@ -82,18 +81,22 @@ function calParts(iso: string) {
 {upcoming.length > 0 && (
 	<section class="bg-[var(--background)] py-8">
 		<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6">
-			<div class="text-center mb-8">
-				<h2
-					data-tina-field={tinaField(data, 'heading')}
-					class="font-display text-4xl font-semibold text-[var(--ink)] dark:text-white tracking-tight mb-3"
-				>{heading}</h2>
-				{showViewAll && (
-					<a
-						href="/events"
-						class="text-sm font-medium text-[var(--navy)] dark:text-white/70 hover:text-[var(--green)] dark:hover:text-[var(--green)] transition-colors"
-					>All events →</a>
-				)}
-			</div>
+			{(data.heading || showViewAll) && (
+				<div class="text-center mb-8">
+					{data.heading && (
+						<h2
+							data-tina-field={tinaField(data, 'heading')}
+							class="font-display text-4xl font-semibold text-[var(--ink)] dark:text-white tracking-tight mb-3"
+						>{data.heading}</h2>
+					)}
+					{showViewAll && (
+						<a
+							href="/events"
+							class="text-sm font-medium text-[var(--navy)] dark:text-white/70 hover:text-[var(--green)] dark:hover:text-[var(--green)] transition-colors"
+						>All events →</a>
+					)}
+				</div>
+			)}
 
 			<ul class="space-y-4">
 				{upcoming.map((event, i) => {
