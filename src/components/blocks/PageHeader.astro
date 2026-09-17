@@ -9,45 +9,117 @@ interface Props {
 		label?: string | null;
 		heading?: string | null;
 		subtitle?: string | null;
+		background?: string | null;
+		links?: Array<{ label?: string | null; href?: string | null; style?: string | null }> | null;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		body?: any;
 	};
 }
 
 const { data } = Astro.props;
+const isNavy   = data.background === 'navy';
+const isAccent = data.background === 'accent';
 ---
-<Section>
-	<div class="mx-auto max-w-[var(--content-width)]">
-
-		<div class="text-center mb-10">
+{isAccent ? (
+	<section class="bg-[var(--background)] py-8 lg:pt-14">
+		<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6">
+			{data.heading && (
+				<div class="text-center mb-5">
+					<h2 data-tina-field={tinaField(data, 'heading')}
+						class="font-display text-4xl font-semibold text-[var(--ink)] dark:text-white tracking-tight mb-3">
+						{data.heading}
+					</h2>
+				</div>
+			)}
+			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-6 py-5">
+				{data.label && (
+					<p data-tina-field={tinaField(data, 'label')}
+						class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">
+						{data.label}
+					</p>
+				)}
+				{data.subtitle && (
+					<p data-tina-field={tinaField(data, 'subtitle')}
+						class="text-sm leading-relaxed text-[var(--ink)]/65 dark:text-white/55">
+						{data.subtitle}
+					</p>
+				)}
+				{data.links && data.links.length > 0 && (
+					<div class="flex flex-wrap justify-center gap-2 mt-4" data-tina-field={tinaField(data, 'links')}>
+						{data.links.filter(l => l?.label && l?.href).map(l => (
+							<a
+								href={l.href!}
+								class={`inline-block rounded-full px-5 py-2 font-semibold text-sm no-underline transition-all duration-200 ${
+									l.style === 'primary'
+										? 'bg-[var(--green)] text-[var(--ink)] hover:-translate-y-0.5 hover:bg-[#a3d63a]'
+										: 'border border-[var(--navy)]/30 dark:border-white/30 text-[var(--navy)] dark:text-white hover:-translate-y-0.5 hover:border-[var(--navy)] dark:hover:border-white'
+								}`}
+							>
+								{l.label}
+							</a>
+						))}
+					</div>
+				)}
+			</div>
+		</div>
+	</section>
+) : isNavy ? (
+	<div class="bg-[var(--navy)] py-10 px-6">
+		<div class="mx-auto max-w-3xl lg:max-w-5xl text-center">
 			{data.label && (
 				<p data-tina-field={tinaField(data, 'label')}
-					class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">
+					class="text-xs font-semibold uppercase tracking-widest text-[var(--green)] mb-3">
 					{data.label}
 				</p>
 			)}
 			{data.heading && (
 				<h1 data-tina-field={tinaField(data, 'heading')}
-					class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-4">
+					class="font-display text-4xl font-semibold lg:text-5xl text-balance text-white mb-4">
 					{data.heading}
 				</h1>
 			)}
 			{data.subtitle && (
 				<p data-tina-field={tinaField(data, 'subtitle')}
-					class="mx-auto max-w-xl text-lg leading-relaxed text-[var(--ink)]/70 dark:text-white/60">
+					class="text-lg leading-relaxed text-white/75">
 					{data.subtitle}
 				</p>
 			)}
 		</div>
-
-		{data.body && (
-			<div data-tina-field={tinaField(data, 'body')} class="body-prose">
-				<TinaMarkdown content={data.body} components={mdxComponents} />
-			</div>
-		)}
-
 	</div>
-</Section>
+) : (
+	<Section>
+		<div class="mx-auto max-w-[var(--content-width)]">
+
+			<div class="text-center mb-10">
+				{data.label && (
+					<p data-tina-field={tinaField(data, 'label')}
+						class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">
+						{data.label}
+					</p>
+				)}
+				{data.heading && (
+					<h1 data-tina-field={tinaField(data, 'heading')}
+						class="font-display text-4xl font-semibold lg:text-5xl text-balance mb-4">
+						{data.heading}
+					</h1>
+				)}
+				{data.subtitle && (
+					<p data-tina-field={tinaField(data, 'subtitle')}
+						class="mx-auto max-w-3xl text-lg leading-relaxed text-[var(--ink)]/70 dark:text-white/60">
+						{data.subtitle}
+					</p>
+				)}
+			</div>
+
+			{data.body && (
+				<div data-tina-field={tinaField(data, 'body')} class="body-prose">
+					<TinaMarkdown content={data.body} components={mdxComponents} />
+				</div>
+			)}
+
+		</div>
+	</Section>
+)}
 
 <style>
 .body-prose :global(p) {
