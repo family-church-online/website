@@ -39,6 +39,38 @@ const nextIdx = past.length < shown.length ? past.length : -1;
 
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
+const siteUrl   = new URL('/', Astro.site).toString().replace(/\/$/, '');
+const addr      = config?.seo?.address;
+
+const placeLocation = {
+	'@type': 'Place',
+	name: addr?.streetAddress ?? 'Dainfern College',
+	...(addr && {
+		address: {
+			'@type': 'PostalAddress',
+			...(addr.streetAddress && { streetAddress:   addr.streetAddress }),
+			...(addr.locality      && { addressLocality: addr.locality }),
+			...(addr.region        && { addressRegion:   addr.region }),
+			...(addr.postalCode    && { postalCode:       addr.postalCode }),
+			...(addr.country       && { addressCountry:   addr.country }),
+		},
+	}),
+};
+
+const schedulePageLd = future.length > 0 ? {
+	'@context': 'https://schema.org',
+	'@graph': future.map(s => ({
+		'@type': 'Event',
+		name: s.title ?? 'Sunday Service',
+		startDate: `${s.dateSA}T09:30:00+02:00`,
+		eventStatus: 'https://schema.org/EventScheduled',
+		eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+		location: placeLocation,
+		organizer: { '@type': 'Organization', name: siteTitle, url: siteUrl },
+		...(s.scripture && { description: s.scripture }),
+		...(s.series    && { superEvent: { '@type': 'EventSeries', name: s.series } }),
+	})),
+} : null;
 
 function fmtDay(d: Date) {
 	return d.toLocaleDateString('en-GB', { timeZone: 'Africa/Johannesburg', day: 'numeric' });
@@ -61,6 +93,9 @@ function fmtFull(d: Date) {
 	title={`Service Schedule | ${siteTitle}`}
 	description="Upcoming Sunday services at Family Church — scripture, series, and speaker for the weeks ahead."
 >
+	{schedulePageLd && (
+		<script slot="head" type="application/ld+json" set:html={JSON.stringify(schedulePageLd)} />
+	)}
 	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-16">
 
 		<div class="text-center mb-14">

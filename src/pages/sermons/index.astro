@@ -46,6 +46,25 @@ const allYears = [...new Set(
 
 const config    = (await getConfig()).data?.config ?? null;
 const siteTitle = config?.seo?.title ?? 'Family Church';
+const siteUrl   = new URL('/', Astro.site).toString().replace(/\/$/, '');
+
+const collectionLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: `Sermons · ${siteTitle}`,
+  description: 'Sunday messages from Family Church, Dainfern, Johannesburg.',
+  url: `${siteUrl}/sermons`,
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: sermons.length,
+    itemListElement: sermons.slice(0, 50).map((s, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `${siteUrl}/sermons/${s.slug}`,
+      name: s.title,
+    })),
+  },
+};
 
 function fmtDate(dateStr: string) {
   return new Date(dateStr.slice(0, 10)).toLocaleDateString('en-ZA', {
@@ -61,15 +80,15 @@ function fmtMins(mins: number | null | undefined) {
 
 <Base
   title={`Sermons · ${siteTitle}`}
-  description="Sunday messages from Family Church, Fourways."
-  noindex={true}
+  description="Sunday messages from Family Church, Dainfern, Johannesburg."
 >
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(collectionLd)} />
 
   {/* ── PAGE HEADER ────────────────────────────────────────────────────────── */}
   <div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
-    <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Family Church, Fourways</p>
+    <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Family Church, Dainfern</p>
     <h1 class="font-display text-4xl font-semibold lg:text-5xl text-balance">Sermons</h1>
-    <p class="text-lg text-muted-foreground mt-4">Sunday messages from Family Church, Fourways.</p>
+    <p class="text-lg text-muted-foreground mt-4">Sunday messages from Family Church, Dainfern.</p>
   </div>
 
   {/* ── FILTER BAR ─────────────────────────────────────────────────────────── */}
