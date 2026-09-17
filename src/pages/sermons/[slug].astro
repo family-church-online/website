@@ -40,19 +40,18 @@ interface SermonFrontmatter {
   wordCount?: number | null;
 }
 
-function topicTags(tags: string[] | null | undefined): string[] {
-  return (tags ?? []).filter(t => !/^(Ref|Book|Series):/.test(t));
-}
-
-function jaccardScore(a: string[], b: string[]): number {
-  if (a.length === 0 || b.length === 0) return 0;
-  const setA = new Set(a);
-  const intersection = b.filter(t => setA.has(t)).length;
-  const union = new Set([...a, ...b]).size;
-  return union === 0 ? 0 : intersection / union;
-}
-
 export function getStaticPaths() {
+  function topicTags(tags: string[] | null | undefined): string[] {
+    return (tags ?? []).filter(t => !/^(Ref|Book|Series):/.test(t));
+  }
+
+  function jaccardScore(a: string[], b: string[]): number {
+    if (a.length === 0 || b.length === 0) return 0;
+    const setA = new Set(a);
+    const intersection = b.filter(t => setA.has(t)).length;
+    const union = new Set([...a, ...b]).size;
+    return union === 0 ? 0 : intersection / union;
+  }
   const mods = import.meta.glob<{ frontmatter: SermonFrontmatter; default: any }>(
     '../../content/sermons/*.mdx',
     { eager: true }
