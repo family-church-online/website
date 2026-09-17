@@ -99,17 +99,19 @@ const resolvedHeight = imageHeight ?? (image === '/images/hero.jpg' ? 667  : und
 
 <!-- TinaCMS visual editing is wired by the tina() integration in astro.config.mjs; its middleware only touches edit-mode responses, so there's nothing to add here. -->
 
-<!-- Google Analytics 4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-RE6W1FEYEF"></script>
-<script is:inline>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  // astro:page-load fires on initial load and after every View Transition,
-  // so this single listener covers all page views without double-counting.
-  document.addEventListener('astro:page-load', function() {
-    gtag('config', 'G-RE6W1FEYEF', { page_path: window.location.pathname });
-  });
-</script>
+{import.meta.env.PROD && (
+  <>
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RE6W1FEYEF"></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      document.addEventListener('astro:page-load', function() {
+        gtag('config', 'G-RE6W1FEYEF', { page_path: window.location.pathname });
+      });
+    </script>
+  </>
+)}
 
 <ClientRouter />
