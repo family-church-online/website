@@ -101,13 +101,13 @@ Sermons are sourced from Google Drive and imported via scripts:
 pnpm sermons:download   # Pull raw sermon data from Drive → scripts/drive/
 pnpm sermons:images     # Download sermon images
 pnpm sermons:audio      # Upload audio to Cloudflare R2
-pnpm sermons:import     # Write MDX files into src/content/sermons/
+pnpm sermons:import     # Write MDX files into src/content/sermons/ + rebuild related-sermons.json
 
 pnpm sermons:latest     # Import only the most recent sermon
 pnpm sermons:check      # Report what's missing without writing anything
 ```
 
-Sermons with `review: true` in frontmatter are hidden from the listing page until the flag is removed.
+Sermon files are named `{title-slug}-{scripture-slug}.mdx` (no date prefix) and their titles follow the format `"Title : Book Chapter:Verse"`. Sermons with `review: true` in frontmatter are hidden from the listing page until the flag is removed.
 
 Each sermon carries a 65-tag canonical taxonomy (`Topic:...`, `Book:...`, `Series:...`). The listing page at `/sermons` exposes a topic dropdown that filters by these tags client-side. `pnpm sermons:import` also rebuilds `src/data/related-sermons.json` — a precomputed map of related sermon slugs (Jaccard similarity on tags) used on individual sermon pages.
 

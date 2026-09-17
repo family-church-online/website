@@ -83,7 +83,7 @@ src/components/**/*.astro   ← Components receive typed props
 | `globalConfig` | `src/content/config/config.json` | JSON | global (nav, SEO, contact links, auth) |
 | `whatsNext` | `src/content/whats-next/` | MDX | one file per service (`YYYY-MM-DD.mdx`); `/whats-next` page reads via `import.meta.glob` not the TinaCMS client |
 
-Sermon filenames follow the pattern `YYYY-MM-DD-slugified-title.mdx` (enforced by the collection's `slugify` function). Devotion filenames are simply `YYYY-MM-DD.mdx`.
+Sermon filenames follow the pattern `{title-slug}-{scripture-slug}.mdx` — no date prefix, scripture reference appended (e.g. `choosing-joy-in-weakness-habakkuk-3-17-19.mdx`). The `slugify` function in `tina/collections/sermon.ts` enforces this format. Sermon titles are stored as `"Title : Book Chapter:Verse"` (e.g. `"Choosing Joy in Weakness : Habakkuk 3:17-19"`). Devotion filenames are simply `YYYY-MM-DD.mdx`.
 
 **Amplify lessons** use `tina/collections/amplify-lesson.ts`. The `mainScriptureText` field is `rich-text` — TinaCMS stores it as an AST object; `AmplifyLessonPage.astro` renders it via a `renderRichText()` helper that also handles legacy plain-string content (content not yet re-saved through the admin).
 
