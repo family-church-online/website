@@ -603,6 +603,9 @@ const ldJsonVideo = vimeoId ? {
   --ink: #dce4f0;
   --navy: #8bbcde;
 }
+:global(.dark) .image-section {
+  background-color: color-mix(in srgb, var(--navy) 30%, var(--popover));
+}
 
 :global(.dark) .big-idea {
   --navy: #273f61;
