@@ -121,8 +121,14 @@ function patchSermons(guidMap) {
       continue;
     }
 
-    // Date is the YYYY-MM-DD prefix of the filename
-    const date = file.slice(0, 10);
+    // Extract date from frontmatter (filenames no longer carry a date prefix)
+    const dateMatch = content.match(/^date:\s*['"]?(\d{4}-\d{2}-\d{2})/m);
+    if (!dateMatch) {
+      console.log(`  ${cross} ${file}  ${c.dim}(no date in frontmatter)${c.reset}`);
+      unmatched++;
+      continue;
+    }
+    const date = dateMatch[1];
     const guid = guidMap.get(date);
 
     if (!guid) {
