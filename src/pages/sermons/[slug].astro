@@ -228,7 +228,7 @@ const ldJsonVideo = vimeoId ? {
       <div data-panel="about" class="tab-panel">
 
         {/* Meta strip */}
-        <div class="flex flex-wrap justify-between items-baseline gap-2 px-6 pt-5 pb-4 border-b border-[var(--ink)]/8 bg-[var(--ink)]/[0.02] esv-crossref-ignore">
+        <div class="meta-strip flex flex-wrap justify-between items-baseline gap-2 px-6 pt-5 pb-4 border-b border-[var(--ink)]/8 bg-[var(--ink)]/[0.02] esv-crossref-ignore">
           <div class="flex flex-wrap items-baseline gap-2">
             {fm.scripture && (
               <span class="text-sm font-bold text-[var(--navy)]">{fm.scripture}</span>
@@ -338,14 +338,14 @@ const ldJsonVideo = vimeoId ? {
       <div data-panel="notes" class="tab-panel hidden">
 
         {fm.bigIdea && (
-          <div class="big-idea px-6 py-5 bg-[var(--navy)] text-white esv-crossref-ignore">
-            <p class="text-xs font-bold uppercase tracking-widest text-white/50 mb-2">The Big Idea</p>
-            <p class="font-display text-lg font-semibold leading-snug">{fm.bigIdea}</p>
+          <div class="big-idea px-6 py-5 bg-[var(--ink)]/[0.03] esv-crossref-ignore">
+            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">The Big Idea</p>
+            <p class="text-sm font-semibold leading-relaxed">{fm.bigIdea}</p>
           </div>
         )}
 
         {(fm.keyScriptureText || fm.keyScriptureRef) && (
-          <div class="px-6 py-5 bg-[var(--ink)]/[0.03] border-b border-[var(--ink)]/8">
+          <div class="key-scripture px-6 py-5 bg-white border-b border-[var(--ink)]/8">
             <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Key Scripture</p>
             <blockquote class="border-l-4 border-[var(--green)] pl-5">
               {fm.keyScriptureText && (
@@ -561,8 +561,9 @@ const ldJsonVideo = vimeoId ? {
 }
 
 /* ── Transcript body ─────────────────────────────────────────────────────── */
-/* The MDX body starts with # h1 (duplicate of hero title) — hide it */
-.transcript-body :global(h1) {
+/* Legacy pipeline headings — hide them */
+.transcript-body :global(h1),
+.transcript-body :global(h2) {
   display: none;
 }
 .transcript-body :global(h3) {
@@ -575,7 +576,7 @@ const ldJsonVideo = vimeoId ? {
   padding-top: 1.5rem;
   border-top: 1px solid rgba(20, 32, 47, 0.12);
 }
-.transcript-body :global(h3:first-child) {
+.transcript-body :global(h3:first-of-type) {
   margin-top: 0;
   padding-top: 0;
   border-top: none;
@@ -603,12 +604,16 @@ const ldJsonVideo = vimeoId ? {
   --ink: #dce4f0;
   --navy: #8bbcde;
 }
-:global(.dark) .image-section {
-  background-color: color-mix(in srgb, var(--navy) 30%, var(--popover));
+:global(.dark) .meta-strip {
+  background-color: color-mix(in srgb, var(--navy) 15%, var(--popover));
 }
 
 :global(.dark) .big-idea {
   --navy: #273f61;
+  background-color: color-mix(in srgb, #8bbcde 15%, var(--popover));
+}
+:global(.dark) .key-scripture {
+  background-color: transparent;
 }
 :global(.dark) .transcript-body :global(h3) {
   border-top-color: rgba(220, 230, 245, 0.10);
