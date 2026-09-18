@@ -209,7 +209,7 @@ const ldJsonVideo = vimeoId ? {
         const hasTranscript = (fm.wordCount ?? 0) > 0;
         const tabs = hasTranscript ? ['about', 'notes', 'transcript'] : ['about', 'notes'];
         return (
-          <div class="flex border-b border-[var(--ink)]/10" role="tablist">
+          <div class="tab-bar flex border-b border-[var(--ink)]/10 bg-[var(--ink)]/[0.03]" role="tablist">
             {tabs.map((tab, i) => (
               <button
                 role="tab"
@@ -228,7 +228,7 @@ const ldJsonVideo = vimeoId ? {
       <div data-panel="about" class="tab-panel">
 
         {/* Meta strip */}
-        <div class="meta-strip flex flex-wrap justify-between items-baseline gap-2 px-6 pt-5 pb-4 border-b border-[var(--ink)]/8 bg-[var(--ink)]/[0.02] esv-crossref-ignore">
+        <div class="meta-strip flex flex-wrap justify-between items-baseline gap-2 px-6 pt-5 pb-4 border-b border-[var(--ink)]/8 esv-crossref-ignore">
           <div class="flex flex-wrap items-baseline gap-2">
             {fm.scripture && (
               <span class="text-sm font-bold text-[var(--navy)]">{fm.scripture}</span>
@@ -244,7 +244,7 @@ const ldJsonVideo = vimeoId ? {
 
         {/* Image + subtitle + pills */}
         {(fm.image || fm.subtitle || fm.style || fm.level) && (
-          <div class="image-section px-6 py-5 border-b border-[var(--ink)]/8 flex gap-5 items-start esv-crossref-ignore">
+          <div class="image-section px-6 py-5 border-b border-[var(--ink)]/8 bg-[var(--ink)]/[0.02] flex gap-5 items-start esv-crossref-ignore">
             {fm.image && (
               <div class="hidden sm:block shrink-0 w-28 h-28 rounded-xl overflow-hidden shadow-sm ring-1 ring-black/10">
                 <img
@@ -338,14 +338,14 @@ const ldJsonVideo = vimeoId ? {
       <div data-panel="notes" class="tab-panel hidden">
 
         {fm.bigIdea && (
-          <div class="big-idea px-6 py-5 bg-[var(--ink)]/[0.03] esv-crossref-ignore">
+          <div class="big-idea px-6 py-5 bg-white esv-crossref-ignore">
             <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">The Big Idea</p>
             <p class="text-sm font-semibold leading-relaxed">{fm.bigIdea}</p>
           </div>
         )}
 
         {(fm.keyScriptureText || fm.keyScriptureRef) && (
-          <div class="key-scripture px-6 py-5 bg-white border-b border-[var(--ink)]/8">
+          <div class="key-scripture px-6 py-5 bg-[var(--ink)]/[0.03] border-b border-[var(--ink)]/8">
             <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Key Scripture</p>
             <blockquote class="border-l-4 border-[var(--green)] pl-5">
               {fm.keyScriptureText && (
@@ -604,16 +604,17 @@ const ldJsonVideo = vimeoId ? {
   --ink: #dce4f0;
   --navy: #8bbcde;
 }
-:global(.dark) .meta-strip {
+:global(.dark) .image-section,
+:global(.dark) .tab-bar {
   background-color: color-mix(in srgb, var(--navy) 15%, var(--popover));
 }
 
 :global(.dark) .big-idea {
   --navy: #273f61;
-  background-color: color-mix(in srgb, #8bbcde 15%, var(--popover));
+  background-color: transparent;
 }
 :global(.dark) .key-scripture {
-  background-color: transparent;
+  background-color: color-mix(in srgb, #8bbcde 15%, var(--popover));
 }
 :global(.dark) .transcript-body :global(h3) {
   border-top-color: rgba(220, 230, 245, 0.10);
