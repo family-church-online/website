@@ -587,6 +587,14 @@ const ldJsonVideo = vimeoId ? {
   color: rgba(20, 32, 47, 0.82);
   margin: 0 0 0.5rem;
 }
+/* Active paragraph during audio playback */
+.transcript-body :global(.transcript-active) {
+  background-color: color-mix(in srgb, var(--green) 10%, transparent);
+  border-radius: 4px;
+  outline: 1px solid color-mix(in srgb, var(--green) 20%, transparent);
+  transition: background-color 0.4s;
+}
+
 /* Timestamp spans injected by JS */
 .transcript-body :global(.ts) {
   font-size: 0.7em;
@@ -668,25 +676,37 @@ function initSermonPage() {
   const tabBtns   = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
   const tabPanels = document.querySelectorAll<HTMLElement>('.tab-panel');
 
+  function switchTab(name: string) {
+    tabBtns.forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name ? 'true' : 'false'));
+    tabPanels.forEach(p => {
+      const show = p.dataset.panel === name;
+      p.hidden = !show;
+      p.classList.toggle('hidden', !show);
+    });
+  }
+
   tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const target = btn.dataset.tab!;
-      tabBtns.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
-      tabPanels.forEach(p => {
-        const show = p.dataset.panel === target;
-        p.hidden = !show;
-        p.classList.toggle('hidden', !show);
-      });
-    }, { signal });
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab!), { signal });
   });
 
-  // ── Transcript: style timestamps ─────────────────────────────────────────
+  // ── Transcript: style timestamps + build sync lookup ─────────────────────
+  // Inject .ts spans only if not already present (initSermonPage runs twice
+  // on initial load — direct call + astro:page-load — so must be idempotent).
   document.querySelectorAll<HTMLParagraphElement>('.transcript-body p').forEach(p => {
-    p.innerHTML = p.innerHTML.replace(
-      /^\[(\d{1,2}:\d{2})\]\s*/,
-      '<span class="ts">[$1]</span> '
-    );
+    if (!p.querySelector('.ts')) {
+      p.innerHTML = p.innerHTML.replace(
+        /^\[(\d{1,2}:\d{2})\]\s*/,
+        '<span class="ts">[$1]</span> '
+      );
+    }
   });
+  // Build lookup from the injected spans so it works on both first and subsequent inits.
+  const tStamps: { secs: number; el: HTMLParagraphElement }[] = [];
+  document.querySelectorAll<HTMLElement>('.transcript-body p > .ts').forEach(span => {
+    const m = span.textContent!.match(/(\d{1,2}):(\d{2})/);
+    if (m) tStamps.push({ secs: parseInt(m[1]) * 60 + parseInt(m[2]), el: span.parentElement as HTMLParagraphElement });
+  });
+  const hasTranscriptTab = !!document.querySelector('[data-tab="transcript"]');
 
   // ── Audio player ─────────────────────────────────────────────────────────
   const audio     = document.getElementById('audio-el') as HTMLAudioElement | null;
@@ -722,7 +742,28 @@ function initSermonPage() {
       timeTotal.textContent = fmt(audio.duration);
     }
 
-    audio.addEventListener('timeupdate', updateProgress, { signal });
+    // ── Transcript sync ───────────────────────────────────────────────────
+    let activePara: HTMLParagraphElement | null = null;
+
+    function syncTranscript() {
+      if (!tStamps.length) return;
+      const t = audio.currentTime;
+      let active = tStamps[0].el;
+      for (const { secs, el } of tStamps) {
+        if (secs <= t) active = el; else break;
+      }
+      if (active !== activePara) {
+        activePara?.classList.remove('transcript-active');
+        active.classList.add('transcript-active');
+        activePara = active;
+        active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    audio.addEventListener('timeupdate', () => {
+      updateProgress();
+      syncTranscript();
+    }, { signal });
 
     audio.addEventListener('ended', () => {
       iconPlay?.classList.remove('hidden');
@@ -733,6 +774,7 @@ function initSermonPage() {
       if (audio.paused) {
         iconPlay?.classList.add('hidden');
         iconPause?.classList.remove('hidden');
+        if (hasTranscriptTab) switchTab('transcript');
         audio.play().catch(() => {
           iconPlay?.classList.remove('hidden');
           iconPause?.classList.add('hidden');
