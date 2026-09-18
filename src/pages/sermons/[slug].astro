@@ -599,14 +599,11 @@ const ldJsonVideo = vimeoId ? {
 /* :global(.dark) prevents Astro from adding its scoping attribute to the
    .dark ancestor (which lives on <html>, outside this component). */
 :global(.dark) .sermon-card {
+  background-color: var(--popover);
   --ink: #dce4f0;
   --navy: #8bbcde;
 }
-:global(.dark) .image-section {
-  background-color: white;
-  --ink: #14202f;
-  --navy: #273f61;
-}
+
 :global(.dark) .big-idea {
   --navy: #273f61;
 }

@@ -13,6 +13,9 @@ scripts/lessons/
 # Sermon pipeline — transient data (audio/, output/, session/ covered by sermon-pipeline/.gitignore)
 sermon-pipeline/node_modules/
 
+# Retranscribe script — intermediate per-sermon transcript files
+scripts/transcripts/
+
 # Sermon pipeline cache and credentials
 scripts/drive/comp-tax/
 scripts/drive/enriched/

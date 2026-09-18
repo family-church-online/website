@@ -242,10 +242,10 @@ A snail frozen in its shell gets crushed anyway—so what makes you finally come
 
 ## 2. Output File
 
-**Path:** `src/content/sermons/{date}-{slug}.mdx`  
-**Example:** `src/content/sermons/2026-08-16-choosing-joy-in-weakness-habakkuk-3-17-19.mdx`
+**Path:** `src/content/sermons/{title-slug}-{scripture-slug}.mdx`  
+**Example:** `src/content/sermons/choosing-joy-in-weakness-habakkuk-3-17-19.mdx`
 
-The slug is taken directly from the Drive filename (strip the date prefix and extension).
+The slug is derived from the sermon's `title` and `scripture` fields — **not** from the Drive filename. See Section 7 for the exact algorithm.
 
 ---
 

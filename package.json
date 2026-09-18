@@ -37,6 +37,8 @@
     "sermons:latest": "node scripts/import-sermons.mjs --latest && node scripts/build-related-sermons.mjs",
     "sermons:import": "node scripts/import-sermons.mjs && node scripts/build-related-sermons.mjs",
     "sermons:related": "node scripts/build-related-sermons.mjs",
+    "sermons:transcribe": "node scripts/retranscribe-sermons.mjs",
+    "sermons:transcribe:check": "node scripts/retranscribe-sermons.mjs --test",
     "lesson:import": "node scripts/import-lessons.mjs",
     "lesson:manifest": "node scripts/import-lessons.mjs --manifest",
     "lesson:convert": "node scripts/convert-lesson.mjs",

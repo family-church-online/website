@@ -99,7 +99,7 @@ const READING_PLANS_CAL_ID = '9e339a64af832e22e2845990e12e5734996425604454b26ff4
 const DRIVE_ENRICHED       = '1w2ADe6xQ-_0Hz2KvAHbmMTSK_7WNkALO';
 const DRIVE_COMP_TAX       = '19f02nUtBL9xNQaTsECgKvEWkcyefgixy';
 const DRIVE_SERMON_BLOCK   = '1rmr23NQsNHYFstSSW2cyB2U2XMBOt39l';
-const R2_MANIFEST_PATH     = join(WEBSITE_DIR, 'scripts', 'r2-audio-manifest.json');
+const R2_MANIFEST_PATH     = join(WEBSITE_DIR, 'scripts', 'r2-manifest.json');
 const DEEPGRAM_MODEL        = 'nova-2';
 const VOYAGE_MODEL          = 'voyage-context-4';
 const MAX_CHUNK_WORDS       = 600;
@@ -1029,7 +1029,7 @@ function buildSermonMdx(sermon, taxonomy, htmlText, transcriptMd) {
   lines.push('---', '');
 
   const body = extractTranscriptBody(transcriptMd);
-  lines.push(`# ${sermon.title || ''}`, '', '## Transcript', '', body, '');
+  lines.push(body, '');
   return lines.join('\n');
 }
 
@@ -1316,6 +1316,7 @@ async function embedAndStore(date, mdText, taxonomyJson, htmlText) {
   await registerTypes(db);
 
   try {
+    await db.query('BEGIN');
     await db.query('DELETE FROM sermon_chunks WHERE sermon_date = $1', [date]);
     const base = {
       sermon_date: date, sermon_title: meta.title || date,
@@ -1339,7 +1340,7 @@ async function embedAndStore(date, mdText, taxonomyJson, htmlText) {
 }
 
 function sermon_post_url(date, meta) {
-  return meta.post_url || `${SITE_URL}/sermons/${date}`;
+  return meta.post_url || `${SITE_URL}/sermons/${meta.slug || date}`;
 }
 
 // ─── Website file writing ─────────────────────────────────────────────────────
@@ -1358,10 +1359,11 @@ function gitPushWebsite(newFiles) {
   const commit = git('commit', '-m', msg);
   if (commit.status !== 0) { console.error(`git commit failed: ${commit.stderr}`); return; }
   log(`  Committed: ${msg}`);
-  git('stash');
+  const stash = git('stash');
+  const stashed = stash.stdout.includes('Saved working directory');
   const pull = git('pull', '--rebase');
   if (pull.status !== 0) { console.error(`git pull --rebase failed: ${pull.stderr}`); return; }
-  git('stash', 'pop');
+  if (stashed) git('stash', 'pop');
   const push = git('push');
   if (push.status !== 0) { console.error(`git push failed: ${push.stderr}`); return; }
   log('  Pushed — Cloudflare build triggered');
@@ -1697,7 +1699,10 @@ async function runUploadDevotions() {
 
   const auth     = await getGoogleCredentials();
   const calendar = google.calendar({ version: 'v3', auth });
-  const monday   = getNextMonday();
+  const metaPath = join(outputDir, `devotions-meta-${date}-${slug}.json`);
+  const monday   = existsSync(metaPath)
+    ? new Date(JSON.parse(readFileSync(metaPath, 'utf8')).monday + 'T00:00:00Z')
+    : getNextMonday();
   log(`Uploading from Monday ${monday.toISOString().slice(0,10)}`);
   await doUploadDevotions(devotions, monday, calendar);
 }
@@ -1777,7 +1782,10 @@ async function runDryRunDevotions() {
   const devotionsPath = join(outputDir, `devotions-${date}-${slug}.json`);
   if (!existsSync(devotionsPath)) { console.error('Run step 5 first'); process.exit(1); }
   const devotions = JSON.parse(readFileSync(devotionsPath, 'utf8'));
-  const monday    = getNextMonday();
+  const metaPath  = join(outputDir, `devotions-meta-${date}-${slug}.json`);
+  const monday    = existsSync(metaPath)
+    ? new Date(JSON.parse(readFileSync(metaPath, 'utf8')).monday + 'T00:00:00Z')
+    : getNextMonday();
   log(`Dry run — would start Monday ${monday.toISOString().slice(0,10)}`);
   await doUploadDevotions(devotions, monday, null, true);
 }
