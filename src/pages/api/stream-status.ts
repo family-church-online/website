@@ -41,7 +41,7 @@ async function checkVimeo(eventId: string): Promise<boolean> {
 		if (!videoId) return false;
 
 		const statusRes = await fetch(
-			`https://api.vimeo.com/videos/${videoId}?fields=embed`,
+			`https://api.vimeo.com/videos/${videoId}?fields=embed.badges.live`,
 			{
 				headers: { 'Authorization': `bearer ${token}` },
 				signal: AbortSignal.timeout(5000),
