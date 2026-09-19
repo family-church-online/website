@@ -67,37 +67,21 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 		<div class="bg-[var(--background)] border-b border-[var(--ink)]/10 sticky top-20 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-8">
 			<div class="flex flex-wrap gap-2 items-center">
 
-				{/* Day pills */}
-				<div class="flex flex-wrap gap-1.5" id="day-filters">
-					<button data-filter="day" data-value="all" aria-pressed="true"
-						class="filter-pill active text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer">
-						All days
-					</button>
-					{allDays.map(day => (
-						<button data-filter="day" data-value={day} aria-pressed="false"
-							class="filter-pill text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer">
-							{day}
-						</button>
-					))}
-				</div>
+				{/* Day dropdown */}
+				<select id="filter-day" class="filter-select text-sm border border-[var(--ink)]/18 dark:border-white/12 rounded-lg px-3 py-1.5 bg-white dark:bg-[var(--card)] cursor-pointer">
+					<option value="">All days</option>
+					{allDays.map(day => <option value={day}>{day}</option>)}
+				</select>
 
-				{/* Time-of-day pills */}
+				{/* Time-of-day dropdown */}
 				{allTods.length > 1 && (
-					<div class="flex flex-wrap gap-1.5" id="tod-filters">
-						<button data-filter="tod" data-value="all" aria-pressed="true"
-							class="filter-pill active text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer">
-							All times
-						</button>
-						{allTods.map(t => (
-							<button data-filter="tod" data-value={t} aria-pressed="false"
-								class="filter-pill text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer">
-								{t}
-							</button>
-						))}
-					</div>
+					<select id="filter-tod" class="filter-select text-sm border border-[var(--ink)]/18 dark:border-white/12 rounded-lg px-3 py-1.5 bg-white dark:bg-[var(--card)] cursor-pointer">
+						<option value="">All times</option>
+						{allTods.map(t => <option value={t}>{t}</option>)}
+					</select>
 				)}
 
-				{/* Area select */}
+				{/* Area dropdown */}
 				{allAreas.length > 1 && (
 					<select id="filter-area" class="filter-select text-sm border border-[var(--ink)]/18 dark:border-white/12 rounded-lg px-3 py-1.5 bg-white dark:bg-[var(--card)] cursor-pointer">
 						<option value="">All areas</option>
@@ -106,10 +90,15 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 				)}
 
 				{/* Open only toggle */}
-				<label class="ml-auto flex items-center gap-2 text-sm text-[var(--ink)]/70 dark:text-white/60 cursor-pointer select-none">
+				<label class="flex items-center gap-2 text-sm text-[var(--ink)]/70 dark:text-white/60 cursor-pointer select-none">
 					<input type="checkbox" id="filter-open" class="w-4 h-4 accent-[var(--green)]" />
 					Open only
 				</label>
+
+				{/* Clear filters */}
+				<button id="clear-filters" class="hidden text-sm font-semibold text-[var(--navy)] dark:text-[var(--green)] hover:underline ml-auto">
+					Clear filters
+				</button>
 
 				<span id="result-count" class="text-sm text-[var(--ink)]/45 dark:text-white/45 tabular-nums hidden sm:block"></span>
 			</div>
@@ -196,84 +185,55 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 
 	</div>
 
-	<style>
-		.filter-pill {
-			background: white;
-			color: rgb(var(--ink) / 0.6);
-			border-color: rgb(var(--ink) / 0.15);
-		}
-		:global(.dark) .filter-pill {
-			background: var(--card);
-			color: rgba(255,255,255,0.55);
-			border-color: rgba(255,255,255,0.12);
-		}
-		.filter-pill.active,
-		.filter-pill[aria-pressed="true"] {
-			background: var(--navy);
-			color: white;
-			border-color: var(--navy);
-		}
-		:global(.dark) .filter-pill.active,
-		:global(.dark) .filter-pill[aria-pressed="true"] {
-			background: var(--green);
-			border-color: var(--green);
-		}
-	</style>
-
 	<script>
-		const cards      = Array.from(document.querySelectorAll<HTMLElement>('.group-card'));
-		const dayBtns    = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter="day"]'));
-		const todBtns    = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter="tod"]'));
-		const areaSelect = document.querySelector<HTMLSelectElement>('#filter-area');
-		const openToggle = document.querySelector<HTMLInputElement>('#filter-open');
-		const countEl    = document.getElementById('result-count');
-		const noResults  = document.getElementById('no-results');
+		const cards       = Array.from(document.querySelectorAll<HTMLElement>('.group-card'));
+		const daySelect   = document.querySelector<HTMLSelectElement>('#filter-day');
+		const todSelect   = document.querySelector<HTMLSelectElement>('#filter-tod');
+		const areaSelect  = document.querySelector<HTMLSelectElement>('#filter-area');
+		const openToggle  = document.querySelector<HTMLInputElement>('#filter-open');
+		const clearBtn    = document.getElementById('clear-filters');
+		const countEl     = document.getElementById('result-count');
+		const noResults   = document.getElementById('no-results');
 
-		let activeDay  = 'all';
-		let activeTod  = 'all';
-		let activeArea = '';
-		let openOnly   = false;
+		function isFiltered() {
+			return (daySelect?.value  || '') !== ''
+				|| (todSelect?.value  || '') !== ''
+				|| (areaSelect?.value || '') !== ''
+				|| openToggle?.checked;
+		}
 
 		function applyFilters() {
-			let visible = 0;
+			const day    = daySelect?.value  ?? '';
+			const tod    = todSelect?.value  ?? '';
+			const area   = areaSelect?.value ?? '';
+			const open   = openToggle?.checked ?? false;
+			let visible  = 0;
 			cards.forEach(card => {
-				const dayOk  = activeDay === 'all' || card.dataset.day === activeDay;
-				const todOk  = activeTod === 'all' || card.dataset.tod === activeTod;
-				const areaOk = !activeArea || card.dataset.area === activeArea;
-				const openOk = !openOnly || card.dataset.open === 'true';
-				const show   = dayOk && todOk && areaOk && openOk;
-				card.hidden  = !show;
+				const show = (!day  || card.dataset.day  === day)
+						  && (!tod  || card.dataset.tod  === tod)
+						  && (!area || card.dataset.area === area)
+						  && (!open || card.dataset.open === 'true');
+				card.hidden = !show;
 				if (show) visible++;
 			});
 			if (countEl) countEl.textContent = `${visible} group${visible !== 1 ? 's' : ''}`;
 			if (noResults) noResults.hidden = visible > 0;
+			if (clearBtn)  clearBtn.classList.toggle('hidden', !isFiltered());
 		}
 
-		dayBtns.forEach(btn => {
-			btn.addEventListener('click', () => {
-				activeDay = btn.dataset.value!;
-				dayBtns.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
-				applyFilters();
-			});
-		});
-
-		todBtns.forEach(btn => {
-			btn.addEventListener('click', () => {
-				activeTod = btn.dataset.value!;
-				todBtns.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
-				applyFilters();
-			});
-		});
-
-		areaSelect?.addEventListener('change', () => {
-			activeArea = areaSelect.value;
+		function clearFilters() {
+			if (daySelect)  daySelect.value  = '';
+			if (todSelect)  todSelect.value  = '';
+			if (areaSelect) areaSelect.value = '';
+			if (openToggle) openToggle.checked = false;
 			applyFilters();
-		});
+		}
 
-		openToggle?.addEventListener('change', () => {
-			openOnly = openToggle.checked;
-			applyFilters();
-		});
+		daySelect?.addEventListener('change',  applyFilters);
+		todSelect?.addEventListener('change',  applyFilters);
+		areaSelect?.addEventListener('change', applyFilters);
+		openToggle?.addEventListener('change', applyFilters);
+		clearBtn?.addEventListener('click',    clearFilters);
 
 		applyFilters();
 	</script>
