@@ -70,7 +70,7 @@ Sveltia's config is auto-generated from the TinaCMS schema at every build by `sc
 | Sermon Notes | `src/content/sermon-notes/` | TinaCMS | Single `current.mdx` — placeholder for the upcoming Sunday's sermon |
 | Announcements | `src/content/announcements/` | Sveltia | Rich-text body, optional expiry date |
 | Devotions | `src/content/devotion/` | Sveltia | One MDX per day, named `YYYY-MM-DD.mdx` |
-| Three Minutes | `src/content/threeminutes/` | Sveltia | Short outreach articles |
+| Three Minutes | `src/content/threeminutes/` | Sveltia | Short encouragement articles |
 | Events | `src/content/events/` | Sveltia | Dated events with optional registration link |
 | Guides | `src/content/guides/` | Sveltia | Long-form reference articles |
 | Groups | `src/content/groups/` | Sveltia | Small groups; displayed on `/groups` listing |
@@ -211,6 +211,7 @@ Before the first deploy:
 1. Create a project at [app.tina.io](https://app.tina.io)
 2. Set `PUBLIC_TINA_CLIENT_ID` and `TINA_TOKEN` in Cloudflare's environment variables
 3. Set the auth variables (`PCO_APP_ID`, `PCO_SECRET`, `RESEND_API_KEY`)
-4. Set `SITE_URL` to the production URL
+4. Set `SITE_URL` to the production URL — **as a build environment variable**, not a runtime variable. Cloudflare runtime vars are not visible during the Astro build, so the sitemap and canonical URLs will default to `localhost` if `SITE_URL` is only set under "Runtime variables and secrets".
+5. Set `PCO_REDIRECT_URI` to `https://{your-domain}/api/auth/callback`
 
 For Sveltia CMS to work in production, a GitHub OAuth proxy Worker must be deployed separately — see the auth setup instructions in `public/edit/config.yml`.
