@@ -1,4 +1,15 @@
 User-agent: *
 Allow: /
 
+Disallow: /admin/
+Disallow: /edit/
+Disallow: /tina-island/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /course-admin
+Disallow: /cf-status
+Disallow: /stream-dashboard
+Disallow: /today
+
 Sitemap: https://familychurch.online/sitemap-index.xml
