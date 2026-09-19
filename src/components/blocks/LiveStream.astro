@@ -26,9 +26,9 @@ const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] 
 interface NotesFrontmatter { title?: string; date?: string; speaker?: string; series?: string; scripture?: string; image?: string; }
 interface SermonFrontmatter { date?: string; review?: boolean; }
 
-const notesMods  = import.meta.glob<{ frontmatter: NotesFrontmatter }>('../../content/sermon-notes/current.mdx', { eager: true });
-const sermonMods = import.meta.glob<{ frontmatter: SermonFrontmatter }>('../../content/sermons/*.mdx', { eager: true });
-const notesFm = Object.values(notesMods)[0]?.frontmatter ?? {};
+const notesMods  = import.meta.glob<NotesFrontmatter>('../../content/sermon-notes/current.mdx', { eager: true, import: 'frontmatter' });
+const sermonMods = import.meta.glob<SermonFrontmatter>('../../content/sermons/*.mdx', { eager: true, import: 'frontmatter' });
+const notesFm = Object.values(notesMods)[0] ?? {};
 
 const nowSA    = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
 const isSunday = nowSA.getDay() === 0;
@@ -41,7 +41,7 @@ const notesDateYMD  = notesFm.date
 	: '';
 const notesAreForToday = notesDateYMD === todayStr;
 const hasTodaySermon   = Object.values(sermonMods).some(m => {
-	const d = m.frontmatter.date;
+	const d = m.date;
 	if (!d) return false;
 	// js-yaml parses unquoted YYYY-MM-DD as a UTC midnight Date object
 	const ymd = d instanceof Date ? d.toISOString().slice(0, 10) : String(d);
