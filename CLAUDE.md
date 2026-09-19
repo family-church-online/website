@@ -41,7 +41,7 @@ Copy `.env.example` → `.env`. Key vars:
 | `SITE_URL` | Canonical URL — required on Cloudflare Workers where no platform var is injected |
 | `DEPLOY_ADAPTER` | Force `vercel \| cloudflare \| netlify \| node`; normally auto-detected |
 | `TINA_HOST` | LAN IP or full URL for mobile dev against the same local TinaCMS |
-| `VIMEO_ACCESS_TOKEN` | Vimeo API token — used by `/api/stream-status` to detect live stream |
+| `VIMEO_TOKEN` | Vimeo API token — used by `/api/stream-status` to detect live stream |
 
 ## Architecture
 

@@ -23,7 +23,7 @@ async function checkIcecast(): Promise<boolean> {
 }
 
 async function checkVimeo(eventId: string): Promise<boolean> {
-	const token = process.env.VIMEO_ACCESS_TOKEN;
+	const token = process.env.VIMEO_TOKEN;
 	if (!token) return false;
 
 	try {
