@@ -36,7 +36,7 @@ pnpm dev               # Astro + TinaCMS dev server → http://localhost:4321
 | `PCO_APP_ID` | Planning Center Online app ID — for magic-link auth |
 | `PCO_SECRET` | Planning Center Online app secret |
 | `RESEND_API_KEY` | Resend API key — for sending magic-link emails |
-| `VIMEO_ACCESS_TOKEN` | Vimeo API token — for live stream status check |
+| `VIMEO_TOKEN` | Vimeo API token — for live stream status check. Must be named exactly `VIMEO_TOKEN` in the Cloudflare dashboard. |
 
 ## Commands
 
@@ -156,7 +156,7 @@ These routes run as Worker handlers — everything else is pre-rendered static H
 | `/api/auth/verify` | Validates token, sets session cookie |
 | `/api/auth/logout` | Clears session cookie |
 | `/api/courses/progress` | Reads/writes lesson progress to Cloudflare KV |
-| `/api/stream-status` | Live stream availability check (Vimeo API) |
+| `/api/stream-status` | Live stream check — Icecast + Vimeo in parallel. Vimeo uses `api.vimeo.com` only (`vimeo.com/*` is blocked from CF Workers). Checks `embed.badges.live.streaming`. |
 | `/api/stream-report` | POST — writes a stream problem report to KV + notifies dashboard via DO |
 | `/api/stream-reports` | GET — returns report counts and recent (last 60 min) totals |
 | `/api/stream-ws` | WebSocket upgrade proxy — forwards to `StreamMonitor` Durable Object |
