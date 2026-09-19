@@ -2,6 +2,7 @@
 import { tinaField } from '@tinacms/astro/tina-field';
 import Section from '../ui/Section.astro';
 import Icon from '../Icon.astro';
+import { getConfig } from '../../lib/data';
 
 interface TimelineLink {
 	label?: string | null;
@@ -19,15 +20,37 @@ interface Props {
 		heading?: string | null;
 		intro?: string | null;
 		items?: (TimelineItem | null)[] | null;
-		locationName?: string | null;
 		locationNote?: string | null;
+		mapsUrl?: string | null;
 		ctaText?: string | null;
 		ctaEmail?: string | null;
 	};
 }
 
 const { data } = Astro.props;
+const config = (await getConfig()).data?.config ?? null;
+const addr = config?.seo?.address ?? null;
+const addressLine = addr
+	? [addr.streetAddress, addr.locality, addr.region, addr.postalCode].filter(Boolean).join(', ')
+	: null;
 const items = (data.items ?? []).filter((i): i is TimelineItem => i !== null);
+
+const siteUrl = Astro.site ? new URL('/', Astro.site).toString().replace(/\/$/, '') : '';
+const locationLd = addr ? {
+	'@context': 'https://schema.org',
+	'@type': 'Church',
+	name: config?.seo?.title ?? 'Family Church',
+	url: siteUrl || undefined,
+	address: {
+		'@type': 'PostalAddress',
+		streetAddress: addr.streetAddress ?? undefined,
+		addressLocality: addr.locality ?? undefined,
+		addressRegion: addr.region ?? undefined,
+		postalCode: addr.postalCode ?? undefined,
+		addressCountry: addr.country ?? undefined,
+	},
+	...(data.mapsUrl ? { hasMap: data.mapsUrl } : {}),
+} : null;
 ---
 
 <Section>
@@ -84,19 +107,33 @@ const items = (data.items ?? []).filter((i): i is TimelineItem => i !== null);
 		</ol>
 
 		{/* Location */}
-		{(data.locationName || data.locationNote) && (
-			<div class="flex gap-4 items-start bg-card border border-border rounded-2xl px-6 py-5 mb-10">
+		{(addressLine || data.locationNote || data.mapsUrl) && (
+			<div id="find-us" class="mb-10">
+			<h2 class="text-xl font-semibold text-foreground mb-4 text-center">Find us</h2>
+			<div class="flex gap-4 items-start bg-card border border-border rounded-2xl px-6 py-5">
 				<Icon name="map-pin" class="w-[18px] h-[18px] text-[var(--olive)] shrink-0 mt-0.5" />
-				<div>
-					{data.locationName && (
-						<p class="font-semibold text-sm text-foreground mb-1"
-							data-tina-field={tinaField(data, 'locationName')}>{data.locationName}</p>
+				<div class="flex-1 min-w-0">
+					{addressLine && (
+						<p class="font-semibold text-sm text-foreground mb-1">{addressLine}</p>
 					)}
 					{data.locationNote && (
 						<p class="text-sm text-muted-foreground leading-relaxed"
 							data-tina-field={tinaField(data, 'locationNote')}>{data.locationNote}</p>
 					)}
+					{data.mapsUrl && (
+						<a
+							href={data.mapsUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-[var(--navy)] dark:text-[var(--green)] hover:underline"
+							data-tina-field={tinaField(data, 'mapsUrl')}
+						>
+							<Icon name="map-pin" class="w-3.5 h-3.5 shrink-0" />
+							Get directions
+						</a>
+					)}
 				</div>
+			</div>
 			</div>
 		)}
 
@@ -115,3 +152,7 @@ const items = (data.items ?? []).filter((i): i is TimelineItem => i !== null);
 
 	</div>
 </Section>
+
+{locationLd && (
+	<script type="application/ld+json" set:html={JSON.stringify(locationLd)} />
+)}

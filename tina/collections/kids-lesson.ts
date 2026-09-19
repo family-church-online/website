@@ -51,7 +51,6 @@ export function kidsLessonCollection(opts: {
 				name: 'scripture',
 				label: 'Scripture',
 				type: 'string',
-				ui: { component: 'textarea' },
 			},
 			{
 				name: 'paragraphs',
