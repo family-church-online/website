@@ -70,8 +70,8 @@ export const GET: APIRoute = async ({ url }) => {
 	const results = await Promise.all(checks);
 	const live = results.some(Boolean);
 
-	const response = new Response(JSON.stringify({ live }), {
-		headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=30' },
+	const response = new Response(JSON.stringify({ live, debug: { icecast: results[0], vimeo: results[1] ?? null, hasToken: !!process.env.VIMEO_TOKEN, eventId } }), {
+		headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
 	});
 
 	cache?.put(cacheKey, response.clone());
