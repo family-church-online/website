@@ -61,7 +61,8 @@ function xmlEscape(s: string | null | undefined): string {
 const items = sermons.map(s => {
   const pageUrl    = `${SITE_URL}/sermons/${s.slug}`;
   const encLength  = s.audioSizeBytes ? ` length="${s.audioSizeBytes}"` : '';
-  const imgTag     = s.image?.startsWith('http') ? `\n      <itunes:image href="${xmlEscape(s.image)}"/>` : '';
+  const imgUrl     = s.image ? (s.image.startsWith('http') ? s.image : `${SITE_URL}${s.image}`) : null;
+  const imgTag     = imgUrl ? `\n      <itunes:image href="${xmlEscape(imgUrl)}"/>` : '';
   const guid       = s.guid ?? pageUrl;
   const isPermaLink = s.guid ? 'false' : 'true';
   return `
