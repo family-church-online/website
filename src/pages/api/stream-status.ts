@@ -41,7 +41,7 @@ async function checkVimeo(eventId: string): Promise<boolean> {
 		if (!videoId) return false;
 
 		const statusRes = await fetch(
-			`https://vimeo.com/live_event/status?clip_id=${videoId}`,
+			`https://api.vimeo.com/videos/${videoId}?fields=embed`,
 			{
 				headers: { 'Authorization': `bearer ${token}` },
 				signal: AbortSignal.timeout(5000),
@@ -49,8 +49,8 @@ async function checkVimeo(eventId: string): Promise<boolean> {
 		);
 		if (!statusRes.ok) return false;
 
-		const statusData = await statusRes.json() as { ingest?: { status?: number } };
-		return statusData.ingest?.status === 4;
+		const statusData = await statusRes.json() as { embed?: { badges?: { live?: { streaming?: boolean } } } };
+		return statusData.embed?.badges?.live?.streaming === true;
 	} catch {
 		return false;
 	}
@@ -70,8 +70,8 @@ export const GET: APIRoute = async ({ url }) => {
 	const results = await Promise.all(checks);
 	const live = results.some(Boolean);
 
-	const response = new Response(JSON.stringify({ live, debug: { icecast: results[0], vimeo: results[1] ?? null, hasToken: !!process.env.VIMEO_TOKEN, eventId } }), {
-		headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+	const response = new Response(JSON.stringify({ live }), {
+		headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, s-maxage=30' },
 	});
 
 	cache?.put(cacheKey, response.clone());
