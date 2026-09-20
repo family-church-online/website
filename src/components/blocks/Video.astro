@@ -1,6 +1,8 @@
 ---
 import { tinaField } from '@tinacms/astro/tina-field';
 import YouTubeFacade from '../ui/YouTubeFacade.astro';
+import SermonNotesCard from './SermonNotesCard.astro';
+import StreamReportWidget from './StreamReportWidget.astro';
 import type { VideoBlock } from '../../lib/data';
 
 interface Props { data: VideoBlock }
@@ -15,6 +17,7 @@ function parse(url = '') {
 	return url ? { type: 'embed' as const, src: url } : null;
 }
 const video = data.url ? parse(data.url) : null;
+const vimeoEventId = (data.url ?? '').match(/vimeo\.com\/event\/(\d+)/)?.[1];
 
 // YouTube plays via a click-to-load facade. `loop` needs `playlist=<id>` to work.
 let ytParams = '';
@@ -27,6 +30,7 @@ let embedSrc: string | null = null;
 if (video?.type === 'embed') {
 	const params = new URLSearchParams();
 	if (data.autoPlay) { params.set('autoplay', '1'); params.set('mute', '1'); }
+	else { params.set('autoplay', '0'); }
 	if (data.loop) params.set('loop', '1');
 	const qs = params.toString();
 	embedSrc = qs ? `${video.src}?${qs}` : video.src;
@@ -39,5 +43,7 @@ if (video?.type === 'embed') {
 				? <YouTubeFacade id={video.id} params={ytParams} />
 				: <iframe class="absolute inset-0 h-full w-full" src={embedSrc} title="Video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>}
 		</div>
+		<SermonNotesCard revealDelay="0.05" />
+		<StreamReportWidget vimeoEventId={vimeoEventId} />
 	</div>
 )}

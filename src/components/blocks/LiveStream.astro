@@ -1,6 +1,7 @@
 ---
 import { tinaField } from '@tinacms/astro/tina-field';
-import Icon from '../Icon.astro';
+import SermonNotesCard from './SermonNotesCard.astro';
+import StreamReportWidget from './StreamReportWidget.astro';
 
 interface Props {
 	data: {
@@ -9,45 +10,11 @@ interface Props {
 		streamUrl?: string | null;
 		description?: string | null;
 		reportDescription?: string | null;
-		vimeoEventId?: string | null;
 	};
 }
 
 const { data } = Astro.props;
 
-const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] }[] = [
-	{ label: 'No Sound',       icon: 'speaker-x'    },
-	{ label: 'Low Volume',     icon: 'speaker-low'  },
-	{ label: 'Sound Quality',  icon: 'speaker-high' },
-	{ label: 'No Picture',     icon: 'video-slash'  },
-	{ label: 'Picture Quality',icon: 'monitor'      },
-];
-
-interface NotesFrontmatter { title?: string; date?: string; speaker?: string; series?: string; scripture?: string; image?: string; }
-interface SermonFrontmatter { date?: string; review?: boolean; }
-
-const notesMods  = import.meta.glob<NotesFrontmatter>('../../content/sermon-notes/current.mdx', { eager: true, import: 'frontmatter' });
-const sermonMods = import.meta.glob<SermonFrontmatter>('../../content/sermons/*.mdx', { eager: true, import: 'frontmatter' });
-const notesFm = Object.values(notesMods)[0] ?? {};
-
-const nowSA    = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
-const isSunday = nowSA.getDay() === 0;
-const todayStr = nowSA.toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' });
-
-// TinaCMS datetime fields are auto-parsed to Date objects by Astro's YAML parser.
-// Pass directly to new Date() and format in SA timezone — never call .slice() on the value.
-const notesDateYMD  = notesFm.date
-	? new Date(notesFm.date as string).toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' })
-	: '';
-const notesAreForToday = notesDateYMD === todayStr;
-const hasTodaySermon   = Object.values(sermonMods).some(m => {
-	const d = m.date;
-	if (!d) return false;
-	// js-yaml parses unquoted YYYY-MM-DD as a UTC midnight Date object
-	const ymd = d instanceof Date ? d.toISOString().slice(0, 10) : String(d);
-	return ymd === todayStr;
-});
-const showNotesCard = !!notesFm.title && !hasTodaySermon && (import.meta.env.DEV || (isSunday && notesAreForToday));
 ---
 
 {data.streamUrl && (
@@ -73,7 +40,7 @@ const showNotesCard = !!notesFm.title && !hasTodaySermon && (import.meta.env.DEV
 			</div>
 		)}
 
-		<div class="py-6 reveal" data-reveal-delay="0.05" data-vimeo-event-id={data.vimeoEventId ?? ''}>
+		<div class="py-6 reveal" data-reveal-delay="0.05">
 			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 
 				<div class="px-6 pt-6 pb-5">
@@ -109,73 +76,9 @@ const showNotesCard = !!notesFm.title && !hasTodaySermon && (import.meta.env.DEV
 			</div>
 		</div>
 
-		{/* Sunday Sermon Notes card — baked at build time */}
-		{showNotesCard && (
-			<div class="py-4 reveal" data-reveal-delay="0.1">
-				<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
-					<div class="px-6 pt-5 pb-4 flex items-start gap-4">
-						{notesFm.image && (
-							<div class="w-16 h-16 rounded-xl overflow-hidden shrink-0">
-								<img src={notesFm.image} alt={notesFm.title ?? ''} class="w-full h-full object-cover scale-[1.35]" />
-							</div>
-						)}
-						<div class="flex-1 min-w-0">
-							{notesFm.series && (
-								<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-1">{notesFm.series}</p>
-							)}
-							<p class="font-semibold text-[var(--navy)] dark:text-white leading-snug">{notesFm.title ?? 'Sermon Notes'}{notesFm.scripture ? `: ${notesFm.scripture}` : ''}</p>
-							{notesFm.speaker && (
-								<p class="text-sm text-[var(--ink)]/55 dark:text-white/45 mt-0.5">{notesFm.speaker}</p>
-							)}
-						</div>
-					</div>
-					<div class="px-6 pb-5">
-						<button id="notes-card-btn" class="w-full flex items-center justify-center gap-2 bg-[var(--navy)] hover:bg-[var(--green)] text-white font-semibold text-sm py-3 rounded-xl transition-colors">
-							<Icon name="note" class="w-4 h-4 shrink-0" />
-							Open Sermon Notes
-						</button>
-					</div>
-				</div>
-			</div>
-		)}
+		<SermonNotesCard revealDelay="0.1" />
+		<StreamReportWidget description={data.reportDescription} />
 
-		{/* Report a Problem — only visible while stream is live */}
-		<div id="report-widget" class="hidden py-4 reveal" data-reveal-delay="0.15">
-			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-6 py-5">
-				<p class="text-sm font-semibold text-center sm:text-left text-[var(--ink)] dark:text-white mb-0.5">Report a Problem</p>
-				<p class="text-sm text-center sm:text-left text-[var(--ink)]/55 dark:text-white/45 mb-4">{data.reportDescription ?? "Let us know if you're experiencing technical issues. Clicking on the relevant icon below will alert our technicians immediately."}</p>
-				<div id="report-buttons" class="flex justify-around items-start gap-1">
-					{REPORT_BUTTONS.map(({ label, icon }) => (
-						<button
-							type="button"
-							data-report={label}
-							class="report-btn flex flex-col items-center gap-1.5 flex-1 py-1 rounded-xl text-[var(--ink)]/55 dark:text-white/45 hover:text-[var(--red)] dark:hover:text-[var(--red)] transition-colors"
-						>
-							<Icon name={icon} class="w-7 h-7 shrink-0" />
-							<span class="text-[10px] font-semibold leading-tight text-center">{label}</span>
-						</button>
-					))}
-				</div>
-				<p id="report-thanks" class="hidden text-sm text-[var(--green)] font-semibold">
-					Thank you — our technicians will investigate immediately.
-				</p>
-			</div>
-		</div>
-
-	{/* Sermon Notes drawer — fixed+overflow-hidden wrapper clips the off-screen drawer so it
-	    doesn't create horizontal overflow on mobile (translate-x-full on fixed bypasses overflow-x:hidden) */}
-	<div class="fixed inset-0 z-50 pointer-events-none overflow-hidden">
-	<div id="notes-overlay" class="hidden absolute inset-0 bg-black/50 cursor-pointer pointer-events-auto"></div>
-	<div id="notes-drawer" class="absolute inset-y-0 right-0 w-full sm:w-[520px] bg-white dark:bg-[var(--card)] shadow-2xl flex flex-col translate-x-full transition-transform duration-300 pointer-events-auto">
-		<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/10 dark:border-white/10 shrink-0">
-			<span class="font-semibold text-sm text-[var(--navy)] dark:text-white">Sermon Notes</span>
-			<button id="notes-close" class="text-[var(--ink)]/50 dark:text-white/50 hover:text-[var(--ink)] dark:hover:text-white transition-colors">
-				<Icon name="x" class="w-5 h-5" />
-			</button>
-		</div>
-		<iframe id="notes-frame" class="flex-1 border-0 w-full" title="Sermon Notes"></iframe>
-	</div>
-	</div>{/* end notes container */}
 
 </div>
 )}
@@ -191,16 +94,12 @@ const showNotesCard = !!notesFm.title && !hasTodaySermon && (import.meta.env.DEV
 
 <script>
 async function checkStream() {
-	const dot    = document.getElementById('stream-dot');
-	const label  = document.getElementById('stream-label');
-	const widget = document.getElementById('report-widget');
+	const dot   = document.getElementById('stream-dot');
+	const label = document.getElementById('stream-label');
 	if (!dot || !label) return;
 
-	const eventId = document.querySelector<HTMLElement>('[data-vimeo-event-id]')?.dataset.vimeoEventId;
-	const url = eventId ? `/api/stream-status?vimeoEventId=${eventId}` : '/api/stream-status';
-
 	try {
-		const res  = await fetch(url);
+		const res  = await fetch('/api/stream-status');
 		const data = await res.json() as { live: boolean };
 
 		dot.classList.toggle('bg-[var(--red)]',    data.live);
@@ -208,74 +107,24 @@ async function checkStream() {
 		dot.classList.toggle('bg-[var(--ink)]/20', !data.live);
 		dot.classList.toggle('dark:bg-white/20',   !data.live);
 		label.textContent = data.live ? 'Live Audio Broadcast — on air now' : 'Live Audio Broadcast — off air';
-
-		if (widget) {
-			widget.classList.toggle('hidden', !data.live);
-			if (data.live) resetReportWidget();
-		}
 	} catch {
 		label.textContent = 'Live Audio Broadcast';
 	}
 }
 
-function resetReportWidget() {
-	const buttons = document.getElementById('report-buttons');
-	const thanks  = document.getElementById('report-thanks');
-	if (buttons && thanks && thanks.classList.contains('hidden') === false) {
-		buttons.classList.remove('hidden');
-		thanks.classList.add('hidden');
-	}
-}
-
-function initReportButtons() {
-	document.querySelectorAll<HTMLButtonElement>('.report-btn').forEach(btn => {
-		btn.addEventListener('click', async () => {
-			const label   = btn.dataset.report;
-			const buttons = document.getElementById('report-buttons');
-			const thanks  = document.getElementById('report-thanks');
-			if (!label || !buttons || !thanks) return;
-
-			buttons.classList.add('hidden');
-			thanks.classList.remove('hidden');
-
-			fetch('/api/stream-report', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ button: label }),
-			}).catch(() => {/* fire-and-forget */});
-		});
+function initAudioReset() {
+	const audio = document.querySelector<HTMLAudioElement>('audio[controls]');
+	const src = audio?.querySelector('source')?.getAttribute('src') ?? audio?.src;
+	if (!audio || !src) return;
+	audio.addEventListener('error', () => {
+		audio.src = '';
+		audio.src = src;
 	});
-}
-
-function initSermonNotes() {
-	const cardBtn = document.getElementById('notes-card-btn');
-	if (!cardBtn) return;
-
-	const overlay = document.getElementById('notes-overlay');
-	const drawer  = document.getElementById('notes-drawer');
-	const frame   = document.getElementById('notes-frame') as HTMLIFrameElement | null;
-	const close   = document.getElementById('notes-close');
-	if (!overlay || !drawer || !frame) return;
-
-	function openDrawer() {
-		if (!frame.src.includes('sermon-notes')) frame.src = new URLSearchParams(location.search).has('preview') ? '/sermon-notes?preview' : '/sermon-notes';
-		overlay.classList.remove('hidden');
-		drawer.classList.remove('translate-x-full');
-	}
-	function closeDrawer() {
-		drawer.classList.add('translate-x-full');
-		overlay.classList.add('hidden');
-	}
-
-	cardBtn.addEventListener('click', openDrawer);
-	overlay.addEventListener('click', closeDrawer);
-	close?.addEventListener('click', closeDrawer);
 }
 
 function init() {
 	checkStream();
-	initReportButtons();
-	initSermonNotes();
+	initAudioReset();
 	setInterval(checkStream, 60_000);
 }
 

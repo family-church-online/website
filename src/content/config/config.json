@@ -45,8 +45,12 @@
       "link": "",
       "children": [
         {
-          "title": "Live services",
+          "title": "Watch Live",
           "link": "/video"
+        },
+        {
+          "title": "Listen Live",
+          "link": "/audio"
         },
         {
           "title": "Catch up",

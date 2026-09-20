@@ -1,0 +1,103 @@
+---
+import Icon from '../Icon.astro';
+
+interface Props {
+	description?: string | null;
+	vimeoEventId?: string | null;
+}
+
+const { description, vimeoEventId } = Astro.props;
+
+const REPORT_BUTTONS: { label: string; icon: Parameters<typeof Icon>[0]['name'] }[] = [
+	{ label: 'No Sound',        icon: 'speaker-x'    },
+	{ label: 'Low Volume',      icon: 'speaker-low'  },
+	{ label: 'Sound Quality',   icon: 'speaker-high' },
+	{ label: 'No Picture',      icon: 'video-slash'  },
+	{ label: 'Picture Quality', icon: 'monitor'      },
+];
+---
+
+<div
+	id="report-widget"
+	class="hidden py-4"
+	data-vimeo-event-id={vimeoEventId ?? ''}
+>
+	<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-6 py-5">
+		<p class="text-sm font-semibold text-center sm:text-left text-[var(--ink)] dark:text-white mb-0.5">Report a Problem</p>
+		<p class="text-sm text-center sm:text-left text-[var(--ink)]/55 dark:text-white/45 mb-4">
+			{description ?? "Let us know if you're experiencing technical issues. Clicking on the relevant icon below will alert our technicians immediately."}
+		</p>
+		<div id="report-buttons" class="flex justify-around items-start gap-1">
+			{REPORT_BUTTONS.map(({ label, icon }) => (
+				<button
+					type="button"
+					data-report={label}
+					class="report-btn flex flex-col items-center gap-1.5 flex-1 py-1 rounded-xl text-[var(--ink)]/55 dark:text-white/45 hover:text-[var(--red)] dark:hover:text-[var(--red)] transition-colors"
+				>
+					<Icon name={icon} class="w-7 h-7 shrink-0" />
+					<span class="text-[10px] font-semibold leading-tight text-center">{label}</span>
+				</button>
+			))}
+		</div>
+		<p id="report-thanks" class="hidden text-sm text-[var(--green)] font-semibold">
+			Thank you — our technicians will investigate immediately.
+		</p>
+	</div>
+</div>
+
+<script>
+async function checkStreamForWidget() {
+	const widget = document.getElementById('report-widget');
+	if (!widget) return;
+
+	const eventId = (widget as HTMLElement).dataset.vimeoEventId;
+	const url = eventId ? `/api/stream-status?vimeoEventId=${eventId}` : '/api/stream-status';
+
+	try {
+		const res  = await fetch(url);
+		const data = await res.json() as { live: boolean };
+		widget.classList.toggle('hidden', !data.live);
+		if (data.live) resetReportWidget();
+	} catch {
+		// leave hidden
+	}
+}
+
+function resetReportWidget() {
+	const buttons = document.getElementById('report-buttons');
+	const thanks  = document.getElementById('report-thanks');
+	if (buttons && thanks && !thanks.classList.contains('hidden')) {
+		buttons.classList.remove('hidden');
+		thanks.classList.add('hidden');
+	}
+}
+
+function initReportButtons() {
+	document.querySelectorAll<HTMLButtonElement>('.report-btn').forEach(btn => {
+		btn.addEventListener('click', () => {
+			const label   = btn.dataset.report;
+			const buttons = document.getElementById('report-buttons');
+			const thanks  = document.getElementById('report-thanks');
+			if (!label || !buttons || !thanks) return;
+
+			buttons.classList.add('hidden');
+			thanks.classList.remove('hidden');
+
+			fetch('/api/stream-report', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ button: label }),
+			}).catch(() => {});
+		});
+	});
+}
+
+function init() {
+	checkStreamForWidget();
+	initReportButtons();
+	setInterval(checkStreamForWidget, 60_000);
+}
+
+document.addEventListener('astro:page-load', init);
+document.addEventListener('DOMContentLoaded', init);
+</script>
