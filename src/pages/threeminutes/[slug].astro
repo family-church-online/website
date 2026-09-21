@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
 import { getConfig } from '../../lib/data';
 import Icon from '../../components/Icon.astro';
 
@@ -78,6 +79,7 @@ const articleLd = {
 	image={fm.image ?? undefined}
 	ogType="article"
 >
+	<Breadcrumb slot="head" items={[{ name: 'Home', href: '/' }, { name: 'Three Minutes', href: '/threeminutes' }, { name: fm.title ?? 'Article' }]} />
 	<script slot="head" type="application/ld+json" set:html={JSON.stringify(articleLd)} />
 	<div class="reveal max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
 		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Three Minutes</p>

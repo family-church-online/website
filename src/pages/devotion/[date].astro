@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
 import EsvCrossref from '../../components/EsvCrossref.astro';
 import { getConfig } from '../../lib/data';
 import Icon from '../../components/Icon.astro';
@@ -119,6 +120,7 @@ const articleLd = {
 ---
 
 <Base title={pageTitle} description={pageDesc} image={fm.image ?? undefined} ogType="article">
+	<Breadcrumb slot="head" items={[{ name: 'Home', href: '/' }, { name: 'Devotion', href: '/today' }, { name: fm.title ?? date }]} />
 	<script slot="head" type="application/ld+json" set:html={JSON.stringify(articleLd)} />
 
   {/* ── PAGE HEADER ────────────────────────────────────────────────────────── */}

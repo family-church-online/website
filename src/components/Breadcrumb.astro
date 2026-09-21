@@ -1,0 +1,23 @@
+---
+interface BreadcrumbItem {
+	name: string;
+	href?: string;
+}
+interface Props {
+	items: BreadcrumbItem[];
+}
+const { items } = Astro.props;
+const base = new URL('/', Astro.site).toString().replace(/\/$/, '');
+
+const schema = {
+	'@context': 'https://schema.org',
+	'@type': 'BreadcrumbList',
+	itemListElement: items.map((item, i) => ({
+		'@type': 'ListItem',
+		position: i + 1,
+		name: item.name,
+		...(item.href ? { item: `${base}${item.href}` } : {}),
+	})),
+};
+---
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />

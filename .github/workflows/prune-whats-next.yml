@@ -19,9 +19,12 @@ jobs:
           DELETED=0
           for f in src/content/whats-next/*.mdx; do
             [ -f "$f" ] || continue
-            DATE=$(basename "$f" .mdx)
+            # Read the date from frontmatter, not the filename — filenames can be
+            # creation-date-based when TinaCMS creates them before the date is set.
+            DATE=$(grep -m1 '^date:' "$f" | sed 's/date: *//;s/T.*//' | tr -d '"'"'" | xargs)
+            [ -z "$DATE" ] && continue
             if [[ "$DATE" < "$TODAY" ]]; then
-              echo "Removing $f ($DATE < $TODAY)"
+              echo "Removing $f (frontmatter date $DATE < $TODAY)"
               rm "$f"
               DELETED=$((DELETED + 1))
             fi

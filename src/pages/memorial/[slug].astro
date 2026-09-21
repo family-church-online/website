@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
 import Icon from '../../components/Icon.astro';
 import { getConfig } from '../../lib/data';
 
@@ -53,6 +54,7 @@ const embedUrl = vimeoEmbedUrl(fm.vimeoUrl);
 ---
 
 <Base title={`${fm.title || 'Memorial'} · ${siteTitle}`}>
+	<Breadcrumb slot="head" items={[{ name: 'Home', href: '/' }, { name: 'Memorial', href: '/memorial' }, { name: fm.title ?? 'Memorial' }]} />
 
 	<!-- Headline -->
 	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 pt-10 pb-6 text-center">

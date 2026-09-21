@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Base from '../../layouts/Base.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
 import LessonPage from '../../components/ministry/AmplifyLessonPage.astro';
 import EsvCrossref from '../../components/EsvCrossref.astro';
 import { getConfig } from '../../lib/data';
@@ -57,6 +58,7 @@ const siteTitle = config?.seo?.title ?? 'Family Church';
 	title={`${fm.title ?? 'Lesson'} · Amplify · ${siteTitle}`}
 	description={fm.summary ?? fm.scripture ?? 'A weekly lesson for teens from Family Church.'}
 >
+	<Breadcrumb slot="head" items={[{ name: 'Home', href: '/' }, { name: 'Amplify', href: '/amplify' }, { name: fm.title ?? 'Lesson' }]} />
 	<LessonPage
 		label="Amplify — Teens"
 		baseRoute="/amplify"
