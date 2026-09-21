@@ -13,6 +13,9 @@
 		{ "binding": "LESSON_PROGRESS", "id": "56984b88d58641dbb252b1e40fd897da", "remote": true },
 		{ "binding": "STREAM_REPORTS", "id": "aac02cbf9d654272a4a5321fddb472a5", "preview_id": "fc2033883e77407fa5c51e6d6c6f35ca" }
 	],
+	"limits": {
+		"cpu_ms": 50
+	},
 	"observability": {
 		"enabled": false,
 		"head_sampling_rate": 1,
