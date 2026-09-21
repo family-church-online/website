@@ -33,7 +33,6 @@ let embedSrc: string | null = null;
 if (video?.type === 'embed') {
 	const params = new URLSearchParams();
 	if (data.autoPlay) { params.set('autoplay', '1'); params.set('mute', '1'); }
-	else { params.set('autoplay', '0'); }
 	if (data.loop) params.set('loop', '1');
 	const qs = params.toString();
 	embedSrc = qs ? `${video.src}?${qs}` : video.src;

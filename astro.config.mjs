@@ -1,11 +1,24 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import icon from 'astro-icon';
 import tina from '@tinacms/astro/integration';
 import tailwindcss from '@tailwindcss/vite';
+
+// Read the Vimeo embed URL from the video block in video.mdx at build time
+// so it can be injected into the sitemap's <video:video> entry for /video.
+function getVideoBlockUrl() {
+	try {
+		const src = fs.readFileSync(new URL('./src/content/page/video.mdx', import.meta.url), 'utf-8');
+		return src.match(/url:\s*['"]([^'"]+)['"]/)?.[1] ?? null;
+	} catch {
+		return null;
+	}
+}
+const videoBlockUrl = getVideoBlockUrl();
 
 // Host-neutral: every content page prerenders to static HTML, and the one
 // on-demand route (/tina-island, the visual-editing endpoint) is served by
@@ -71,9 +84,27 @@ export default defineConfig({
 				!page.includes('/auth/') &&
 				!page.includes('/login') &&
 				!page.includes('/today') &&
-				!page.includes('/courses/') &&
+				!page.match(/\/courses\/?/) &&
 				!page.includes('/devotion/feed.xml') &&
-				!page.includes('/stream-dashboard'),
+				!page.includes('/stream-dashboard') &&
+				!page.includes('/sermon-notes') &&
+				!page.includes('/cf-status') &&
+				!page.includes('/course-admin'),
+			serialize(item) {
+				if (item.url.match(/\/video\/?$/) && videoBlockUrl) {
+					return {
+						...item,
+						video: [{
+							thumbnail_loc: item.url.replace(/\/video\/?$/, '/images/hero.jpg'),
+							title: 'Watch & Listen Live · Family Church',
+							description: 'Watch the live video stream, or switch to Audio Only. Audio Only uses far less data, try it if your connection is slow or unreliable.',
+							player_loc: videoBlockUrl,
+							live: 'yes',
+						}],
+					};
+				}
+				return item;
+			},
 		}),
 		icon(),
 		tina(),
