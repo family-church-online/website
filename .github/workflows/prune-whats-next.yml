@@ -2,7 +2,7 @@ name: Prune past What's Next services
 
 on:
   schedule:
-    - cron: '0 4 * * 1'  # Every Monday at 04:00 UTC (06:00 SA time)
+    - cron: '0 22 * * 0'  # Every Sunday at 22:00 UTC (Monday 00:00 SA time)
   workflow_dispatch:
 
 jobs:
