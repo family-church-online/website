@@ -5,9 +5,12 @@ import SermonNotesCard from './SermonNotesCard.astro';
 import StreamReportWidget from './StreamReportWidget.astro';
 import type { VideoBlock } from '../../lib/data';
 
-interface Props { data: VideoBlock }
+interface Props {
+	data: VideoBlock;
+	deferred?: boolean;
+}
 
-const { data } = Astro.props;
+const { data, deferred = false } = Astro.props;
 
 function parse(url = '') {
 	const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]+)/);
@@ -41,9 +44,11 @@ if (video?.type === 'embed') {
 		<div data-tina-field={tinaField(data, 'url')} class="relative aspect-video w-full overflow-hidden rounded-2xl border">
 			{video.type === 'youtube'
 				? <YouTubeFacade id={video.id} params={ytParams} />
-				: <iframe class="absolute inset-0 h-full w-full" src={embedSrc} title="Video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>}
+				: deferred
+					? <iframe class="absolute inset-0 h-full w-full" data-src={embedSrc ?? ''} title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+					: <iframe class="absolute inset-0 h-full w-full" src={embedSrc} title="Video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>}
 		</div>
-		<SermonNotesCard revealDelay="0.05" />
-		<StreamReportWidget vimeoEventId={vimeoEventId} />
+		{!deferred && <SermonNotesCard revealDelay="0.05" />}
+		{!deferred && <StreamReportWidget vimeoEventId={vimeoEventId} />}
 	</div>
 )}

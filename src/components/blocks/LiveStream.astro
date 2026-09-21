@@ -11,16 +11,17 @@ interface Props {
 		description?: string | null;
 		reportDescription?: string | null;
 	};
+	hideHeading?: boolean;
 }
 
-const { data } = Astro.props;
+const { data, hideHeading = false } = Astro.props;
 
 ---
 
 {data.streamUrl && (
 	<div id="audio" class="max-w-[var(--content-width)] mx-auto px-6">
 
-		{(data.heading || data.subheading) && (
+		{!hideHeading && (data.heading || data.subheading) && (
 			<div class="pt-10 pb-8 text-center reveal">
 				{data.heading && (
 					<>
@@ -76,8 +77,8 @@ const { data } = Astro.props;
 			</div>
 		</div>
 
-		<SermonNotesCard revealDelay="0.1" />
-		<StreamReportWidget description={data.reportDescription} />
+		{!hideHeading && <SermonNotesCard revealDelay="0.1" />}
+		{!hideHeading && <StreamReportWidget description={data.reportDescription} />}
 
 
 </div>

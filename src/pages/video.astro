@@ -1,0 +1,135 @@
+---
+export const prerender = true;
+import Base from '../layouts/Base.astro';
+import Video from '../components/blocks/Video.astro';
+import LiveStream from '../components/blocks/LiveStream.astro';
+import RecentSermons from '../components/blocks/RecentSermons.astro';
+import SermonNotesCard from '../components/blocks/SermonNotesCard.astro';
+import StreamReportWidget from '../components/blocks/StreamReportWidget.astro';
+import { getPage, getConfig } from '../lib/data';
+import type { VideoBlock, PageBlock } from '../lib/data';
+
+const [videoResult, audioResult, configResult] = await Promise.all([
+	getPage('video'),
+	getPage('audio'),
+	getConfig(),
+]);
+
+type AnyBlock = NonNullable<PageBlock>;
+const videoBlocks = (videoResult.data?.page?.blocks ?? []).filter((b): b is AnyBlock => b !== null);
+const audioBlocks = (audioResult.data?.page?.blocks ?? []).filter((b): b is AnyBlock => b !== null);
+
+const videoBlock       = videoBlocks.find(b => b.__typename === 'PageBlocksVideo') as VideoBlock | undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const liveStreamBlock  = audioBlocks.find(b => b.__typename === 'PageBlocksLiveStream') as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const recentSermonsBlock = videoBlocks.find(b => b.__typename === 'PageBlocksRecentSermons') as any;
+
+const vimeoEventId = (videoBlock?.url ?? '').match(/vimeo\.com\/event\/(\d+)/)?.[1] ?? null;
+
+const config = configResult.data?.config ?? null;
+---
+
+<Base
+	title="Watch & Listen Live · Family Church"
+	description={config?.seo?.description ?? 'Watch or listen live to our Sunday service.'}
+>
+	<div class="max-w-[var(--content-width)] mx-auto px-6 pt-10 pb-4 text-center reveal">
+		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Family Church</p>
+		<h1 class="text-4xl font-semibold lg:text-5xl text-balance mb-6">Live Service</h1>
+		<div role="tablist" class="inline-flex rounded-xl p-1 gap-1 tab-bar">
+			<button id="tab-video" role="tab" aria-selected="true" aria-controls="panel-video" class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition-colors">
+				Watch Video
+			</button>
+			<button id="tab-audio" role="tab" aria-selected="false" aria-controls="panel-audio" class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition-colors">
+				Listen Live
+			</button>
+		</div>
+	</div>
+
+	<div id="panel-video" role="tabpanel" aria-labelledby="tab-video">
+		{videoBlock && <Video data={videoBlock} deferred />}
+	</div>
+
+	<div id="panel-audio" role="tabpanel" aria-labelledby="tab-audio" hidden>
+		{liveStreamBlock && <LiveStream data={liveStreamBlock} hideHeading />}
+	</div>
+
+	<div class="max-w-[var(--content-width)] mx-auto px-6">
+		<SermonNotesCard revealDelay="0.05" />
+		<StreamReportWidget vimeoEventId={vimeoEventId} />
+	</div>
+
+	{recentSermonsBlock && (
+		<div class="reveal">
+			<RecentSermons data={recentSermonsBlock} />
+		</div>
+	)}
+</Base>
+
+<style>
+.tab-bar {
+	background-color: color-mix(in srgb, var(--navy) 10%, transparent);
+}
+:global(.dark) .tab-bar {
+	background-color: rgba(255, 255, 255, 0.08);
+}
+.tab-btn {
+	color: color-mix(in srgb, var(--ink) 50%, transparent);
+}
+:global(.dark) .tab-btn {
+	color: rgba(255, 255, 255, 0.5);
+}
+.tab-btn[aria-selected="true"] {
+	background-color: var(--navy);
+	color: white;
+}
+</style>
+
+<script>
+function initTabs() {
+	const tabVideo   = document.getElementById('tab-video')   as HTMLButtonElement | null;
+	const tabAudio   = document.getElementById('tab-audio')   as HTMLButtonElement | null;
+	const panelVideo = document.getElementById('panel-video') as HTMLElement | null;
+	const panelAudio = document.getElementById('panel-audio') as HTMLElement | null;
+	if (!tabVideo || !tabAudio || !panelVideo || !panelAudio) return;
+
+	function getIframe() {
+		return panelVideo!.querySelector<HTMLIFrameElement>('iframe[data-src]');
+	}
+
+	function activateVideo() {
+		tabVideo!.setAttribute('aria-selected', 'true');
+		tabAudio!.setAttribute('aria-selected', 'false');
+		panelVideo!.removeAttribute('hidden');
+		panelAudio!.setAttribute('hidden', '');
+		const iframe = getIframe();
+		if (iframe && iframe.dataset.src && !iframe.getAttribute('src')) {
+			iframe.setAttribute('src', iframe.dataset.src);
+		}
+		history.replaceState(null, '', location.pathname);
+	}
+
+	function activateAudio() {
+		tabAudio!.setAttribute('aria-selected', 'true');
+		tabVideo!.setAttribute('aria-selected', 'false');
+		panelAudio!.removeAttribute('hidden');
+		panelVideo!.setAttribute('hidden', '');
+		const iframe = getIframe();
+		if (iframe) iframe.removeAttribute('src');
+		history.replaceState(null, '', location.pathname + '#audio');
+	}
+
+	tabVideo.addEventListener('click', activateVideo);
+	tabAudio.addEventListener('click', activateAudio);
+
+	if (location.hash === '#audio') {
+		activateAudio();
+	} else {
+		activateVideo();
+	}
+}
+
+document.addEventListener('astro:page-load', initTabs);
+document.addEventListener('DOMContentLoaded', initTabs);
+</script>
