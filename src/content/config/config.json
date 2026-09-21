@@ -27,6 +27,10 @@
           "link": "/services"
         },
         {
+          "title": "Find us",
+          "link": "/services#find-us"
+        },
+        {
           "title": "Who we are",
           "link": "/about"
         },
@@ -35,8 +39,8 @@
           "link": "/statement-of-faith"
         },
         {
-          "title": "Find us",
-          "link": "/services#find-us"
+          "title": "Preaching Schedule",
+          "link": "/whats-next"
         }
       ]
     },
@@ -45,12 +49,8 @@
       "link": "",
       "children": [
         {
-          "title": "Watch Live",
+          "title": "Live Service",
           "link": "/video"
-        },
-        {
-          "title": "Listen Live",
-          "link": "/audio"
         },
         {
           "title": "Catch up",
@@ -61,21 +61,13 @@
           "link": "/events"
         },
         {
-          "title": "What's Next",
-          "link": "/whats-next"
-        },
-        {
           "title": "Groups",
           "link": "/groups"
-        },
-        {
-          "title": "Memorial",
-          "link": "/memorial"
         }
       ]
     },
     {
-      "title": "Resources",
+      "title": "Grow",
       "link": "",
       "children": [
         {
@@ -126,6 +118,10 @@
         {
           "title": "Sport",
           "link": "/ministries#sport"
+        },
+        {
+          "title": "Memorial",
+          "link": "/memorial"
         }
       ]
     }

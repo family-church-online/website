@@ -31,12 +31,13 @@ const config = configResult.data?.config ?? null;
 ---
 
 <Base
-	title="Watch & Listen Live · Family Church"
+	title="Watch &amp; Listen Live · Family Church"
 	description={config?.seo?.description ?? 'Watch or listen live to our Sunday service.'}
 >
 	<div class="max-w-[var(--content-width)] mx-auto px-6 pt-10 pb-4 text-center reveal">
 		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Family Church</p>
-		<h1 class="text-4xl font-semibold lg:text-5xl text-balance mb-6">Live Service</h1>
+		<h1 class="text-4xl font-semibold lg:text-5xl text-balance mb-4">Watch &amp; Listen Live</h1>
+		<p class="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed mb-6">Watch the live video stream, or switch to Audio Only. Audio Only uses far less data, try it if your connection is slow or unreliable.</p>
 		<div role="tablist" class="inline-flex rounded-xl p-1 gap-1 tab-bar">
 			<button id="tab-video" role="tab" aria-selected="true" aria-controls="panel-video" class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition-colors">
 				Watch Video
