@@ -150,6 +150,7 @@ const ldJson = {
     },
   }),
   ...(fm.series && { partOfSeries: { '@type': 'PodcastSeries', name: fm.series } }),
+  ...(fm.scripture && { about: { '@type': 'Thing', name: fm.scripture } }),
 };
 
 const vimeoId = fm.vimeoUrl?.match(/\/video\/(\d+)/)?.[1] ?? null;
@@ -161,6 +162,7 @@ const ldJsonVideo = vimeoId ? {
   ...(fm.image && { thumbnailUrl: fm.image }),
   ...(fm.date && { uploadDate: fm.date }),
   ...(isoDuration(fm.durationMinutes) && { duration: isoDuration(fm.durationMinutes) }),
+  ...(fm.scripture && { about: { '@type': 'Thing', name: fm.scripture } }),
   embedUrl: fm.vimeoUrl,
   url: `https://vimeo.com/${vimeoId}`,
   publisher: { '@type': 'Organization', name: siteTitle, url: siteUrl },
