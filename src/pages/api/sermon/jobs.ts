@@ -1,7 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
-import { putJob, type SermonJob, type SermonJobMetadata, type Taxonomy, type SermonBlock, type Devotion } from '../../../lib/sermon-job';
+import { putJob, type SermonJob, type SermonJobMetadata, type Taxonomy, type SermonBlock, type Devotion, type ReadingPlanDay } from '../../../lib/sermon-job';
 
 function randomId(): string {
 	return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -39,6 +39,7 @@ export const POST: APIRoute = async ({ request }) => {
 		slug: string;
 		optimisedTitle: string;
 		devotions: Devotion[];
+		readingPlans?: Record<string, ReadingPlanDay> | null;
 	};
 
 	try {
@@ -67,6 +68,7 @@ export const POST: APIRoute = async ({ request }) => {
 		audioUrl: null,
 		audioSizeBytes: null,
 		devotions: body.devotions ?? [],
+		readingPlans: body.readingPlans ?? null,
 		error: null,
 		failedStep: null,
 	};

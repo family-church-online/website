@@ -51,6 +51,26 @@ export interface Devotion {
 	date: string;
 }
 
+export interface ReadingPlanLink {
+	ref: string;
+	url: string;
+}
+
+export interface ReadingPlanDay {
+	connected?: {
+		ot?: ReadingPlanLink[];
+		nt?: ReadingPlanLink[];
+		wisdom?: ReadingPlanLink[];
+	};
+	chronological?: ReadingPlanLink[];
+	literary?: {
+		wisdom?: ReadingPlanLink[];
+		narrative?: ReadingPlanLink[];
+		historyProphecy?: ReadingPlanLink[];
+		nt?: ReadingPlanLink[];
+	};
+}
+
 export interface SermonJobMetadata {
 	title: string;
 	speaker: string;
@@ -77,6 +97,7 @@ export interface SermonJob {
 	audioUrl: string | null;
 	audioSizeBytes: number | null;
 	devotions: Devotion[] | null;
+	readingPlans: Record<string, ReadingPlanDay> | null;
 	// error state
 	error: string | null;
 	failedStep: string | null;

@@ -38,6 +38,7 @@ import { createInterface }                     from 'node:readline';
 import matter                                  from 'gray-matter';
 import { createClient as createDeepgram }      from '@deepgram/sdk';
 import { S3Client, PutObjectCommand }          from '@aws-sdk/client-s3';
+import { google }                              from 'googleapis';
 
 // ─── Paths ────────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,12 @@ const R2_PUBLIC_URL    = process.env.R2_AUDIO_PUBLIC_URL || process.env.R2_PUBLI
 const PIPELINE_SECRET  = process.env.SERMON_PIPELINE_SECRET || '';
 const SITE_URL         = process.env.SITE_URL || 'https://familychurch.online';
 const DEEPGRAM_MODEL   = 'nova-2';
+
+const READING_PLANS_CAL_ID = '9e339a64af832e22e2845990e12e5734996425604454b26ff45a86230c00d463@group.calendar.google.com';
+const GOOGLE_CREDENTIALS_FILE = existsSync(join(PIPELINE_DIR, 'oauth_credentials.json'))
+  ? join(PIPELINE_DIR, 'oauth_credentials.json') : join(process.env.HOME || '', '.config/sermon-pipeline/oauth_credentials.json');
+const GOOGLE_TOKEN_FILE = existsSync(join(PIPELINE_DIR, 'oauth_token.json'))
+  ? join(PIPELINE_DIR, 'oauth_token.json') : join(process.env.HOME || '', '.config/sermon-pipeline/oauth_token.json');
 
 // ─── Readline helper ──────────────────────────────────────────────────────────
 
@@ -407,6 +414,110 @@ async function postJobToWorker(payload) {
   return await res.json();
 }
 
+// ─── Google OAuth ─────────────────────────────────────────────────────────────
+
+async function getGoogleAuth() {
+  if (!existsSync(GOOGLE_CREDENTIALS_FILE)) {
+    warn(`Google credentials not found at ${GOOGLE_CREDENTIALS_FILE} — reading plans will be skipped`);
+    return null;
+  }
+  const creds = JSON.parse(readFileSync(GOOGLE_CREDENTIALS_FILE, 'utf8'));
+  const { client_id, client_secret } = creds.installed;
+  const oauth2 = new google.auth.OAuth2(client_id, client_secret, 'http://localhost');
+  if (!existsSync(GOOGLE_TOKEN_FILE)) {
+    warn('Google token not found — reading plans will be skipped');
+    return null;
+  }
+  const token = JSON.parse(readFileSync(GOOGLE_TOKEN_FILE, 'utf8'));
+  oauth2.setCredentials(token);
+  oauth2.on('tokens', t => {
+    const existing = existsSync(GOOGLE_TOKEN_FILE) ? JSON.parse(readFileSync(GOOGLE_TOKEN_FILE, 'utf8')) : {};
+    writeFileSync(GOOGLE_TOKEN_FILE, JSON.stringify({ ...existing, ...t }, null, 2));
+  });
+  return oauth2;
+}
+
+// ─── Reading Plans ────────────────────────────────────────────────────────────
+
+function parseReadingPlansHtml(html) {
+  if (!html?.trim()) return {};
+  const LABEL_MAP = {
+    'old testament': 'ot', 'new testament': 'nt', 'wisdom': 'wisdom',
+    'wisdom literature': 'wisdom', 'narrative': 'narrative',
+    'history & prophecy': 'historyProphecy', 'history and prophecy': 'historyProphecy',
+    'history': 'historyProphecy',
+  };
+
+  const linksFrom = (html) => {
+    const matches = [...html.matchAll(/<a href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g)];
+    return matches.map(m => ({ url: m[1], ref: m[2].replace(/<[^>]+>/g, '').trim() })).filter(l => l.ref);
+  };
+
+  const out = {};
+  const colMatches = [...html.matchAll(/<div class="rp-col">([\s\S]*?)<\/div>/g)];
+  for (const [, colHtml] of colMatches) {
+    const h3M = colHtml.match(/<h3>(.*?)<\/h3>/);
+    if (!h3M) continue;
+    const title = h3M[1].toLowerCase();
+
+    if (title.includes('connected')) {
+      const connected = {};
+      for (const [, bLabel, afterB] of colHtml.matchAll(/<b>(.*?)<\/b>([\s\S]*?)(?=<b>|$)/g)) {
+        const key = LABEL_MAP[bLabel.toLowerCase().trim()];
+        if (!key) continue;
+        const ulM = afterB.match(/<ul>([\s\S]*?)<\/ul>/);
+        if (ulM) { const links = linksFrom(ulM[1]); if (links.length) connected[key] = links; }
+      }
+      if (Object.keys(connected).length) out.connected = connected;
+    } else if (title.includes('chronological')) {
+      const ulM = colHtml.match(/<ul>([\s\S]*?)<\/ul>/);
+      if (ulM) { const links = linksFrom(ulM[1]); if (links.length) out.chronological = links; }
+    } else if (title.includes('literary') || title.includes('esv')) {
+      const literary = {};
+      for (const [, bLabel, afterB] of colHtml.matchAll(/<b>(.*?)<\/b>([\s\S]*?)(?=<b>|$)/g)) {
+        const key = LABEL_MAP[bLabel.toLowerCase().trim()];
+        if (!key) continue;
+        const ulM = afterB.match(/<ul>([\s\S]*?)<\/ul>/);
+        if (ulM) { const links = linksFrom(ulM[1]); if (links.length) literary[key] = links; }
+      }
+      if (Object.keys(literary).length) out.literary = literary;
+    }
+  }
+  return out;
+}
+
+async function fetchReadingPlans(auth, monday) {
+  log('Fetching Reading Plans from Google Calendar...');
+  const calendar = google.calendar({ version: 'v3', auth });
+  const weekStart = monday.toISOString().slice(0, 10);
+  const weekEnd   = new Date(monday.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+  const plans = {};
+
+  try {
+    const res = await calendar.events.list({
+      calendarId: READING_PLANS_CAL_ID,
+      timeMin: `${weekStart}T00:00:00+02:00`,
+      timeMax: `${weekEnd}T00:00:00+02:00`,
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+    for (const item of res.data.items || []) {
+      const date = item.start?.date;
+      if (date) plans[date] = parseReadingPlansHtml(item.description || '');
+    }
+  } catch (e) {
+    warn(`Could not fetch reading plans: ${e.message}`);
+    return null;
+  }
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday.getTime() + i * 86400000).toISOString().slice(0, 10);
+    if (!(d in plans)) warn(`  No reading plan found for ${d}`);
+    else log(`  Reading plan ✓ ${d}`);
+  }
+  return plans;
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -473,10 +584,16 @@ async function main() {
   const devotions = generateDevotions(notes, transcript, slug, imageUrl);
   log(`  ${devotions.length}/7 devotions generated`);
 
-  // 9. Upload audio to R2 temp
+  // 9. Reading plans
+  const googleAuth = await getGoogleAuth();
+  const monday = getNextMonday(notes.date);
+  const readingPlans = googleAuth ? await fetchReadingPlans(googleAuth, monday) : null;
+  if (!readingPlans) warn('Reading plans unavailable — devotions will be committed without them');
+
+  // 10. Upload audio to R2 temp
   const tempAudioKey = await uploadTempAudio(mp3Path, notes.date);
 
-  // 10. POST to Worker
+  // 11. POST to Worker
   const { jobId, reviewUrl } = await postJobToWorker({
     transcript,
     metadata: { title: notes.title, speaker: notes.speaker, series: notes.series, date: notes.date, image: notes.image, vimeoUrl, durationMinutes: durationMins },
@@ -485,6 +602,7 @@ async function main() {
     slug,
     optimisedTitle,
     devotions,
+    readingPlans,
     tempAudioKey,
   });
 
@@ -495,7 +613,7 @@ async function main() {
   console.log("  then click 'Approve & Publish' to commit to the website.\n");
   console.log('─────────────────────────────────────────────────────────────────────\n');
 
-  // 11. Optionally prepare next week's sermon notes
+  // 12. Optionally prepare next week's sermon notes
   const prepNext = await ask("Prepare next week's sermon-notes template? [y/N]: ");
   if (prepNext.trim().toLowerCase() === 'y') {
     const next = findNextWhatsNext(notes.date);

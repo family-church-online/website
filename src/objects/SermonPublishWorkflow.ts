@@ -1,5 +1,5 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
-import { getJob, patchJob, type SermonJob, type SermonBlock, type Taxonomy, type Devotion } from '../lib/sermon-job';
+import { getJob, patchJob, type SermonJob, type SermonBlock, type Taxonomy, type Devotion, type ReadingPlanDay, type ReadingPlanLink } from '../lib/sermon-job';
 import { getGoogleAccessToken } from '../lib/google-auth';
 
 export interface SermonPublishParams {
@@ -181,7 +181,7 @@ function parseDevotionHtml(html: string): ParsedDevotion {
 	return { keyRef, keyText, reflection, supportingScriptures: supporting, lifeApplication: lifeApp, prayer };
 }
 
-function buildDevotionMdx(devotion: Devotion, imageLocal: string, sermonUrl: string): string {
+function buildDevotionMdx(devotion: Devotion, imageLocal: string, sermonUrl: string, rp?: ReadingPlanDay): string {
 	const parsed = parseDevotionHtml(devotion.content);
 	const lines: string[] = ['---'];
 	lines.push(`title: ${yamlStr(devotion.title)}`);
@@ -202,10 +202,37 @@ function buildDevotionMdx(devotion: Devotion, imageLocal: string, sermonUrl: str
 	}
 	lines.push(`lifeApplication: ${yamlStr(parsed.lifeApplication)}`);
 	lines.push(`prayer: ${yamlStr(parsed.prayer)}`);
+
+	const rpLinks = (links: ReadingPlanLink[] | undefined) =>
+		(links ?? []).map(l => `      - ref: ${yamlStr(l.ref)}\n        url: ${yamlStr(l.url)}`).join('\n');
+
 	lines.push('readingPlans:');
-	lines.push('  connected: {}');
-	lines.push('  chronological: []');
-	lines.push('  literary: {}');
+	const conn = rp?.connected;
+	if (conn && Object.keys(conn).length) {
+		lines.push('  connected:');
+		if (conn.ot?.length)     lines.push(`    ot:\n${rpLinks(conn.ot)}`);
+		if (conn.nt?.length)     lines.push(`    nt:\n${rpLinks(conn.nt)}`);
+		if (conn.wisdom?.length) lines.push(`    wisdom:\n${rpLinks(conn.wisdom)}`);
+	} else {
+		lines.push('  connected: {}');
+	}
+	const chron = rp?.chronological;
+	if (chron?.length) {
+		lines.push(`  chronological:\n${rpLinks(chron)}`);
+	} else {
+		lines.push('  chronological: []');
+	}
+	const lit = rp?.literary;
+	if (lit && Object.keys(lit).length) {
+		lines.push('  literary:');
+		if (lit.wisdom?.length)         lines.push(`    wisdom:\n${rpLinks(lit.wisdom)}`);
+		if (lit.narrative?.length)      lines.push(`    narrative:\n${rpLinks(lit.narrative)}`);
+		if (lit.historyProphecy?.length) lines.push(`    historyProphecy:\n${rpLinks(lit.historyProphecy)}`);
+		if (lit.nt?.length)             lines.push(`    nt:\n${rpLinks(lit.nt)}`);
+	} else {
+		lines.push('  literary: {}');
+	}
+
 	lines.push('---', '');
 	return lines.join('\n');
 }
@@ -404,7 +431,7 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 			// Devotion MDX files
 			const devFiles = (job.devotions ?? []).map(dev => ({
 				path: `src/content/devotion/${dev.date}.mdx`,
-				content: buildDevotionMdx(dev, job.metadata.image || '', sermonUrl),
+				content: buildDevotionMdx(dev, job.metadata.image || '', sermonUrl, job.readingPlans?.[dev.date]),
 			}));
 
 			return { sermonMdx: mdx, sermonPath: path, devotionFiles: devFiles };
