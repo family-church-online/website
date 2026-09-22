@@ -1,0 +1,447 @@
+---
+export const prerender = false;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+import { requireAuth } from '../../lib/auth';
+import { getJob } from '../../lib/sermon-job';
+
+const siteConfig = await getConfig();
+const adminListId = (siteConfig.data?.config?.auth as Record<string, unknown> | null | undefined)?.adminListId as string | undefined;
+const auth = requireAuth(Astro, adminListId);
+if (auth instanceof Response) return auth;
+
+const { jobId } = Astro.params as { jobId: string };
+const job = await getJob(jobId);
+
+const statusLabels: Record<string, string> = {
+	processing: 'Processing',
+	review: 'Ready for Review',
+	publishing: 'Publishing',
+	complete: 'Published',
+	failed: 'Failed',
+};
+
+const stepLabels: Record<string, string> = {
+	queued: 'Queued',
+	taxonomy: 'Analysing sermon taxonomy…',
+	'sermon-block': 'Generating sermon content…',
+	'optimise-slug': 'Optimising title and slug…',
+	'move-audio': 'Moving audio to permanent storage…',
+	devotions: 'Writing daily devotions…',
+	embed: 'Generating search embeddings…',
+	notify: 'Preparing notification…',
+	'build-mdx': 'Building MDX files…',
+	commit: 'Committing to GitHub…',
+	calendar: 'Uploading devotions to Google Calendar…',
+	drive: 'Uploading to Google Drive…',
+};
+---
+
+<Base title={job ? `Sermon Admin — ${job.metadata.title}` : 'Sermon Admin'} description="Sermon pipeline review" noindex>
+	<div class="max-w-5xl mx-auto px-4 py-12">
+
+		{!job ? (
+			<div class="text-center py-24">
+				<p class="text-2xl font-semibold text-[var(--navy)] dark:text-white mb-2">Job not found</p>
+				<p class="text-gray-500">Job ID: {jobId}</p>
+			</div>
+		) : (
+			<div id="sermon-admin" data-job-id={jobId} data-status={job.status}>
+
+				<!-- Header -->
+				<div class="mb-8">
+					<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-1">Sermon Pipeline</p>
+					<h1 class="text-3xl font-semibold text-[var(--navy)] dark:text-white mb-1">{job.metadata.title}</h1>
+					<p class="text-gray-500">{job.metadata.date} · {job.metadata.speaker}</p>
+				</div>
+
+				<!-- Status bar -->
+				<div id="status-bar" class:list={[
+					'flex items-center gap-3 rounded-xl px-5 py-3 mb-8 border',
+					job.status === 'processing' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : '',
+					job.status === 'review' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : '',
+					job.status === 'publishing' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : '',
+					job.status === 'complete' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : '',
+					job.status === 'failed' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : '',
+				]}>
+					<span id="status-dot" class:list={[
+						'w-3 h-3 rounded-full shrink-0',
+						job.status === 'processing' || job.status === 'publishing' ? 'bg-blue-500 animate-pulse' : '',
+						job.status === 'review' || job.status === 'complete' ? 'bg-green-500' : '',
+						job.status === 'failed' ? 'bg-red-500' : '',
+					]}></span>
+					<div>
+						<p id="status-label" class="font-semibold text-sm">{statusLabels[job.status] ?? job.status}</p>
+						{job.currentStep && (
+							<p id="step-label" class="text-xs text-gray-500">{stepLabels[job.currentStep] ?? job.currentStep}</p>
+						)}
+					</div>
+				</div>
+
+				{/* ── Failed state ── */}
+				{job.status === 'failed' && (
+					<div class="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-5 mb-8">
+						<p class="font-semibold text-red-700 dark:text-red-400 mb-1">Failed at step: {job.failedStep}</p>
+						{job.error && <pre class="text-xs text-red-600 dark:text-red-300 whitespace-pre-wrap overflow-x-auto">{job.error}</pre>}
+						<button
+							id="retry-btn"
+							class="mt-4 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition"
+						>
+							Retry Processing
+						</button>
+					</div>
+				)}
+
+				{/* ── Complete state ── */}
+				{job.status === 'complete' && job.slug && (
+					<div class="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-5 mb-8">
+						<p class="font-semibold text-green-700 dark:text-green-400 mb-2">Published successfully</p>
+						<a
+							href={`https://familychurch.online/sermons/${job.metadata.date}-${job.slug}`}
+							target="_blank"
+							class="text-sm text-[var(--green)] underline"
+						>
+							View sermon (once build completes)
+						</a>
+					</div>
+				)}
+
+				{/* ── Review form (shown only when status = review) ── */}
+				{job.status === 'review' && job.taxonomy && job.sermonBlock && (
+					<form id="review-form" class="space-y-8">
+
+						<!-- Title + Slug -->
+						<section class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-6">
+							<h2 class="text-lg font-semibold mb-4 text-[var(--navy)] dark:text-white">Identity</h2>
+							<div class="grid sm:grid-cols-2 gap-4">
+								<label class="block">
+									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Optimised Title</span>
+									<input
+										type="text"
+										name="optimisedTitle"
+										value={job.optimisedTitle ?? job.metadata.title}
+										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--green)] outline-none"
+									/>
+								</label>
+								<label class="block">
+									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Slug</span>
+									<input
+										type="text"
+										name="slug"
+										value={job.slug ?? ''}
+										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--green)] outline-none font-mono"
+									/>
+								</label>
+								<label class="block">
+									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Scripture</span>
+									<input
+										type="text"
+										name="scripture"
+										value={job.taxonomy.sermon_scripture ?? ''}
+										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--green)] outline-none"
+									/>
+								</label>
+								<label class="block">
+									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Audio URL</span>
+									<input
+										type="text"
+										name="audioUrl"
+										value={job.audioUrl ?? ''}
+										readonly
+										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-400 font-mono"
+									/>
+								</label>
+							</div>
+						</section>
+
+						<!-- Sermon Block -->
+						<section class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-6">
+							<h2 class="text-lg font-semibold mb-4 text-[var(--navy)] dark:text-white">Sermon Content</h2>
+							<div class="space-y-4">
+								<label class="block">
+									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Big Idea</span>
+									<textarea
+										name="bigIdea"
+										rows={2}
+										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--green)] outline-none resize-y"
+									>{job.sermonBlock.bigIdea}</textarea>
+								</label>
+								<label class="block">
+									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Tag Line</span>
+									<input
+										type="text"
+										name="tagLine"
+										value={job.sermonBlock.tagLine ?? ''}
+										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--green)] outline-none"
+									/>
+								</label>
+								<label class="block">
+									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Short Description <span class="text-gray-400">(145–160 chars)</span></span>
+									<textarea
+										name="shortDescription"
+										rows={3}
+										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--green)] outline-none resize-y"
+									>{job.sermonBlock.shortDescription}</textarea>
+								</label>
+								<label class="block">
+									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Hook</span>
+									<textarea
+										name="hook"
+										rows={2}
+										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--green)] outline-none resize-y"
+									>{job.sermonBlock.hook}</textarea>
+								</label>
+								<label class="block">
+									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">To Remember</span>
+									<input
+										type="text"
+										name="toRemember"
+										value={job.sermonBlock.toRemember ?? ''}
+										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--green)] outline-none"
+									/>
+								</label>
+							</div>
+
+							<!-- Main Points -->
+							<div class="mt-4">
+								<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Main Points</span>
+								<div id="main-points" class="mt-2 space-y-2">
+									{job.sermonBlock.mainPoints?.map((mp, i) => (
+										<div class="flex gap-2 items-start">
+											<input type="text" name={`mp_title_${i}`} value={mp.title} placeholder="Title"
+												class="w-1/3 rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm outline-none" />
+											<input type="text" name={`mp_body_${i}`} value={mp.body} placeholder="Body"
+												class="flex-1 rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm outline-none" />
+										</div>
+									))}
+								</div>
+							</div>
+						</section>
+
+						<!-- Taxonomy -->
+						<section class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-6">
+							<h2 class="text-lg font-semibold mb-4 text-[var(--navy)] dark:text-white">Taxonomy</h2>
+							<label class="block">
+								<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Tags <span class="text-gray-400">(one per line)</span></span>
+								<textarea
+									name="tags"
+									rows={8}
+									class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-[var(--green)] outline-none resize-y"
+								>{job.taxonomy.tags?.join('\n')}</textarea>
+							</label>
+							{job.taxonomy.review && (
+								<div class="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-300">
+									<strong>Needs review:</strong> {job.taxonomy.review_notes}
+								</div>
+							)}
+						</section>
+
+						<!-- Devotions accordion -->
+						<section class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-6">
+							<h2 class="text-lg font-semibold mb-4 text-[var(--navy)] dark:text-white">Daily Devotions</h2>
+							{job.devotions?.length ? (
+								<div class="space-y-2">
+									{job.devotions.map((dev, i) => (
+										<details class="border border-gray-100 dark:border-white/10 rounded-lg overflow-hidden">
+											<summary class="px-4 py-3 cursor-pointer select-none text-sm font-medium bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition">
+												<span class="text-[var(--olive)] mr-2">{dev.date}</span> {dev.title}
+											</summary>
+											<div class="p-4 space-y-3">
+												<label class="block">
+													<span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Title</span>
+													<input type="text" name={`dev_title_${i}`} value={dev.title}
+														class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm outline-none" />
+												</label>
+												<label class="block">
+													<span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Content (HTML)</span>
+													<textarea name={`dev_content_${i}`} rows={12}
+														class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-[var(--green)] outline-none resize-y"
+													>{dev.content}</textarea>
+												</label>
+											</div>
+										</details>
+									))}
+								</div>
+							) : (
+								<p class="text-gray-400 text-sm">No devotions generated yet.</p>
+							)}
+						</section>
+
+						<!-- Submit -->
+						<div class="flex gap-3">
+							<button
+								type="submit"
+								id="approve-btn"
+								class="flex-1 sm:flex-none px-8 py-3 rounded-xl bg-[var(--green)] text-white font-semibold text-sm hover:opacity-90 transition"
+							>
+								Approve & Publish
+							</button>
+							<p id="approve-status" class="hidden text-sm text-gray-500 self-center"></p>
+						</div>
+					</form>
+				)}
+
+			</div>
+		)}
+	</div>
+</Base>
+
+<script>
+const jobId = (document.getElementById('sermon-admin') as HTMLElement | null)?.dataset.jobId ?? '';
+let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+// ── Status polling (processing / publishing states) ─────────────────────────
+
+function startPolling() {
+	if (pollInterval) return;
+	pollInterval = setInterval(async () => {
+		try {
+			const res = await fetch(`/api/sermon/${jobId}`);
+			if (!res.ok) return;
+			const job = await res.json() as Record<string, unknown>;
+			const status = job.status as string;
+			const currentStep = job.currentStep as string | null;
+
+			const statusBar = document.getElementById('status-bar');
+			const statusLabel = document.getElementById('status-label');
+			const stepLabel = document.getElementById('step-label');
+			const statusDot = document.getElementById('status-dot');
+
+			const stepLabels: Record<string, string> = {
+				queued: 'Queued',
+				taxonomy: 'Analysing sermon taxonomy…',
+				'sermon-block': 'Generating sermon content…',
+				'optimise-slug': 'Optimising title and slug…',
+				'move-audio': 'Moving audio to permanent storage…',
+				devotions: 'Writing daily devotions…',
+				embed: 'Generating search embeddings…',
+				notify: 'Preparing notification…',
+				'build-mdx': 'Building MDX files…',
+				commit: 'Committing to GitHub…',
+				calendar: 'Uploading devotions to Google Calendar…',
+				drive: 'Uploading to Google Drive…',
+			};
+
+			const statusLabels: Record<string, string> = {
+				processing: 'Processing',
+				review: 'Ready for Review',
+				publishing: 'Publishing',
+				complete: 'Published',
+				failed: 'Failed',
+			};
+
+			if (statusLabel) statusLabel.textContent = statusLabels[status] ?? status;
+			if (stepLabel && currentStep) stepLabel.textContent = stepLabels[currentStep] ?? currentStep;
+
+			// Reload when leaving processing/publishing state
+			if (status === 'review' || status === 'complete' || status === 'failed') {
+				clearInterval(pollInterval!);
+				pollInterval = null;
+				window.location.reload();
+			}
+		} catch {}
+	}, 5000);
+}
+
+const admin = document.getElementById('sermon-admin');
+const initialStatus = admin?.dataset.status;
+if (initialStatus === 'processing' || initialStatus === 'publishing') {
+	startPolling();
+}
+
+// ── Retry button ─────────────────────────────────────────────────────────────
+
+document.getElementById('retry-btn')?.addEventListener('click', async () => {
+	const btn = document.getElementById('retry-btn') as HTMLButtonElement;
+	btn.disabled = true;
+	btn.textContent = 'Retrying…';
+	try {
+		const res = await fetch(`/api/sermon/${jobId}/retry`, { method: 'POST' });
+		if (res.ok) {
+			window.location.reload();
+		} else {
+			btn.textContent = 'Retry failed';
+			btn.disabled = false;
+		}
+	} catch {
+		btn.textContent = 'Error — try again';
+		btn.disabled = false;
+	}
+});
+
+// ── Review form submit ────────────────────────────────────────────────────────
+
+document.getElementById('review-form')?.addEventListener('submit', async (e) => {
+	e.preventDefault();
+	const form = e.target as HTMLFormElement;
+	const data = new FormData(form);
+
+	const btn = document.getElementById('approve-btn') as HTMLButtonElement;
+	const statusEl = document.getElementById('approve-status');
+	btn.disabled = true;
+	btn.textContent = 'Publishing…';
+	if (statusEl) { statusEl.textContent = 'Submitting to Cloudflare Workflows…'; statusEl.classList.remove('hidden'); }
+
+	// Collect main points
+	const mainPoints: Array<{ title: string; body: string }> = [];
+	for (let i = 0; ; i++) {
+		const t = data.get(`mp_title_${i}`) as string | null;
+		const b = data.get(`mp_body_${i}`) as string | null;
+		if (t === null && b === null) break;
+		mainPoints.push({ title: t ?? '', body: b ?? '' });
+	}
+
+	// Collect devotions
+	const devotions: Array<{ title: string; content: string; date: string }> = [];
+	for (let i = 0; ; i++) {
+		const t = data.get(`dev_title_${i}`) as string | null;
+		const c = data.get(`dev_content_${i}`) as string | null;
+		if (t === null && c === null) break;
+		// date is not editable — read from the current job data
+		const dateEl = document.querySelectorAll<HTMLElement>('details summary .text-\\[var\\(--olive\\)\\]')[i];
+		const date = dateEl?.textContent?.trim() ?? '';
+		devotions.push({ title: t ?? '', content: c ?? '', date });
+	}
+
+	const edits = {
+		optimisedTitle: data.get('optimisedTitle') as string,
+		slug: data.get('slug') as string,
+		taxonomy: {
+			sermon_scripture: data.get('scripture') as string,
+			tags: (data.get('tags') as string).split('\n').map(t => t.trim()).filter(Boolean),
+		},
+		sermonBlock: {
+			bigIdea: data.get('bigIdea') as string,
+			tagLine: data.get('tagLine') as string,
+			shortDescription: data.get('shortDescription') as string,
+			hook: data.get('hook') as string,
+			toRemember: data.get('toRemember') as string,
+			mainPoints,
+		},
+		devotions,
+	};
+
+	try {
+		const res = await fetch(`/api/sermon/${jobId}/approve`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(edits),
+		});
+
+		if (res.ok) {
+			if (statusEl) statusEl.textContent = 'Publish workflow started — page will update automatically.';
+			startPolling();
+		} else {
+			const err = await res.json() as { error?: string };
+			if (statusEl) { statusEl.textContent = `Error: ${err.error ?? res.status}`; statusEl.classList.remove('hidden'); }
+			btn.disabled = false;
+			btn.textContent = 'Approve & Publish';
+		}
+	} catch {
+		if (statusEl) { statusEl.textContent = 'Network error — try again.'; statusEl.classList.remove('hidden'); }
+		btn.disabled = false;
+		btn.textContent = 'Approve & Publish';
+	}
+});
+</script>

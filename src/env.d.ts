@@ -5,6 +5,10 @@ interface CloudflareEnv {
 	LESSON_PROGRESS: KVNamespace;
 	STREAM_REPORTS: KVNamespace;
 	STREAM_MONITOR: DurableObjectNamespace;
+	SERMON_JOBS: KVNamespace;
+	SERMON_AUDIO: R2Bucket;
+	SERMON_PROCESS_WORKFLOW: Workflow;
+	SERMON_PUBLISH_WORKFLOW: Workflow;
 }
 
 declare namespace App {

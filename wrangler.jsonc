@@ -11,7 +11,8 @@
 	"keep_vars": true,
 	"kv_namespaces": [
 		{ "binding": "LESSON_PROGRESS", "id": "56984b88d58641dbb252b1e40fd897da", "remote": true },
-		{ "binding": "STREAM_REPORTS", "id": "aac02cbf9d654272a4a5321fddb472a5", "preview_id": "fc2033883e77407fa5c51e6d6c6f35ca" }
+		{ "binding": "STREAM_REPORTS", "id": "aac02cbf9d654272a4a5321fddb472a5", "preview_id": "fc2033883e77407fa5c51e6d6c6f35ca" },
+		{ "binding": "SERMON_JOBS", "id": "11aeec1bb02e4e68add35e292ae0e3fb" }
 	],
 	"limits": {
 		"cpu_ms": 50

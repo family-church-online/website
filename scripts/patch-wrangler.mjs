@@ -39,6 +39,16 @@ config.migrations = [
 	{ tag: 'v1', new_sqlite_classes: ['StreamMonitor'] },
 ];
 
+// Cloudflare Workflows — injected here for same reason as DOs: the classes
+// only exist after bundle-do.mjs bundles them post-build.
+config.workflows = [
+	{ name: 'sermon-process', binding: 'SERMON_PROCESS_WORKFLOW', class_name: 'SermonProcessWorkflow' },
+	{ name: 'sermon-publish', binding: 'SERMON_PUBLISH_WORKFLOW', class_name: 'SermonPublishWorkflow' },
+];
+
+// R2 bucket binding
+config.r2_buckets = [{ binding: 'SERMON_AUDIO', bucket_name: 'family-church-sermons' }];
+
 // NOTE: we deliberately do NOT change config.main here. The Cloudflare Vite
 // plugin sets main to the actual Vite-bundled filename (e.g. "index.js") and
 // also sets no_bundle: true. bundle-do.mjs reads that filename, creates
