@@ -3,6 +3,7 @@ export const prerender = true;
 
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
+import EsvCrossref from '../components/EsvCrossref.astro';
 import { getConfig } from '../lib/data';
 
 interface ServiceFrontmatter {
@@ -216,4 +217,5 @@ function fmtFull(d: Date) {
 		</div>
 
 	</div>
+	<EsvCrossref />
 </Base>
