@@ -48,6 +48,7 @@ for (const cls of classes) {
 		format: 'esm',
 		outfile: cls.out,
 		target: 'es2022',
+		external: ['cloudflare:workers'],
 	});
 }
 
