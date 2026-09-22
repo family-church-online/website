@@ -1024,7 +1024,7 @@ function buildSermonMdx(sermon, taxonomy, htmlText, transcriptMd) {
   lines.push(`tags:${listField(taxonomy.tags || [])}`);
 
   lines.push('', '# ── METADATA ─────────────────────────────────────────────────────');
-  lines.push('guid: null', 'review: true', `transcribedBy: deepgram-${DEEPGRAM_MODEL}`);
+  lines.push('guid: null', 'review: false', `transcribedBy: deepgram-${DEEPGRAM_MODEL}`);
   lines.push(`wordCount: ${wc ?? 'null'}`);
   lines.push('---', '');
 
