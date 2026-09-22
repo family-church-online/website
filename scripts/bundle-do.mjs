@@ -36,9 +36,8 @@ if (!originalMain || originalMain === './worker-entry.js') {
 const mainImport = originalMain.startsWith('./') ? originalMain : `./${originalMain}`;
 
 const classes = [
-	{ src: resolve(root, 'src/objects/StreamMonitor.ts'),          out: resolve(serverDir, 'StreamMonitor.js'),          name: 'StreamMonitor' },
-	{ src: resolve(root, 'src/objects/SermonProcessWorkflow.ts'),   out: resolve(serverDir, 'SermonProcessWorkflow.js'),   name: 'SermonProcessWorkflow' },
-	{ src: resolve(root, 'src/objects/SermonPublishWorkflow.ts'),   out: resolve(serverDir, 'SermonPublishWorkflow.js'),   name: 'SermonPublishWorkflow' },
+	{ src: resolve(root, 'src/objects/StreamMonitor.ts'),         out: resolve(serverDir, 'StreamMonitor.js'),         name: 'StreamMonitor' },
+	{ src: resolve(root, 'src/objects/SermonPublishWorkflow.ts'), out: resolve(serverDir, 'SermonPublishWorkflow.js'), name: 'SermonPublishWorkflow' },
 ];
 
 // Bundle each class

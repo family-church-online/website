@@ -42,7 +42,6 @@ config.migrations = [
 // Cloudflare Workflows — injected here for same reason as DOs: the classes
 // only exist after bundle-do.mjs bundles them post-build.
 config.workflows = [
-	{ name: 'sermon-process', binding: 'SERMON_PROCESS_WORKFLOW', class_name: 'SermonProcessWorkflow' },
 	{ name: 'sermon-publish', binding: 'SERMON_PUBLISH_WORKFLOW', class_name: 'SermonPublishWorkflow' },
 ];
 

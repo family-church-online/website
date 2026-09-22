@@ -15,7 +15,6 @@ const { jobId } = Astro.params as { jobId: string };
 const job = await getJob(jobId);
 
 const statusLabels: Record<string, string> = {
-	processing: 'Processing',
 	review: 'Ready for Review',
 	publishing: 'Publishing',
 	complete: 'Published',
@@ -23,18 +22,11 @@ const statusLabels: Record<string, string> = {
 };
 
 const stepLabels: Record<string, string> = {
-	queued: 'Queued',
-	taxonomy: 'Analysing sermon taxonomy…',
-	'sermon-block': 'Generating sermon content…',
-	'optimise-slug': 'Optimising title and slug…',
-	'move-audio': 'Moving audio to permanent storage…',
-	devotions: 'Writing daily devotions…',
-	embed: 'Generating search embeddings…',
-	notify: 'Preparing notification…',
 	'build-mdx': 'Building MDX files…',
 	commit: 'Committing to GitHub…',
 	calendar: 'Uploading devotions to Google Calendar…',
 	drive: 'Uploading to Google Drive…',
+	notify: 'Finishing up…',
 };
 ---
 
@@ -59,7 +51,6 @@ const stepLabels: Record<string, string> = {
 				<!-- Status bar -->
 				<div id="status-bar" class:list={[
 					'flex items-center gap-3 rounded-xl px-5 py-3 mb-8 border',
-					job.status === 'processing' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : '',
 					job.status === 'review' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : '',
 					job.status === 'publishing' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : '',
 					job.status === 'complete' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : '',
@@ -67,7 +58,7 @@ const stepLabels: Record<string, string> = {
 				]}>
 					<span id="status-dot" class:list={[
 						'w-3 h-3 rounded-full shrink-0',
-						job.status === 'processing' || job.status === 'publishing' ? 'bg-blue-500 animate-pulse' : '',
+						job.status === 'publishing' ? 'bg-blue-500 animate-pulse' : '',
 						job.status === 'review' || job.status === 'complete' ? 'bg-green-500' : '',
 						job.status === 'failed' ? 'bg-red-500' : '',
 					]}></span>
@@ -82,13 +73,14 @@ const stepLabels: Record<string, string> = {
 				{/* ── Failed state ── */}
 				{job.status === 'failed' && (
 					<div class="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-5 mb-8">
-						<p class="font-semibold text-red-700 dark:text-red-400 mb-1">Failed at step: {job.failedStep}</p>
+						<p class="font-semibold text-red-700 dark:text-red-400 mb-1">Failed at step: {job.failedStep ?? 'publish'}</p>
 						{job.error && <pre class="text-xs text-red-600 dark:text-red-300 whitespace-pre-wrap overflow-x-auto">{job.error}</pre>}
+						<p class="mt-3 text-sm text-red-600 dark:text-red-400">Fix the underlying issue (check Worker logs), then click below to reset and re-approve.</p>
 						<button
 							id="retry-btn"
-							class="mt-4 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition"
+							class="mt-3 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition"
 						>
-							Retry Processing
+							Reset to Review
 						</button>
 					</div>
 				)}
@@ -309,22 +301,14 @@ function startPolling() {
 			const statusDot = document.getElementById('status-dot');
 
 			const stepLabels: Record<string, string> = {
-				queued: 'Queued',
-				taxonomy: 'Analysing sermon taxonomy…',
-				'sermon-block': 'Generating sermon content…',
-				'optimise-slug': 'Optimising title and slug…',
-				'move-audio': 'Moving audio to permanent storage…',
-				devotions: 'Writing daily devotions…',
-				embed: 'Generating search embeddings…',
-				notify: 'Preparing notification…',
 				'build-mdx': 'Building MDX files…',
 				commit: 'Committing to GitHub…',
 				calendar: 'Uploading devotions to Google Calendar…',
 				drive: 'Uploading to Google Drive…',
+				notify: 'Finishing up…',
 			};
 
 			const statusLabels: Record<string, string> = {
-				processing: 'Processing',
 				review: 'Ready for Review',
 				publishing: 'Publishing',
 				complete: 'Published',
@@ -334,8 +318,7 @@ function startPolling() {
 			if (statusLabel) statusLabel.textContent = statusLabels[status] ?? status;
 			if (stepLabel && currentStep) stepLabel.textContent = stepLabels[currentStep] ?? currentStep;
 
-			// Reload when leaving processing/publishing state
-			if (status === 'review' || status === 'complete' || status === 'failed') {
+			if (status === 'complete' || status === 'failed') {
 				clearInterval(pollInterval!);
 				pollInterval = null;
 				window.location.reload();
@@ -344,9 +327,10 @@ function startPolling() {
 	}, 5000);
 }
 
+// Only start polling if already in publishing state (page refresh mid-publish)
 const admin = document.getElementById('sermon-admin');
 const initialStatus = admin?.dataset.status;
-if (initialStatus === 'processing' || initialStatus === 'publishing') {
+if (initialStatus === 'publishing') {
 	startPolling();
 }
 
@@ -355,13 +339,13 @@ if (initialStatus === 'processing' || initialStatus === 'publishing') {
 document.getElementById('retry-btn')?.addEventListener('click', async () => {
 	const btn = document.getElementById('retry-btn') as HTMLButtonElement;
 	btn.disabled = true;
-	btn.textContent = 'Retrying…';
+	btn.textContent = 'Resetting…';
 	try {
 		const res = await fetch(`/api/sermon/${jobId}/retry`, { method: 'POST' });
 		if (res.ok) {
 			window.location.reload();
 		} else {
-			btn.textContent = 'Retry failed';
+			btn.textContent = 'Reset failed';
 			btn.disabled = false;
 		}
 	} catch {
