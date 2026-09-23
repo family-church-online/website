@@ -93,9 +93,28 @@ After any change to `tina/collections/*.ts`:
 
 Forgetting to commit `tina-lock.json` causes a `ERR_CLOUD_CHECK_FAILED` build error.
 
-### Sermon import pipeline
+### Sunday sermon pipeline
 
-Sermons are sourced from Google Drive and imported via scripts:
+New sermons are published via `sermon-pipeline/` — a local CLI that runs on Sunday after the service and handles everything from Vimeo download to content generation.
+
+**AV crew (GUI):**
+```sh
+sermon-pipeline/launch.sh     # or double-click the desktop shortcut
+pnpm pipeline:shortcut        # install the desktop shortcut (once per machine)
+```
+
+**Developer (terminal):**
+```sh
+node sermon-pipeline/pipeline.mjs
+```
+
+The pipeline: reads `sermon-notes/current.mdx` → selects Vimeo video → downloads + converts → Deepgram transcription → Claude (clean transcript, taxonomy, sermon block, slug, 7 devotions) → reading plans from Google Calendar → uploads MP3 to R2 temp → POSTs job to Cloudflare Worker → prints review URL.
+
+The reviewer visits `/sermon-admin/[jobId]`, edits content if needed, and approves. `SermonPublishWorkflow` then commits sermon MDX + 7 devotion MDX files + updated `related-sermons.json` + `sermon-tags.json` to GitHub in one atomic commit, posts devotions to Google Calendar, and uploads files to Drive.
+
+Worker secrets required: `SERMON_PIPELINE_SECRET`, `SERMON_NOTIFY_EMAIL`, `GITHUB_TOKEN`, `GOOGLE_SERVICE_ACCOUNT`, `RESEND_API_KEY`.
+
+### Legacy sermon import (backfill from Google Drive)
 
 ```sh
 pnpm sermons:download   # Pull raw sermon data from Drive → scripts/drive/
@@ -109,7 +128,7 @@ pnpm sermons:check      # Report what's missing without writing anything
 
 Sermon files are named `{title-slug}-{scripture-slug}.mdx` (no date prefix) and their titles follow the format `"Title : Book Chapter:Verse"`. Sermons with `review: true` in frontmatter are hidden from the listing page until the flag is removed.
 
-Each sermon carries a 65-tag canonical taxonomy (`Topic:...`, `Book:...`, `Series:...`, `Ref:...`). Each sermon has exactly one `Book:` tag (the primary book preached from) and multiple `Ref:` tags for secondary references. The listing page at `/sermons` exposes client-side dropdowns for series, topic, book of the Bible, and year. `pnpm sermons:import` also rebuilds `src/data/related-sermons.json` — a precomputed map of related sermon slugs (Jaccard similarity on tags) used on individual sermon pages.
+Each sermon carries a 65-tag canonical taxonomy (`Topic:...`, `Book:...`, `Series:...`, `Ref:...`). Each sermon has exactly one `Book:` tag (the primary book preached from) and multiple `Ref:` tags for secondary references. The listing page at `/sermons` exposes client-side dropdowns for series, topic, book of the Bible, and year. `pnpm sermons:import` also rebuilds `src/data/related-sermons.json` and `src/data/sermon-tags.json` — precomputed maps of related sermon slugs (Jaccard similarity on tags) used on individual sermon pages and by the Worker publish step.
 
 ## Member auth
 
