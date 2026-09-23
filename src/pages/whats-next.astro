@@ -38,10 +38,11 @@ const shown  = [...past, ...future];
 // Index into `shown` of the next upcoming service
 const nextIdx = past.length < shown.length ? past.length : -1;
 
-const config    = (await getConfig()).data?.config ?? null;
-const siteTitle = config?.seo?.title ?? 'Family Church';
-const siteUrl   = new URL('/', Astro.site).toString().replace(/\/$/, '');
-const addr      = config?.seo?.address;
+const config      = (await getConfig()).data?.config ?? null;
+const siteTitle   = config?.seo?.title ?? 'Family Church';
+const siteUrl     = new URL('/', Astro.site).toString().replace(/\/$/, '');
+const addr        = config?.seo?.address;
+const serviceTime = (config?.seo as Record<string, unknown> | null | undefined)?.serviceTime as string | undefined ?? '09:30';
 
 const placeLocation = {
 	'@type': 'Place',
@@ -100,7 +101,7 @@ function fmtFull(d: Date) {
 	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-16">
 
 		<div class="text-center mb-14">
-			<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Sundays · 09:30</p>
+			<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-3">Sundays · {serviceTime}</p>
 			<h1 class="text-4xl font-semibold lg:text-5xl text-balance mb-4">Service Schedule</h1>
 			<p class="text-lg text-muted-foreground">Upcoming Sunday services at Family Church</p>
 		</div>

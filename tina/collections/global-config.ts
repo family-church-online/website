@@ -67,6 +67,12 @@ export const GlobalConfigCollection: Collection = {
             { name: 'country',       label: 'Country Code',   type: 'string', description: 'Two-letter ISO code, e.g. ZA' },
           ],
         },
+        {
+          name: 'serviceTime',
+          label: 'Sunday Service Time',
+          type: 'string',
+          description: 'Displayed on the Service Schedule and What\'s Next pages (e.g. 09:30).',
+        },
         //Add more site settings here...
       ],
     },
