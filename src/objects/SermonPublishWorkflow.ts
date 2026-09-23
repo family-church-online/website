@@ -237,6 +237,56 @@ function buildDevotionMdx(devotion: Devotion, imageLocal: string, sermonUrl: str
 	return lines.join('\n');
 }
 
+// ── Related sermons ───────────────────────────────────────────────────────────
+
+function topicTags(tags: string[]): string[] {
+	return tags.filter(t => !/^(Book|Ref|Series):/.test(t));
+}
+
+function jaccard(a: string[], b: string[]): number {
+	const sa = new Set(a), sb = new Set(b);
+	if (sa.size === 0 && sb.size === 0) return 0;
+	let intersection = 0;
+	for (const t of sa) if (sb.has(t)) intersection++;
+	return intersection / (sa.size + sb.size - intersection);
+}
+
+async function buildRelatedFiles(
+	token: string,
+	newSlug: string,
+	newTags: string[],
+): Promise<{ tagsContent: string; relatedContent: string }> {
+	// Fetch current sermon-tags.json from GitHub
+	let tagsMap: Record<string, string[]> = {};
+	try {
+		const res = await githubApi(token, '/contents/src/data/sermon-tags.json');
+		const raw = atob((res as { content: string }).content.replace(/\n/g, ''));
+		tagsMap = JSON.parse(raw);
+	} catch {
+		// File may not exist yet — start fresh
+	}
+
+	// Add / overwrite new sermon
+	tagsMap[newSlug] = topicTags(newTags);
+
+	// Recompute related for every sermon
+	const slugs = Object.keys(tagsMap);
+	const related: Record<string, string[]> = {};
+	for (const slug of slugs) {
+		const scores = slugs
+			.filter(s => s !== slug)
+			.map(s => ({ slug: s, score: jaccard(tagsMap[slug], tagsMap[s]) }))
+			.filter(x => x.score > 0)
+			.sort((a, b) => b.score - a.score);
+		related[slug] = scores.slice(0, 3).map(s => s.slug);
+	}
+
+	return {
+		tagsContent: JSON.stringify(tagsMap, null, 2),
+		relatedContent: JSON.stringify(related, null, 2),
+	};
+}
+
 // ── GitHub Git Data API ───────────────────────────────────────────────────────
 
 async function githubApi(token: string, path: string, method = 'GET', body?: unknown) {
@@ -446,15 +496,23 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 			const githubToken = process.env.GITHUB_TOKEN;
 			if (!githubToken) throw new Error('GITHUB_TOKEN not set');
 
+			const { tagsContent, relatedContent } = await buildRelatedFiles(
+				githubToken,
+				job.slug!,
+				job.taxonomy!.tags ?? [],
+			);
+
 			const files = [
 				{ path: sermonPath, content: sermonMdx },
 				...devotionFiles,
+				{ path: 'src/data/sermon-tags.json', content: tagsContent },
+				{ path: 'src/data/related-sermons.json', content: relatedContent },
 			];
 
 			const sha = await commitFiles(
 				githubToken,
 				files,
-				`feat: add sermon "${job.optimisedTitle}" (${job.metadata.date})\n\nAdds sermon MDX and ${devotionFiles.length} daily devotions.`,
+				`feat: add sermon "${job.optimisedTitle}" (${job.metadata.date})\n\nAdds sermon MDX, ${devotionFiles.length} daily devotions, and rebuilds related sermons.`,
 			);
 			return sha;
 		});
