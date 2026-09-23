@@ -29,7 +29,7 @@
  *   SITE_URL                 defaults to https://familychurch.online
  */
 
-import { spawnSync }                          from 'node:child_process';
+import { spawnSync, spawn }                    from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync } from 'node:fs';
 import { join, dirname, basename }             from 'node:path';
 import { fileURLToPath }                       from 'node:url';
@@ -85,9 +85,51 @@ const GOOGLE_CREDENTIALS_FILE = existsSync(join(PIPELINE_DIR, 'oauth_credentials
 const GOOGLE_TOKEN_FILE = existsSync(join(PIPELINE_DIR, 'oauth_token.json'))
   ? join(PIPELINE_DIR, 'oauth_token.json') : join(process.env.HOME || '', '.config/sermon-pipeline/oauth_token.json');
 
+// ─── GUI mode ─────────────────────────────────────────────────────────────────
+
+const GUI_MODE = process.argv.includes('--gui');
+let _progressProc = null;
+
+function zenityList(title, items) {
+  const args = ['--list', `--title=${title}`, '--column=Video', '--width=660', '--height=380'];
+  for (const item of items) args.push(item);
+  const r = spawnSync('zenity', args, { encoding: 'utf8' });
+  if (r.status !== 0) process.exit(0);
+  return r.stdout.trim();
+}
+
+function zenityInfo(title, text) {
+  spawnSync('zenity', ['--info', `--title=${title}`, `--text=${text}`, '--width=480', '--no-wrap'], { encoding: 'utf8' });
+}
+
+function zenityError(title, text) {
+  spawnSync('zenity', ['--error', `--title=${title}`, `--text=${text}`, '--width=480'], { encoding: 'utf8' });
+}
+
+function zenityQuestion(title, text) {
+  return spawnSync('zenity', ['--question', `--title=${title}`, `--text=${text}`, '--width=480'], { encoding: 'utf8' }).status === 0;
+}
+
+function startProgress(text = 'Starting…') {
+  if (!GUI_MODE) return;
+  _progressProc = spawn('zenity', ['--progress', '--pulsate', '--auto-kill', '--title=Sermon Pipeline', `--text=${text}`, '--width=500'], { stdio: ['pipe', 'ignore', 'ignore'] });
+}
+
+function progress(text) {
+  if (GUI_MODE && _progressProc) {
+    try { _progressProc.stdin.write(`# ${text}\n`); } catch {}
+  }
+}
+
+function closeProgress() {
+  if (!_progressProc) return;
+  try { _progressProc.stdin.write('100\n'); _progressProc.stdin.end(); } catch {}
+  _progressProc = null;
+}
+
 // ─── Readline helper ──────────────────────────────────────────────────────────
 
-const rl = createInterface({ input: process.stdin, output: process.stdout });
+const rl = GUI_MODE ? null : createInterface({ input: process.stdin, output: process.stdout });
 const ask = (q) => new Promise(resolve => rl.question(q, resolve));
 
 // ─── Logging ─────────────────────────────────────────────────────────────────
@@ -95,10 +137,12 @@ const ask = (q) => new Promise(resolve => rl.question(q, resolve));
 function log(msg) {
   const t = new Date().toTimeString().slice(0, 8);
   console.log(`${t}  INFO      ${msg}`);
+  progress(msg);
 }
 function warn(msg) {
   const t = new Date().toTimeString().slice(0, 8);
   console.log(`${t}  WARNING   ${msg}`);
+  progress(`⚠ ${msg}`);
 }
 
 // ─── Claude CLI ───────────────────────────────────────────────────────────────
@@ -521,36 +565,58 @@ async function fetchReadingPlans(auth, monday) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('\n─── Family Church Sermon Pipeline ─────────────────────────────────\n');
+  if (!GUI_MODE) console.log('\n─── Family Church Sermon Pipeline ─────────────────────────────────\n');
 
   // 1. Read sermon notes
   const notes = readSermonNotes();
-  console.log(`  Date:    ${notes.date}`);
-  console.log(`  Title:   ${notes.title || '(not set)'}`);
-  console.log(`  Speaker: ${notes.speaker || '(not set)'}`);
-  console.log(`  Series:  ${notes.series  || '(none)'}`);
-  if (!notes.title) { console.error('\nERROR: sermon-notes/current.mdx is missing a title'); process.exit(1); }
-  console.log('');
+  if (!notes.title) {
+    if (GUI_MODE) zenityError('Missing Sermon Notes', 'sermon-notes/current.mdx is missing a title.\nPlease fill it in before running the pipeline.');
+    else console.error('\nERROR: sermon-notes/current.mdx is missing a title');
+    process.exit(1);
+  }
+  if (!GUI_MODE) {
+    console.log(`  Date:    ${notes.date}`);
+    console.log(`  Title:   ${notes.title}`);
+    console.log(`  Speaker: ${notes.speaker || '(not set)'}`);
+    console.log(`  Series:  ${notes.series  || '(none)'}\n`);
+  }
 
   // 2. Select Vimeo video
-  if (!VIMEO_TOKEN) { console.error('VIMEO_TOKEN not set'); process.exit(1); }
+  if (!VIMEO_TOKEN) {
+    if (GUI_MODE) zenityError('Configuration Error', 'VIMEO_TOKEN is not set.');
+    else console.error('VIMEO_TOKEN not set');
+    process.exit(1);
+  }
   const videos = await fetchVimeoVideos();
-  if (!videos.length) { console.error('No Vimeo videos found'); process.exit(1); }
+  if (!videos.length) {
+    if (GUI_MODE) zenityError('No Videos Found', 'No Vimeo videos found.');
+    else console.error('No Vimeo videos found');
+    process.exit(1);
+  }
 
-  console.log('Recent Vimeo videos:');
-  videos.forEach((v, i) => {
-    const date = new Date(v.created_time).toLocaleDateString('en-ZA');
-    console.log(`  [${i + 1}] ${v.name}  (${date})  ${v.status}`);
-  });
-  console.log('');
+  let video;
+  if (GUI_MODE) {
+    const items = videos.map(v => `${v.name}  (${new Date(v.created_time).toLocaleDateString('en-ZA')})  ${v.status}`);
+    const selected = zenityList(`Select video for: ${notes.title} — ${notes.date}`, items);
+    const idx = items.indexOf(selected);
+    if (idx === -1) process.exit(0);
+    video = videos[idx];
+  } else {
+    console.log('Recent Vimeo videos:');
+    videos.forEach((v, i) => {
+      const date = new Date(v.created_time).toLocaleDateString('en-ZA');
+      console.log(`  [${i + 1}] ${v.name}  (${date})  ${v.status}`);
+    });
+    console.log('');
+    const choice = await ask(`Select video [1–${videos.length}] or press Enter for [1]: `);
+    const idx    = choice.trim() ? parseInt(choice.trim()) - 1 : 0;
+    if (isNaN(idx) || idx < 0 || idx >= videos.length) { console.error('Invalid selection'); process.exit(1); }
+    video = videos[idx];
+    console.log(`\nSelected: ${video.name}\n`);
+  }
 
-  const choice = await ask(`Select video [1–${videos.length}] or press Enter for [1]: `);
-  const idx    = choice.trim() ? parseInt(choice.trim()) - 1 : 0;
-  if (isNaN(idx) || idx < 0 || idx >= videos.length) { console.error('Invalid selection'); process.exit(1); }
-
-  const video    = videos[idx];
   const vimeoUrl = getVimeoEmbedUrl(video);
-  console.log(`\nSelected: ${video.name}\n`);
+  startProgress(`Downloading: ${video.name}`);
 
   const videoPath = join(AUDIO_DIR, `${notes.date}.mp4`);
   const mp3Path   = join(AUDIO_DIR, `${notes.date}.mp3`);
@@ -606,31 +672,46 @@ async function main() {
     tempAudioKey,
   });
 
-  console.log('\n─────────────────────────────────────────────────────────────────────');
-  console.log(`\n  ✓  Job submitted: ${jobId}`);
-  console.log(`\n  Review URL:\n     ${reviewUrl}`);
-  console.log('\n  Processing complete. Review the content at the URL above,');
-  console.log("  then click 'Approve & Publish' to commit to the website.\n");
-  console.log('─────────────────────────────────────────────────────────────────────\n');
+  closeProgress();
+
+  if (GUI_MODE) {
+    zenityInfo('Pipeline Complete', `Sermon submitted for review.\n\nReview URL:\n${reviewUrl}\n\nOpen the link, check the content, then click Approve &amp; Publish.`);
+  } else {
+    console.log('\n─────────────────────────────────────────────────────────────────────');
+    console.log(`\n  ✓  Job submitted: ${jobId}`);
+    console.log(`\n  Review URL:\n     ${reviewUrl}`);
+    console.log('\n  Processing complete. Review the content at the URL above,');
+    console.log("  then click 'Approve & Publish' to commit to the website.\n");
+    console.log('─────────────────────────────────────────────────────────────────────\n');
+  }
 
   // 12. Optionally prepare next week's sermon notes
-  const prepNext = await ask("Prepare next week's sermon-notes template? [y/N]: ");
-  if (prepNext.trim().toLowerCase() === 'y') {
+  const prepNext = GUI_MODE
+    ? zenityQuestion("Next Week's Notes", "Prepare next week's sermon-notes template now?")
+    : (await ask("Prepare next week's sermon-notes template? [y/N]: ")).trim().toLowerCase() === 'y';
+  if (prepNext) {
     const next = findNextWhatsNext(notes.date);
     if (next) {
       writeFileSync(SERMON_NOTES, buildNextSermonNotesMdx(next));
-      console.log(`\n  ✓  current.mdx updated for ${next.date}: ${next.title || '(no title yet)'}`);
-      console.log('     Add the sermon image before Sunday.\n');
+      if (GUI_MODE) {
+        zenityInfo("Next Week Ready", `Notes updated for ${next.date}:\n${next.title || '(no title yet)'}\n\nRemember to add the sermon image before Sunday.`);
+      } else {
+        console.log(`\n  ✓  current.mdx updated for ${next.date}: ${next.title || '(no title yet)'}`);
+        console.log('     Add the sermon image before Sunday.\n');
+      }
     } else {
       warn('No whats-next entry found after ' + notes.date + ' — create one in the CMS first');
+      if (GUI_MODE) zenityError("No Next Entry", `No whats-next entry found after ${notes.date}.\nCreate one in the CMS first.`);
     }
   }
 
-  rl.close();
+  if (rl) rl.close();
 }
 
 main().catch(err => {
+  closeProgress();
+  if (GUI_MODE) zenityError('Pipeline Failed', err.message);
   console.error('\nFatal error:', err.message);
-  rl.close();
+  if (rl) rl.close();
   process.exit(1);
 });
