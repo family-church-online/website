@@ -696,7 +696,7 @@ const configObj = {
     branch:   'master',
     base_url: 'https://sveltia-auth.familychurch.online',
   },
-  site_url:      'https://dev.familychurch.online',
+  site_url:      'https://familychurch.online',
   logo_url:      '/images/NavyLogo.png',
   // Force double-quoted strings in every YAML frontmatter value Sveltia writes.
   // Without this, an unquoted ambiguous scalar (e.g. a group's time: 19:00) is
