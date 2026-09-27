@@ -61,16 +61,31 @@ export const POST: APIRoute = async ({ params, locals, request }) => {
 		});
 	}
 
-	const workflowId = `publish-${jobId}`;
 	const wfParams: SermonPublishParams = { jobId, edits };
+	let workflowId = `publish-${jobId}`;
 	try {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		await (workflow as any).create({ id: workflowId, params: wfParams });
 	} catch (err) {
-		return new Response(JSON.stringify({ error: `Workflow create failed: ${String(err)}` }), {
-			status: 500,
-			headers: { 'Content-Type': 'application/json' },
-		});
+		const msg = String(err);
+		if (msg.includes('already_exists')) {
+			// Previous attempt left a workflow with this ID (likely failed). Create a fresh one.
+			workflowId = `publish-${jobId}-${Date.now()}`;
+			try {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				await (workflow as any).create({ id: workflowId, params: wfParams });
+			} catch (err2) {
+				return new Response(JSON.stringify({ error: `Workflow create failed: ${String(err2)}` }), {
+					status: 500,
+					headers: { 'Content-Type': 'application/json' },
+				});
+			}
+		} else {
+			return new Response(JSON.stringify({ error: `Workflow create failed: ${msg}` }), {
+				status: 500,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
 	}
 
 	return new Response(JSON.stringify({ ok: true, workflowId }), {
