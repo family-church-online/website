@@ -581,19 +581,38 @@ async function main() {
     console.log(`  Series:  ${notes.series  || '(none)'}\n`);
   }
 
-  // 1b. Read image file (if set) so the workflow can commit it to GitHub
+  // 1b. Normalise image: ensure it lives at /images/sermons/YYYY-MM-DD-{title}.webp
+  //     Converts from any format ffmpeg supports (JPEG, PNG, …) and moves from
+  //     any folder (e.g. /images/amplify/) to the canonical sermons location.
   let imageData = null;
   let imageMimeType = null;
   if (notes.image) {
-    const imagePath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
-    if (existsSync(imagePath)) {
-      const ext = (imagePath.split('.').pop() || '').toLowerCase();
-      const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
-      imageMimeType = mimeMap[ext] || 'image/jpeg';
-      imageData = readFileSync(imagePath).toString('base64');
-      log(`Image loaded: ${basename(imagePath)} (${Math.round(imageData.length * 3 / 4 / 1024)} KB)`);
+    const srcPath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
+    if (existsSync(srcPath)) {
+      const titleSlug = slugify(notes.title || 'sermon');
+      const canonicalRelative = `/images/sermons/${notes.date}-${titleSlug}.webp`;
+      const canonicalPath = join(WEBSITE_DIR, 'public', 'images', 'sermons', `${notes.date}-${titleSlug}.webp`);
+
+      if (srcPath !== canonicalPath) {
+        log(`Normalising image → ${canonicalRelative}`);
+        mkdirSync(join(WEBSITE_DIR, 'public', 'images', 'sermons'), { recursive: true });
+        const r = spawnSync('ffmpeg', ['-y', '-i', srcPath, canonicalPath], { encoding: 'utf8' });
+        if (r.status === 0) {
+          notes.image = canonicalRelative;
+          log(`  Saved: ${basename(canonicalPath)} (${(statSync(canonicalPath).size / 1024).toFixed(0)} KB)`);
+        } else {
+          warn(`Image conversion failed — using original path: ${notes.image}`);
+        }
+      }
+
+      const finalPath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
+      if (existsSync(finalPath)) {
+        imageMimeType = notes.image.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+        imageData = readFileSync(finalPath).toString('base64');
+        log(`Image ready for commit: ${(imageData.length * 3 / 4 / 1024).toFixed(0)} KB`);
+      }
     } else {
-      warn(`Image not found locally — will NOT be committed to GitHub: ${imagePath}`);
+      warn(`Image not found locally — will NOT be committed to GitHub: ${srcPath}`);
     }
   }
 
