@@ -440,13 +440,19 @@ document.getElementById('review-form')?.addEventListener('submit', async (e) => 
 			if (statusEl) statusEl.textContent = 'Publish workflow started — page will update automatically.';
 			startPolling();
 		} else {
-			const err = await res.json() as { error?: string };
-			if (statusEl) { statusEl.textContent = `Error: ${err.error ?? res.status}`; statusEl.classList.remove('hidden'); }
+			let errorMsg = `HTTP ${res.status}`;
+			try {
+				const err = await res.json() as { error?: string };
+				errorMsg = err.error ?? errorMsg;
+			} catch {
+				try { errorMsg = await res.text(); } catch {}
+			}
+			if (statusEl) { statusEl.textContent = `Error: ${errorMsg}`; statusEl.classList.remove('hidden'); }
 			btn.disabled = false;
 			btn.textContent = 'Approve & Publish';
 		}
-	} catch {
-		if (statusEl) { statusEl.textContent = 'Network error — try again.'; statusEl.classList.remove('hidden'); }
+	} catch (err) {
+		if (statusEl) { statusEl.textContent = `Network error: ${String(err)}`; statusEl.classList.remove('hidden'); }
 		btn.disabled = false;
 		btn.textContent = 'Approve & Publish';
 	}

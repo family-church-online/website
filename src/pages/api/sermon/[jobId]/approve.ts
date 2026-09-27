@@ -13,13 +13,19 @@ function getWorkflow() {
 export const POST: APIRoute = async ({ params, locals, request }) => {
 	const user = locals.user;
 	if (!user) {
-		return new Response('Unauthorized', { status: 401 });
+		return new Response(JSON.stringify({ error: 'Unauthorized — please log in again' }), {
+			status: 401,
+			headers: { 'Content-Type': 'application/json' },
+		});
 	}
 
 	const siteConfig = await getConfig();
 	const adminListId = (siteConfig.data?.config?.auth as Record<string, unknown> | null | undefined)?.adminListId as string | undefined;
 	if (adminListId && !user.lists.includes(adminListId)) {
-		return new Response('Forbidden', { status: 403 });
+		return new Response(JSON.stringify({ error: 'Forbidden — admin access required' }), {
+			status: 403,
+			headers: { 'Content-Type': 'application/json' },
+		});
 	}
 
 	const { jobId } = params as { jobId: string };
@@ -49,13 +55,23 @@ export const POST: APIRoute = async ({ params, locals, request }) => {
 
 	const workflow = getWorkflow();
 	if (!workflow) {
-		return new Response('SERMON_PUBLISH_WORKFLOW binding not available', { status: 503 });
+		return new Response(JSON.stringify({ error: 'SERMON_PUBLISH_WORKFLOW binding not available — check Cloudflare dashboard' }), {
+			status: 503,
+			headers: { 'Content-Type': 'application/json' },
+		});
 	}
 
 	const workflowId = `publish-${jobId}`;
 	const wfParams: SermonPublishParams = { jobId, edits };
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	await (workflow as any).create({ id: workflowId, params: wfParams });
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		await (workflow as any).create({ id: workflowId, params: wfParams });
+	} catch (err) {
+		return new Response(JSON.stringify({ error: `Workflow create failed: ${String(err)}` }), {
+			status: 500,
+			headers: { 'Content-Type': 'application/json' },
+		});
+	}
 
 	return new Response(JSON.stringify({ ok: true, workflowId }), {
 		headers: { 'Content-Type': 'application/json' },
