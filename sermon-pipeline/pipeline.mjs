@@ -866,6 +866,8 @@ async function fetchReadingPlans(auth, monday) {
   const calendar = google.calendar({ version: 'v3', auth });
   const weekStart = monday.toISOString().slice(0, 10);
   const weekEnd   = new Date(monday.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+  // html: the <div class="reading-plans"> block to append to devotion.content
+  // parsed: structured JSON for MDX frontmatter
   const plans = {};
 
   try {
@@ -878,7 +880,10 @@ async function fetchReadingPlans(auth, monday) {
     });
     for (const item of res.data.items || []) {
       const date = item.start?.date;
-      if (date) plans[date] = parseReadingPlansHtml(buildReadingPlansHtml(item.description || ''));
+      if (date) {
+        const html = buildReadingPlansHtml(item.description || '');
+        plans[date] = { html, parsed: parseReadingPlansHtml(html) };
+      }
     }
   } catch (e) {
     warn(`Could not fetch reading plans: ${e.message}`);
@@ -1022,6 +1027,15 @@ async function main() {
   const readingPlans = googleAuth ? await fetchReadingPlans(googleAuth, monday) : null;
   if (!readingPlans) warn('Reading plans unavailable — devotions will be committed without them');
 
+  // 9.5. Append reading plan HTML to each devotion's content
+  if (readingPlans) {
+    for (const dev of devotions) {
+      const rp = readingPlans[dev.date];
+      if (rp?.html) dev.content = dev.content.trimEnd() + '\n\n' + rp.html;
+      else warn(`  No reading plan HTML for devotion ${dev.date}`);
+    }
+  }
+
   // 10. Upload audio to R2 temp
   const tempAudioKey = await uploadTempAudio(mp3Path, notes.date);
 
@@ -1053,7 +1067,9 @@ async function main() {
     slug,
     optimisedTitle,
     devotions,
-    readingPlans,
+    readingPlans: readingPlans
+      ? Object.fromEntries(Object.entries(readingPlans).map(([d, v]) => [d, v.parsed]))
+      : null,
     tempAudioKey,
   });
 
