@@ -1,6 +1,7 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import { getJob, patchJob, type SermonJob, type SermonBlock, type Taxonomy, type Devotion, type ReadingPlanDay, type ReadingPlanLink } from '../lib/sermon-job';
 import { getGoogleAccessToken } from '../lib/google-auth';
+// (google-auth used only for Calendar — Drive upload is done by local pipeline)
 
 export interface SermonPublishParams {
 	jobId: string;
@@ -20,14 +21,10 @@ const GITHUB_BRANCH = 'master';
 const SITE_URL = 'https://familychurch.online';
 const R2_PUBLIC_URL = 'https://audio.familychurch.online';
 
-const DRIVE_ENRICHED     = '1w2ADe6xQ-_0Hz2KvAHbmMTSK_7WNkALO';
-const DRIVE_COMP_TAX     = '19f02nUtBL9xNQaTsECgKvEWkcyefgixy';
-const DRIVE_SERMON_BLOCK = '1rmr23NQsNHYFstSSW2cyB2U2XMBOt39l';
-const DEVOTIONS_CAL_ID   = 'kalsva0235makn1pq3d52sko1k@group.calendar.google.com';
+const DEVOTIONS_CAL_ID = 'kalsva0235makn1pq3d52sko1k@group.calendar.google.com';
 
 const GOOGLE_SCOPES = [
 	'https://www.googleapis.com/auth/calendar',
-	'https://www.googleapis.com/auth/drive',
 ];
 
 // ── YAML helpers ──────────────────────────────────────────────────────────────
@@ -114,6 +111,10 @@ function buildSermonMdx(job: SermonJob, taxonomy: Taxonomy, block: SermonBlock, 
 	lines.push('', '# ── FLAGS ───────────────────────────────────────────────────────');
 	lines.push('review: false');
 	lines.push('---', '');
+
+	const title = optimisedTitle.split(' : ')[0].trim();
+	lines.push(`# ${title}`, '', '## Transcript', '', job.transcript, '');
+
 	return lines.join('\n');
 }
 
@@ -379,48 +380,6 @@ async function createCalendarEvent(token: string, calendarId: string, summary: s
 	}
 }
 
-// ── Google Drive helpers ──────────────────────────────────────────────────────
-
-async function uploadToDrive(token: string, name: string, content: string, mimeType: string, folderId: string): Promise<void> {
-	// Check if file exists
-	const q = encodeURIComponent(`name='${name}' and '${folderId}' in parents and trashed=false`);
-	const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`, {
-		headers: { Authorization: `Bearer ${token}` },
-	});
-	const listData = await listRes.json() as { files: Array<{ id: string }> };
-	const existing = listData.files?.[0]?.id;
-
-	const boundary = 'boundary_' + Math.random().toString(36).slice(2);
-	const body = [
-		`--${boundary}`,
-		'Content-Type: application/json',
-		'',
-		JSON.stringify(existing ? {} : { name, parents: [folderId] }),
-		`--${boundary}`,
-		`Content-Type: ${mimeType}`,
-		'',
-		content,
-		`--${boundary}--`,
-	].join('\r\n');
-
-	const url = existing
-		? `https://www.googleapis.com/upload/drive/v3/files/${existing}?uploadType=multipart`
-		: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
-
-	const res = await fetch(url, {
-		method: existing ? 'PATCH' : 'POST',
-		headers: {
-			Authorization: `Bearer ${token}`,
-			'Content-Type': `multipart/related; boundary=${boundary}`,
-		},
-		body,
-	});
-	if (!res.ok) {
-		const text = await res.text();
-		throw new Error(`Drive upload failed (${name}): ${res.status} — ${text}`);
-	}
-}
-
 async function sendNotificationEmail(to: string, subject: string, html: string): Promise<void> {
 	const resendKey = process.env.RESEND_API_KEY;
 	if (!resendKey) return;
@@ -584,33 +543,8 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 			}
 		});
 
-		// ── Step 4: drive ─────────────────────────────────────────────────────────
-		// Non-fatal: sermon is already published. Capture the error in KV but
-		// continue to notify regardless of Drive upload outcome.
-		await step.do('drive', { retries: { limit: 2, delay: '15 seconds', backoff: 'exponential' } }, async () => {
-			await patchJob(jobId, { currentStep: 'drive' });
-			const job = await getJob(jobId);
-			if (!job || !job.taxonomy || !job.sermonBlock) return;
-
-			try {
-				const token = await getGoogleAccessToken(GOOGLE_SCOPES);
-				const baseName = `${job.metadata.date}-${job.slug}`;
-
-				// Transcript (.md)
-				const transcriptMd = `---\ntitle: "${job.optimisedTitle?.replace(/"/g, "'")}"\ndate: ${job.metadata.date}\nspeaker: "${job.metadata.speaker || ''}"${job.metadata.series ? `\nseries: "${job.metadata.series}"` : ''}\n---\n\n## Transcript\n\n${job.transcript}`;
-				await uploadToDrive(token, `${baseName}-transcript.md`, transcriptMd, 'text/markdown', DRIVE_ENRICHED);
-
-				// Taxonomy JSON
-				await uploadToDrive(token, `${baseName}-taxonomy.json`, JSON.stringify(job.taxonomy, null, 2), 'application/json', DRIVE_COMP_TAX);
-
-				// Sermon block JSON
-				await uploadToDrive(token, `${baseName}-sermon-block.json`, JSON.stringify(job.sermonBlock, null, 2), 'application/json', DRIVE_SERMON_BLOCK);
-			} catch (err) {
-				// Log the error in KV so it's visible in the admin UI, but don't
-				// throw — sermon is published, Drive is archival.
-				await patchJob(jobId, { error: `Drive upload failed: ${String(err)}` }).catch(() => {});
-			}
-		});
+		// Drive upload is handled by the local pipeline (step 10.5 in pipeline.mjs) because
+		// Cloudflare Worker service accounts have no Drive storage quota on personal Google Drive.
 
 		// ── Step 5: notify ────────────────────────────────────────────────────────
 		await step.do('notify', { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' } }, async () => {

@@ -15,7 +15,7 @@
  * AI lifting happens here locally using your claude subscription.
  * The reviewer visits the printed URL to inspect content and approve.
  * Approval triggers a Cloudflare Workflow that commits to GitHub,
- * uploads devotions to Google Calendar, and uploads files to Drive.
+ * uploads devotions to Google Calendar. Drive upload happens here in step 10.5.
  *
  * Requirements:
  *   pnpm install  (inside sermon-pipeline/)
@@ -481,6 +481,43 @@ async function getGoogleAuth() {
   return oauth2;
 }
 
+// ─── Google Drive upload ──────────────────────────────────────────────────────
+
+const DRIVE_FOLDER_ENRICHED     = '1w2ADe6xQ-_0Hz2KvAHbmMTSK_7WNkALO';
+const DRIVE_FOLDER_COMP_TAX     = '19f02nUtBL9xNQaTsECgKvEWkcyefgixy';
+const DRIVE_FOLDER_SERMON_BLOCK = '1rmr23NQsNHYFstSSW2cyB2U2XMBOt39l';
+
+async function uploadFileToDrive(driveService, name, content, mimeType, folderId) {
+  const { Readable } = await import('node:stream');
+  const { data: list } = await driveService.files.list({
+    q: `name = '${name}' and '${folderId}' in parents and trashed = false`,
+    fields: 'files(id)',
+  });
+  const existing = list.files?.[0]?.id;
+  const media = { mimeType, body: Readable.from([content]) };
+  if (existing) {
+    await driveService.files.update({ fileId: existing, media_body: media, requestBody: {} });
+    log(`  Drive updated: ${name}`);
+  } else {
+    await driveService.files.create({ requestBody: { name, parents: [folderId] }, media, fields: 'id' });
+    log(`  Drive uploaded: ${name}`);
+  }
+}
+
+async function uploadSermonToDrive(auth, baseName, transcript, taxonomy, sermonBlock, metadata) {
+  if (!auth) { warn('Drive upload skipped — no Google auth'); return; }
+  const driveService = google.drive({ version: 'v3', auth });
+  const title = metadata.optimisedTitle?.replace(/"/g, "'") ?? '';
+  const transcriptMd =
+    `---\ntitle: "${title}"\ndate: ${metadata.date}\nspeaker: "${metadata.speaker || ''}"` +
+    (metadata.series ? `\nseries: "${metadata.series}"` : '') +
+    `\n---\n\n## Transcript\n\n${transcript}`;
+  await uploadFileToDrive(driveService, `${baseName}-transcript.md`, transcriptMd, 'text/markdown', DRIVE_FOLDER_ENRICHED);
+  await uploadFileToDrive(driveService, `${baseName}-taxonomy.json`, JSON.stringify(taxonomy, null, 2), 'application/json', DRIVE_FOLDER_COMP_TAX);
+  await uploadFileToDrive(driveService, `${baseName}-sermon-block.json`, JSON.stringify(sermonBlock, null, 2), 'application/json', DRIVE_FOLDER_SERMON_BLOCK);
+  log('Drive upload complete');
+}
+
 // ─── Reading Plans ────────────────────────────────────────────────────────────
 
 // Mirrors script2_content.py:_build_reading_plans_html —
@@ -706,6 +743,20 @@ async function main() {
 
   // 10. Upload audio to R2 temp
   const tempAudioKey = await uploadTempAudio(mp3Path, notes.date);
+
+  // 10.5. Upload transcript/taxonomy/sermon-block to Google Drive (local OAuth —
+  //       the Worker service account has no Drive storage quota on personal Drive)
+  const baseName = `${notes.date}-${slug}`;
+  try {
+    await uploadSermonToDrive(googleAuth, baseName, transcript, taxonomy, sermonBlock, {
+      optimisedTitle,
+      date: notes.date,
+      speaker: notes.speaker,
+      series: notes.series,
+    });
+  } catch (err) {
+    warn(`Drive upload failed (non-fatal): ${err.message}`);
+  }
 
   // 11. POST to Worker
   const { jobId, reviewUrl } = await postJobToWorker({
