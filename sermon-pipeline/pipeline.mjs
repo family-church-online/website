@@ -483,6 +483,19 @@ async function getGoogleAuth() {
 
 // ─── Reading Plans ────────────────────────────────────────────────────────────
 
+// Mirrors script2_content.py:_build_reading_plans_html —
+// wraps the raw Google Calendar description (flat <h3> sections) into
+// <div class="rp-col"> containers so parseReadingPlansHtml can find them.
+function buildReadingPlansHtml(description) {
+  if (!description?.trim()) return '';
+  const parts = description.split(
+    /(?=<h3>(?:Connected Reading|Chronological Reading|ESV Literary Study Bible)<\/h3>)/
+  );
+  const cols = parts.filter(p => p.trim()).map(p => `<div class="rp-col">${p}</div>`).join('');
+  return cols ? `<div class="reading-plans">${cols}</div>` : '';
+}
+
+// Mirrors script2_content.py:_parse_reading_plans_html
 function parseReadingPlansHtml(html) {
   if (!html?.trim()) return {};
   const LABEL_MAP = {
@@ -492,8 +505,8 @@ function parseReadingPlansHtml(html) {
     'history': 'historyProphecy',
   };
 
-  const linksFrom = (html) => {
-    const matches = [...html.matchAll(/<a href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g)];
+  const linksFrom = (colHtml) => {
+    const matches = [...colHtml.matchAll(/<a href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g)];
     return matches.map(m => ({ url: m[1], ref: m[2].replace(/<[^>]+>/g, '').trim() })).filter(l => l.ref);
   };
 
@@ -547,7 +560,7 @@ async function fetchReadingPlans(auth, monday) {
     });
     for (const item of res.data.items || []) {
       const date = item.start?.date;
-      if (date) plans[date] = parseReadingPlansHtml(item.description || '');
+      if (date) plans[date] = parseReadingPlansHtml(buildReadingPlansHtml(item.description || ''));
     }
   } catch (e) {
     warn(`Could not fetch reading plans: ${e.message}`);
