@@ -581,39 +581,15 @@ async function main() {
     console.log(`  Series:  ${notes.series  || '(none)'}\n`);
   }
 
-  // 1b. Normalise image: ensure it lives at /images/sermons/YYYY-MM-DD-{title}.webp
-  //     Converts from any format ffmpeg supports (JPEG, PNG, …) and moves from
-  //     any folder (e.g. /images/amplify/) to the canonical sermons location.
+  // 1b. Record the source image path — normalisation happens after the slug is
+  //     generated in step 7 so the filename includes the full scripture reference.
   let imageData = null;
   let imageMimeType = null;
-  if (notes.image) {
-    const srcPath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
-    if (existsSync(srcPath)) {
-      const titleSlug = slugify(notes.title || 'sermon');
-      const canonicalRelative = `/images/sermons/${notes.date}-${titleSlug}.webp`;
-      const canonicalPath = join(WEBSITE_DIR, 'public', 'images', 'sermons', `${notes.date}-${titleSlug}.webp`);
-
-      if (srcPath !== canonicalPath) {
-        log(`Normalising image → ${canonicalRelative}`);
-        mkdirSync(join(WEBSITE_DIR, 'public', 'images', 'sermons'), { recursive: true });
-        const r = spawnSync('ffmpeg', ['-y', '-i', srcPath, canonicalPath], { encoding: 'utf8' });
-        if (r.status === 0) {
-          notes.image = canonicalRelative;
-          log(`  Saved: ${basename(canonicalPath)} (${(statSync(canonicalPath).size / 1024).toFixed(0)} KB)`);
-        } else {
-          warn(`Image conversion failed — using original path: ${notes.image}`);
-        }
-      }
-
-      const finalPath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
-      if (existsSync(finalPath)) {
-        imageMimeType = notes.image.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
-        imageData = readFileSync(finalPath).toString('base64');
-        log(`Image ready for commit: ${(imageData.length * 3 / 4 / 1024).toFixed(0)} KB`);
-      }
-    } else {
-      warn(`Image not found locally — will NOT be committed to GitHub: ${srcPath}`);
-    }
+  const imageSrcPath = notes.image
+    ? join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''))
+    : null;
+  if (notes.image && !existsSync(imageSrcPath)) {
+    warn(`Image not found locally — will NOT be committed to GitHub: ${imageSrcPath}`);
   }
 
   // 2. Select Vimeo video
@@ -679,6 +655,30 @@ async function main() {
 
   // Update taxonomy URL now that we have the real slug
   taxonomy.url = `${SITE_URL}/sermons/${notes.date}-${slug}`;
+
+  // 7b. Normalise image now that we have the full slug (title + scripture reference).
+  //     Canonical name: YYYY-MM-DD-{slug}.webp in /images/sermons/
+  if (notes.image && imageSrcPath && existsSync(imageSrcPath)) {
+    const canonicalRelative = `/images/sermons/${notes.date}-${slug}.webp`;
+    const canonicalPath = join(WEBSITE_DIR, 'public', 'images', 'sermons', `${notes.date}-${slug}.webp`);
+    mkdirSync(join(WEBSITE_DIR, 'public', 'images', 'sermons'), { recursive: true });
+    if (imageSrcPath !== canonicalPath) {
+      log(`Normalising image → ${canonicalRelative}`);
+      const r = spawnSync('ffmpeg', ['-y', '-i', imageSrcPath, canonicalPath], { encoding: 'utf8' });
+      if (r.status === 0) {
+        notes.image = canonicalRelative;
+        log(`  Saved: ${basename(canonicalPath)} (${(statSync(canonicalPath).size / 1024).toFixed(0)} KB)`);
+      } else {
+        warn(`Image conversion failed — using original path: ${notes.image}`);
+      }
+    }
+    const finalPath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
+    if (existsSync(finalPath)) {
+      imageMimeType = notes.image.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+      imageData = readFileSync(finalPath).toString('base64');
+      log(`Image ready for commit: ${(imageData.length * 3 / 4 / 1024).toFixed(0)} KB`);
+    }
+  }
 
   // 8. Devotions
   const imageUrl = notes.image ? `https://familychurch.online${notes.image}` : '';
