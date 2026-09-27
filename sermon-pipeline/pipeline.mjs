@@ -153,15 +153,17 @@ function loadPrompt(filename) {
   return readFileSync(path, 'utf8');
 }
 
-function runClaude(promptText, label, model = 'claude-opus-4-8') {
+function runClaude(promptText, label, model = 'claude-opus-4-8', effort = null) {
   log(`Claude: ${label}...`);
-  const result = spawnSync('claude', [
+  const args = [
     '-p', promptText,
     '--model', model,
     '--output-format', 'stream-json',
     '--verbose',
     '--disallowed-tools', 'Bash,Edit,Write,Read,WebFetch,WebSearch,NotebookEdit,Task',
-  ], { timeout: 1_800_000, maxBuffer: 100 * 1024 * 1024, encoding: 'utf8' });
+  ];
+  if (effort) args.push('--effort', effort);
+  const result = spawnSync('claude', args, { timeout: 1_800_000, maxBuffer: 100 * 1024 * 1024, encoding: 'utf8' });
 
   if (result.status !== 0) throw new Error(`claude -p failed (${label}):\n${result.stderr || ''}`);
 
@@ -356,7 +358,7 @@ function generateTaxonomy(notes, transcript, postUrl) {
 function generateSermonBlock(notes, transcript, taxonomy) {
   const transcriptMd = `---\ntitle: "${notes.title.replace(/"/g, "'")}"\ndate: ${notes.date}\nspeaker: "${notes.speaker || ''}"\n---\n\n## Transcript\n\n${transcript}`;
   const prompt = `${loadPrompt('sermon-block.txt')}\n\n---\n\nTRANSCRIPT (.md file):\n\n${transcriptMd}\n\nTAXONOMY (.json file):\n\n${JSON.stringify(taxonomy, null, 2)}`;
-  const raw = runClaude(prompt, 'sermon block');
+  const raw = runClaude(prompt, 'sermon block', 'claude-opus-4-8', 'max');
   return JSON.parse(stripJsonFences(raw));
 }
 
@@ -410,7 +412,7 @@ function generateDevotions(notes, transcript, slug, imageUrl) {
   });
 
   const prompt = `${loadPrompt('devotions.txt')}\n\n---\n\nTRANSCRIPT FILE (.md):\n\n${transcriptMd}\n\nPOST URL: ${postUrl}\nIMAGE URL: ${imageUrl}`;
-  const raw = runClaude(prompt, 'devotions', 'claude-opus-4-8');
+  const raw = runClaude(prompt, 'devotions', 'claude-opus-4-8', 'max');
 
   const devotions = [];
   for (const section of raw.split('===DEVOTION===')) {
@@ -423,7 +425,10 @@ function generateDevotions(notes, transcript, slug, imageUrl) {
       devotions.push({ title: titleM[1].trim(), content: contentM[1].trim(), date: devotionDates[idx] ?? devotionDates[6] });
     }
   }
-  if (devotions.length !== 7) warn(`Expected 7 devotions, got ${devotions.length}`);
+  if (devotions.length !== 7) {
+    warn(`Expected 7 devotions, got ${devotions.length} — saving raw output for review`);
+    return [{ title: 'Devotion Set', content: raw, parse_error: true, date: devotionDates[0] }];
+  }
   return devotions;
 }
 
