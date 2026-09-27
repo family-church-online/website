@@ -110,6 +110,8 @@ function buildSermonMdx(job: SermonJob, taxonomy: Taxonomy, block: SermonBlock, 
 
 	lines.push('', '# ── FLAGS ───────────────────────────────────────────────────────');
 	lines.push('review: false');
+	lines.push('transcribedBy: deepgram-nova-2');
+	lines.push(`wordCount: ${job.transcript ? job.transcript.split(/\s+/).filter(Boolean).length : 0}`);
 	lines.push('---', '');
 
 	const title = optimisedTitle.split(' : ')[0].trim();
