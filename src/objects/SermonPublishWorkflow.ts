@@ -442,6 +442,20 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 	async run(event: WorkflowEvent<SermonPublishParams>, step: WorkflowStep): Promise<void> {
 		const { jobId, edits } = event.payload;
 
+		try {
+			await this.publish(jobId, edits, step);
+		} catch (err) {
+			const currentJob = await getJob(jobId).catch(() => null);
+			await patchJob(jobId, {
+				status: 'failed',
+				error: String(err),
+				failedStep: currentJob?.currentStep ?? 'unknown',
+			}).catch(() => {});
+			throw err;
+		}
+	}
+
+	private async publish(jobId: string, edits: SermonPublishParams['edits'], step: WorkflowStep): Promise<void> {
 		// Apply any reviewer edits to the job first
 		if (edits) {
 			const job = await getJob(jobId);
@@ -571,23 +585,31 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 		});
 
 		// ── Step 4: drive ─────────────────────────────────────────────────────────
+		// Non-fatal: sermon is already published. Capture the error in KV but
+		// continue to notify regardless of Drive upload outcome.
 		await step.do('drive', { retries: { limit: 2, delay: '15 seconds', backoff: 'exponential' } }, async () => {
 			await patchJob(jobId, { currentStep: 'drive' });
 			const job = await getJob(jobId);
 			if (!job || !job.taxonomy || !job.sermonBlock) return;
 
-			const token = await getGoogleAccessToken(GOOGLE_SCOPES);
-			const baseName = `${job.metadata.date}-${job.slug}`;
+			try {
+				const token = await getGoogleAccessToken(GOOGLE_SCOPES);
+				const baseName = `${job.metadata.date}-${job.slug}`;
 
-			// Transcript (.md)
-			const transcriptMd = `---\ntitle: "${job.optimisedTitle?.replace(/"/g, "'")}"\ndate: ${job.metadata.date}\nspeaker: "${job.metadata.speaker || ''}"${job.metadata.series ? `\nseries: "${job.metadata.series}"` : ''}\n---\n\n## Transcript\n\n${job.transcript}`;
-			await uploadToDrive(token, `${baseName}-transcript.md`, transcriptMd, 'text/markdown', DRIVE_ENRICHED);
+				// Transcript (.md)
+				const transcriptMd = `---\ntitle: "${job.optimisedTitle?.replace(/"/g, "'")}"\ndate: ${job.metadata.date}\nspeaker: "${job.metadata.speaker || ''}"${job.metadata.series ? `\nseries: "${job.metadata.series}"` : ''}\n---\n\n## Transcript\n\n${job.transcript}`;
+				await uploadToDrive(token, `${baseName}-transcript.md`, transcriptMd, 'text/markdown', DRIVE_ENRICHED);
 
-			// Taxonomy JSON
-			await uploadToDrive(token, `${baseName}-taxonomy.json`, JSON.stringify(job.taxonomy, null, 2), 'application/json', DRIVE_COMP_TAX);
+				// Taxonomy JSON
+				await uploadToDrive(token, `${baseName}-taxonomy.json`, JSON.stringify(job.taxonomy, null, 2), 'application/json', DRIVE_COMP_TAX);
 
-			// Sermon block JSON
-			await uploadToDrive(token, `${baseName}-sermon-block.json`, JSON.stringify(job.sermonBlock, null, 2), 'application/json', DRIVE_SERMON_BLOCK);
+				// Sermon block JSON
+				await uploadToDrive(token, `${baseName}-sermon-block.json`, JSON.stringify(job.sermonBlock, null, 2), 'application/json', DRIVE_SERMON_BLOCK);
+			} catch (err) {
+				// Log the error in KV so it's visible in the admin UI, but don't
+				// throw — sermon is published, Drive is archival.
+				await patchJob(jobId, { error: `Drive upload failed: ${String(err)}` }).catch(() => {});
+			}
 		});
 
 		// ── Step 5: notify ────────────────────────────────────────────────────────
