@@ -148,19 +148,21 @@ const stepLabels: Record<string, string> = {
 							<div class="mt-4">
 								<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Sermon Image</span>
 								{job.metadata.image ? (
-									<div class="mt-2 flex items-start gap-4">
-										<img
-											src={job.metadata.image}
-											alt="Sermon image"
-											class="w-32 h-20 object-cover rounded-lg border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5"
-											onerror="this.style.opacity='0.3';this.nextElementSibling.textContent='⚠ Image not found in GitHub yet — will be committed on publish'"
-										/>
-										<span class="text-xs text-gray-400 self-center hidden"></span>
-										<span class="text-xs font-mono text-gray-500 self-center">{job.metadata.image}</span>
-									</div>
-									{job.imageData && (
-										<p class="mt-1 text-xs text-green-600 dark:text-green-400">✓ Image file included — will be committed to GitHub on publish</p>
-									)}
+									<>
+										<div class="mt-2 flex items-start gap-4">
+											<img
+												src={job.metadata.image}
+												alt="Sermon image"
+												class="w-32 h-20 object-cover rounded-lg border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5"
+												onerror="this.style.opacity='0.3';this.nextElementSibling.textContent='⚠ Image not found in GitHub yet — will be committed on publish'"
+											/>
+											<span class="text-xs text-gray-400 self-center hidden"></span>
+											<span class="text-xs font-mono text-gray-500 self-center">{job.metadata.image}</span>
+										</div>
+										{job.imageData && (
+											<p class="mt-1 text-xs text-green-600 dark:text-green-400">✓ Image file included — will be committed to GitHub on publish</p>
+										)}
+									</>
 								) : (
 									<p class="mt-1 text-sm text-amber-600 dark:text-amber-400">⚠ No image set. Edit sermon-notes/current.mdx and rerun the pipeline to add one.</p>
 								)}
