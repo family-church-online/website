@@ -42,7 +42,7 @@ export const SermonNotesCollection: Collection = {
 			name: 'image',
 			label: 'Sermon Image',
 			type: 'image',
-			ui: { uploadDir: () => '/images/temp' },
+			ui: { uploadDir: () => '/images/tmp' },
 		},
 		{
 			name: 'body',
