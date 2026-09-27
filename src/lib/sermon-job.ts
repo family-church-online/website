@@ -89,6 +89,9 @@ export interface SermonJob {
 	metadata: SermonJobMetadata;
 	transcript: string;
 	tempAudioKey: string;
+	// image file contents (base64) if the file exists locally and may not be in GitHub yet
+	imageData: string | null;
+	imageMimeType: string | null;
 	// populated by SermonProcessWorkflow
 	taxonomy: Taxonomy | null;
 	sermonBlock: SermonBlock | null;

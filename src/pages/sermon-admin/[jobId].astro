@@ -22,6 +22,7 @@ const statusLabels: Record<string, string> = {
 };
 
 const stepLabels: Record<string, string> = {
+	'move-audio': 'Moving audio to permanent storage…',
 	'build-mdx': 'Building MDX files…',
 	commit: 'Committing to GitHub…',
 	calendar: 'Uploading devotions to Google Calendar…',
@@ -134,16 +135,35 @@ const stepLabels: Record<string, string> = {
 										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/10 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--green)] outline-none"
 									/>
 								</label>
-								<label class="block">
-									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Audio URL</span>
-									<input
-										type="text"
-										name="audioUrl"
-										value={job.audioUrl ?? ''}
-										readonly
-										class="mt-1 w-full rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm text-gray-400 font-mono"
-									/>
-								</label>
+								<div class="block">
+									<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Audio</span>
+									<div class="mt-1 rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 px-3 py-2 text-sm font-mono text-gray-500 space-y-0.5">
+										<p class="text-xs text-gray-400">Temp: {job.tempAudioKey}</p>
+										<p class="text-xs text-gray-400 break-all">Permanent: audio.familychurch.online/sermons/{job.metadata.date}-{job.slug}.mp3</p>
+									</div>
+								</div>
+							</div>
+
+							<!-- Image preview -->
+							<div class="mt-4">
+								<span class="text-xs font-semibold uppercase tracking-wider text-[var(--olive)]">Sermon Image</span>
+								{job.metadata.image ? (
+									<div class="mt-2 flex items-start gap-4">
+										<img
+											src={job.metadata.image}
+											alt="Sermon image"
+											class="w-32 h-20 object-cover rounded-lg border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5"
+											onerror="this.style.opacity='0.3';this.nextElementSibling.textContent='⚠ Image not found in GitHub yet — will be committed on publish'"
+										/>
+										<span class="text-xs text-gray-400 self-center hidden"></span>
+										<span class="text-xs font-mono text-gray-500 self-center">{job.metadata.image}</span>
+									</div>
+									{job.imageData && (
+										<p class="mt-1 text-xs text-green-600 dark:text-green-400">✓ Image file included — will be committed to GitHub on publish</p>
+									)}
+								) : (
+									<p class="mt-1 text-sm text-amber-600 dark:text-amber-400">⚠ No image set. Edit sermon-notes/current.mdx and rerun the pipeline to add one.</p>
+								)}
 							</div>
 						</section>
 
@@ -301,6 +321,7 @@ function startPolling() {
 			const statusDot = document.getElementById('status-dot');
 
 			const stepLabels: Record<string, string> = {
+				'move-audio': 'Moving audio to permanent storage…',
 				'build-mdx': 'Building MDX files…',
 				commit: 'Committing to GitHub…',
 				calendar: 'Uploading devotions to Google Calendar…',

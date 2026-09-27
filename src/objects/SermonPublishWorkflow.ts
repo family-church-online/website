@@ -18,6 +18,7 @@ const GITHUB_OWNER = 'family-church-online';
 const GITHUB_REPO  = 'website';
 const GITHUB_BRANCH = 'master';
 const SITE_URL = 'https://familychurch.online';
+const R2_PUBLIC_URL = 'https://audio.familychurch.online';
 
 const DRIVE_ENRICHED     = '1w2ADe6xQ-_0Hz2KvAHbmMTSK_7WNkALO';
 const DRIVE_COMP_TAX     = '19f02nUtBL9xNQaTsECgKvEWkcyefgixy';
@@ -314,7 +315,7 @@ interface GitCommit { sha: string; tree: { sha: string } }
 interface GitTree { sha: string }
 interface GitNewCommit { sha: string }
 
-async function commitFiles(token: string, files: Array<{ path: string; content: string }>, message: string): Promise<string> {
+async function commitFiles(token: string, files: Array<{ path: string; content: string; isBase64?: boolean }>, message: string): Promise<string> {
 	// Get HEAD commit
 	const ref = await githubApi(token, `/git/ref/heads/${GITHUB_BRANCH}`) as GitRef;
 	const headSha = ref.object.sha;
@@ -326,7 +327,8 @@ async function commitFiles(token: string, files: Array<{ path: string; content: 
 	// Create blobs for each file
 	const treeItems = await Promise.all(files.map(async f => {
 		const blob = await githubApi(token, '/git/blobs', 'POST', {
-			content: btoa(unescape(encodeURIComponent(f.content))),
+			// isBase64=true means content is already base64 (binary files like images)
+			content: f.isBase64 ? f.content : btoa(unescape(encodeURIComponent(f.content))),
 			encoding: 'base64',
 		}) as GitBlob;
 		return { path: f.path, mode: '100644', type: 'blob', sha: blob.sha };
@@ -450,11 +452,40 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 				if (edits.taxonomy && job.taxonomy) patch.taxonomy = { ...job.taxonomy, ...edits.taxonomy };
 				if (edits.sermonBlock && job.sermonBlock) patch.sermonBlock = { ...job.sermonBlock, ...edits.sermonBlock };
 				if (edits.devotions) patch.devotions = edits.devotions;
-				await patchJob(jobId, { ...patch, status: 'publishing', currentStep: 'build-mdx' });
+				await patchJob(jobId, { ...patch, status: 'publishing', currentStep: 'move-audio' });
 			}
 		} else {
-			await patchJob(jobId, { status: 'publishing', currentStep: 'build-mdx' });
+			await patchJob(jobId, { status: 'publishing', currentStep: 'move-audio' });
 		}
+
+		// ── Step 0: move-audio ────────────────────────────────────────────────────
+		// Copies temp/{date}.mp3 → sermons/{date}-{slug}.mp3 in R2, then patches the job
+		// with the permanent audioUrl and audioSizeBytes so build-mdx can embed them.
+		// Idempotent: if audioUrl is already set (manually fixed), skips the R2 move.
+		const { audioUrl, audioSizeBytes } = await step.do('move-audio', { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' } }, async () => {
+			const job = await getJob(jobId);
+			if (!job) throw new Error(`Job not found: ${jobId}`);
+
+			if (job.audioUrl && job.audioSizeBytes) {
+				return { audioUrl: job.audioUrl, audioSizeBytes: job.audioSizeBytes };
+			}
+
+			const r2 = this.env.SERMON_AUDIO;
+			const tempKey = job.tempAudioKey;
+			const permanentKey = `sermons/${job.metadata.date}-${job.slug}.mp3`;
+
+			const tempObj = await r2.get(tempKey);
+			if (!tempObj) throw new Error(`Temp audio not found in R2: ${tempKey}`);
+
+			const bytes = await tempObj.arrayBuffer();
+			await r2.put(permanentKey, bytes, { httpMetadata: { contentType: 'audio/mpeg' } });
+			await r2.delete(tempKey);
+
+			const url = `${R2_PUBLIC_URL}/sermons/${job.metadata.date}-${job.slug}.mp3`;
+			const sizeBytes = bytes.byteLength;
+			await patchJob(jobId, { audioUrl: url, audioSizeBytes: sizeBytes, currentStep: 'build-mdx' });
+			return { audioUrl: url, audioSizeBytes: sizeBytes };
+		});
 
 		// ── Step 1: build-mdx ─────────────────────────────────────────────────────
 		const { sermonMdx, sermonPath, devotionFiles } = await step.do('build-mdx', { retries: { limit: 2, delay: '5 seconds', backoff: 'linear' } }, async () => {
@@ -502,12 +533,21 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 				job.taxonomy!.tags ?? [],
 			);
 
-			const files = [
+			const files: Array<{ path: string; content: string; isBase64?: boolean }> = [
 				{ path: sermonPath, content: sermonMdx },
 				...devotionFiles,
 				{ path: 'src/data/sermon-tags.json', content: tagsContent },
 				{ path: 'src/data/related-sermons.json', content: relatedContent },
 			];
+
+			// Commit the image file if the pipeline included it (i.e. it was a local file not yet in GitHub)
+			if (job.imageData && job.imageMimeType && job.metadata.image) {
+				files.push({
+					path: `public${job.metadata.image}`,
+					content: job.imageData,
+					isBase64: true,
+				});
+			}
 
 			const sha = await commitFiles(
 				githubToken,

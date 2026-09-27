@@ -581,6 +581,22 @@ async function main() {
     console.log(`  Series:  ${notes.series  || '(none)'}\n`);
   }
 
+  // 1b. Read image file (if set) so the workflow can commit it to GitHub
+  let imageData = null;
+  let imageMimeType = null;
+  if (notes.image) {
+    const imagePath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
+    if (existsSync(imagePath)) {
+      const ext = (imagePath.split('.').pop() || '').toLowerCase();
+      const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
+      imageMimeType = mimeMap[ext] || 'image/jpeg';
+      imageData = readFileSync(imagePath).toString('base64');
+      log(`Image loaded: ${basename(imagePath)} (${Math.round(imageData.length * 3 / 4 / 1024)} KB)`);
+    } else {
+      warn(`Image not found locally — will NOT be committed to GitHub: ${imagePath}`);
+    }
+  }
+
   // 2. Select Vimeo video
   if (!VIMEO_TOKEN) {
     if (GUI_MODE) zenityError('Configuration Error', 'VIMEO_TOKEN is not set.');
@@ -663,6 +679,8 @@ async function main() {
   const { jobId, reviewUrl } = await postJobToWorker({
     transcript,
     metadata: { title: notes.title, speaker: notes.speaker, series: notes.series, date: notes.date, image: notes.image, vimeoUrl, durationMinutes: durationMins },
+    imageData,
+    imageMimeType,
     taxonomy,
     sermonBlock,
     slug,

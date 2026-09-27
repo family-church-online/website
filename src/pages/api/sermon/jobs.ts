@@ -34,6 +34,8 @@ export const POST: APIRoute = async ({ request }) => {
 		transcript: string;
 		metadata: SermonJobMetadata;
 		tempAudioKey: string;
+		imageData?: string | null;
+		imageMimeType?: string | null;
 		taxonomy: Taxonomy;
 		sermonBlock: SermonBlock;
 		slug: string;
@@ -61,6 +63,8 @@ export const POST: APIRoute = async ({ request }) => {
 		metadata: body.metadata,
 		transcript: body.transcript,
 		tempAudioKey: body.tempAudioKey,
+		imageData: body.imageData ?? null,
+		imageMimeType: body.imageMimeType ?? null,
 		taxonomy: body.taxonomy,
 		sermonBlock: body.sermonBlock,
 		slug: body.slug,
