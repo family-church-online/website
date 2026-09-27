@@ -487,6 +487,274 @@ const DRIVE_FOLDER_ENRICHED     = '1w2ADe6xQ-_0Hz2KvAHbmMTSK_7WNkALO';
 const DRIVE_FOLDER_COMP_TAX     = '19f02nUtBL9xNQaTsECgKvEWkcyefgixy';
 const DRIVE_FOLDER_SERMON_BLOCK = '1rmr23NQsNHYFstSSW2cyB2U2XMBOt39l';
 
+// Mirrors script2_content.py:_h — HTML-escape for safe interpolation
+function _h(text) {
+  return String(text ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Mirrors script2_content.py:_h_json — escapes </ so embedded JSON can't break out of a <script> tag
+function _hJson(obj) {
+  return JSON.stringify(obj).replace(/<\//g, '<\\/');
+}
+
+// Mirrors script2_content.py:_extract_transcript_body
+function extractTranscriptBody(transcriptMd) {
+  const parts = transcriptMd.split('## Transcript');
+  return parts.length > 1 ? parts[1].trim() : transcriptMd.trim();
+}
+
+// Mirrors script2_content.py:_render_transcript_panel
+function renderTranscriptPanel(transcriptMd) {
+  const SPAN_STYLE = 'font-size:0.75em;opacity:0.55;margin-right:0.4em;font-variant-numeric:tabular-nums';
+  const body = extractTranscriptBody(transcriptMd);
+  const parts = body.split(/\n(?=### )/);
+  const sections = [];
+  let idx = 0;
+  for (const part of parts) {
+    if (!part.trim()) continue;
+    const lines = part.trim().split('\n');
+    const heading = lines[0].startsWith('### ') ? lines[0].replace(/^###\s*/, '') : '';
+    const paragraphs = lines.slice(heading ? 1 : 0).join('\n').trim();
+    const chunks = paragraphs.split(/(?=\[\d{2}:\d{2}\])/);
+    const pHtml = [];
+    for (const chunk of chunks) {
+      const trimmed = chunk.trim();
+      if (!trimmed) continue;
+      const m = trimmed.match(/^\[(\d{2}:\d{2})\]\s*([\s\S]*)/);
+      if (!m) continue;
+      const [, ts, text] = m;
+      pHtml.push(`<p><span style="${SPAN_STYLE}">[${ts}]</span> ${_h(text.trim())}</p>`);
+    }
+    const tinted = idx % 2 ? ' sfc-transcript-section--tinted' : '';
+    sections.push(
+      `      <div class="sfc-transcript-section${tinted}">\n` +
+      `        <div class="sfc-col-label">${_h(heading)}</div>\n` +
+      pHtml.map(p => `        ${p}`).join('\n') +
+      '\n      </div>'
+    );
+    idx++;
+  }
+  return sections.join('\n\n');
+}
+
+// Mirrors script2_content.py:build_sermon_block_html
+function buildSermonBlockHtml(content, taxonomy, sermon, transcriptMd) {
+  const title      = sermon.title || '';
+  const speaker    = sermon.speaker || '';
+  const series     = taxonomy.series || sermon.series || '';
+  const scripture  = taxonomy.sermon_scripture || '';
+  const translation = scripture ? scripture.split(' ').pop() : '';
+  const dateStr    = sermon.date || '';
+  let dateFmt = dateStr;
+  try {
+    const d = new Date(dateStr + 'T00:00:00');
+    dateFmt = d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch {}
+  const duration = sermon.durationMinutes ?? sermon.duration_minutes;
+  const durationStr = duration ? `${Math.round(duration)} min` : '';
+  const audioUrl = sermon.audioUrl || sermon.r2_audio_url || sermon.audio_url || '';
+  const vimeoUrl = sermon.vimeoUrl || sermon.vimeo_url || '';
+  const dlName = `${title}-${speaker}`.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  const warnings = [];
+  if (!audioUrl) warnings.push('<!-- WARNING: audio_url missing from sermon frontmatter -->');
+  if (!vimeoUrl) warnings.push('<!-- WARNING: vimeo_url missing from sermon frontmatter -->');
+
+  const li = items => (items || []).map(i => `          <li>${_h(i)}</li>`).join('\n');
+
+  const scriptureEntries = (content.additionalScriptures || []).map(s =>
+    `      <div class="sfc-scripture-entry">\n` +
+    `        <span class="sfc-ref">${_h(s.ref || '')}</span>\n` +
+    `        <span class="sfc-theme">${_h(s.theme || '')}</span>\n` +
+    `      </div>`
+  ).join('\n      <span class="sfc-sep">·</span>\n');
+
+  const mainPointsHtml = (content.mainPoints || []).map(mp =>
+    `          <li><strong>${_h(mp.title || '')}</strong> ${_h(mp.body || '')}</li>`
+  ).join('\n');
+
+  const illustrationBlock = content.keyIllustration ? `
+      <div class="sfc-notes-section sfc-notes-section--tinted">
+        <div class="sfc-col-label">Key Illustration</div>
+        <p>${_h(content.keyIllustration)}</p>
+      </div>
+` : '';
+
+  return `<!--
+SERMON DESCRIPTION
+==================
+
+SHORT DESCRIPTION (145-160 characters)
+${scripture} · ${series} · ${durationStr}
+${content.shortDescription || ''}
+
+TAG LINE (10-18 words)
+${content.tagLine || ''}
+-->
+${warnings.join('\n')}
+<div class="sfc">
+  <script type="application/json" id="sfc-data">${_hJson(content)}</script>
+
+  <!-- ── TAB BAR ── -->
+  <div class="sfc-tabbar">
+    <button class="sfc-tab sfc-tab--active" data-tab="about">About</button>
+    <button class="sfc-tab" data-tab="notes">Sermon Notes</button>
+    <button class="sfc-tab" data-tab="transcript">Transcript</button>
+  </div>
+
+  <!-- ── ABOUT PANEL ── -->
+  <div class="sfc-panel sfc-panel--active" data-panel="about">
+
+    <div class="sfc-meta-strip">
+      <span>
+        <span class="sfc-primary-ref">${_h(scripture)}</span>
+        <span class="sfc-primary-theme">${_h(content.primaryTheme || '')}</span>
+      </span>
+      <span class="sfc-duration">${_h(series)} &nbsp;·&nbsp; ${_h(dateFmt)} &nbsp;·&nbsp; ${_h(durationStr)} &nbsp;·&nbsp; ${_h(translation)}</span>
+    </div>
+
+    <div class="sfc-subtitle">
+      <p>${_h(content.subtitle || '')}</p>
+      <div class="sfc-pills">
+        <span class="sfc-pill">${_h(content.style || '')}</span>
+        <span class="sfc-pill">${_h(content.level || '')}</span>
+      </div>
+    </div>
+
+    <div class="sfc-grid">
+      <div class="sfc-col">
+        <div class="sfc-col-label">What this is about</div>
+        <p class="sfc-hook">${_h(content.hook || '')}</p>
+      </div>
+      <div class="sfc-col">
+        <div class="sfc-col-label">What you'll take away</div>
+        <ul class="sfc-tags">
+${li(content.takeaways)}
+        </ul>
+      </div>
+      <div class="sfc-col">
+        <div class="sfc-col-label">This is for you if</div>
+        <ul class="sfc-audience">
+${li(content.audience)}
+        </ul>
+      </div>
+    </div>
+
+    <div class="sfc-scripture">
+      <span class="sfc-label">Also</span>
+      ${scriptureEntries}
+    </div>
+
+  </div>
+
+  <!-- ── NOTES PANEL ── -->
+  <div class="sfc-panel" data-panel="notes">
+    <div class="sfc-notes">
+
+      <div class="sfc-notes-section">
+        <div class="sfc-col-label">The Big Idea</div>
+        <p>${_h(content.bigIdea || '')}</p>
+      </div>
+
+      <div class="sfc-notes-section sfc-notes-section--tinted">
+        <div class="sfc-col-label">Key Scripture</div>
+        <blockquote class="sfc-notes-quote">
+          <p>${_h(content.keyScriptureText || '')}</p>
+          <cite>${_h(content.keyScriptureRef || '')}</cite>
+        </blockquote>
+      </div>
+
+      <div class="sfc-notes-section">
+        <div class="sfc-col-label">Main Points</div>
+        <ol class="sfc-notes-list">
+${mainPointsHtml}
+        </ol>
+      </div>
+${illustrationBlock}
+      <div class="sfc-notes-section">
+        <div class="sfc-col-label">What This Means for Us</div>
+        <ul class="sfc-notes-apply">
+${li(content.application)}
+        </ul>
+      </div>
+
+      <div class="sfc-notes-section sfc-notes-section--tinted">
+        <div class="sfc-col-label">To Remember</div>
+        <p class="sfc-notes-closing">${_h(content.toRemember || '')}</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── TRANSCRIPT PANEL ── -->
+  <div class="sfc-panel" data-panel="transcript">
+    <div class="sfc-notes">
+${renderTranscriptPanel(transcriptMd)}
+    </div>
+  </div>
+
+  <!-- ── AUDIO ── -->
+  <div class="sfc-audio-wrap">
+    <div class="sfc-audio-header">
+      <span class="sfc-label">Audio</span>
+      <span style="font-family:Arial,sans-serif;font-size:8.5pt;color:#2B4A6B;font-weight:700;">${_h(speaker)}</span>
+    </div>
+    <div class="sfc-audio-body">
+      <audio controls preload="none">
+        <source src="${_h(audioUrl)}" type="audio/mpeg">
+      </audio>
+      <a class="sfc-download" href="${_h(audioUrl)}" download="${_h(dlName)}.mp3">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 1v7M3 5.5l3 3 3-3M1 10h10" stroke="#2B4A6B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        MP3
+      </a>
+    </div>
+  </div>
+
+  <!-- ── VIDEO ── -->
+  <div class="sfc-video-wrap">
+    <div class="sfc-video-header">
+      <span class="sfc-label">Video</span>
+    </div>
+    <div class="sfc-video-ratio">
+      <iframe src="${_h(vimeoUrl)}"
+        frameborder="0"
+        allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+        title="${_h(title)} — ${_h(speaker)}">
+      </iframe>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <div class="sfc-footer">
+    <span class="sfc-name">Family Church</span>
+    <div class="sfc-dots">
+      <span class="sfc-dot" style="background:#C0392B;"></span>
+      <span class="sfc-dot" style="background:#5B8A2D;"></span>
+      <span class="sfc-dot" style="background:#8B7355;"></span>
+    </div>
+  </div>
+
+</div>
+<script src="https://player.vimeo.com/api/player.js"></script>
+<script>
+(function(){
+  var tabs=document.querySelectorAll('.sfc-tab');
+  tabs.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var target=btn.dataset.tab;
+      tabs.forEach(function(t){t.classList.remove('sfc-tab--active');});
+      document.querySelectorAll('.sfc-panel').forEach(function(p){p.classList.remove('sfc-panel--active');});
+      btn.classList.add('sfc-tab--active');
+      document.querySelector('.sfc-panel[data-panel="'+target+'"]').classList.add('sfc-panel--active');
+    });
+  });
+})();
+</script>`;
+}
+
 async function uploadFileToDrive(driveService, name, content, mimeType, folderId) {
   const { Readable } = await import('node:stream');
   const { data: list } = await driveService.files.list({
@@ -507,14 +775,27 @@ async function uploadFileToDrive(driveService, name, content, mimeType, folderId
 async function uploadSermonToDrive(auth, baseName, transcript, taxonomy, sermonBlock, metadata) {
   if (!auth) { warn('Drive upload skipped — no Google auth'); return; }
   const driveService = google.drive({ version: 'v3', auth });
-  const title = metadata.optimisedTitle?.replace(/"/g, "'") ?? '';
+
+  const title = (metadata.optimisedTitle || '').replace(/"/g, "'");
   const transcriptMd =
     `---\ntitle: "${title}"\ndate: ${metadata.date}\nspeaker: "${metadata.speaker || ''}"` +
     (metadata.series ? `\nseries: "${metadata.series}"` : '') +
     `\n---\n\n## Transcript\n\n${transcript}`;
+
+  const sermon = {
+    title: metadata.optimisedTitle || '',
+    speaker: metadata.speaker || '',
+    series: metadata.series || '',
+    date: metadata.date,
+    durationMinutes: metadata.durationMinutes,
+    audioUrl: metadata.audioUrl || '',
+    vimeoUrl: metadata.vimeoUrl || '',
+  };
+  const blockHtml = buildSermonBlockHtml(sermonBlock, taxonomy, sermon, transcriptMd);
+
   await uploadFileToDrive(driveService, `${baseName}-transcript.md`, transcriptMd, 'text/markdown', DRIVE_FOLDER_ENRICHED);
   await uploadFileToDrive(driveService, `${baseName}-taxonomy.json`, JSON.stringify(taxonomy, null, 2), 'application/json', DRIVE_FOLDER_COMP_TAX);
-  await uploadFileToDrive(driveService, `${baseName}-sermon-block.json`, JSON.stringify(sermonBlock, null, 2), 'application/json', DRIVE_FOLDER_SERMON_BLOCK);
+  await uploadFileToDrive(driveService, `${baseName}.html`, blockHtml, 'text/html', DRIVE_FOLDER_SERMON_BLOCK);
   log('Drive upload complete');
 }
 
@@ -753,6 +1034,9 @@ async function main() {
       date: notes.date,
       speaker: notes.speaker,
       series: notes.series,
+      vimeoUrl,
+      durationMinutes: durationMins,
+      // audioUrl not yet known (temp key only); Drive file will show a warning comment
     });
   } catch (err) {
     warn(`Drive upload failed (non-fatal): ${err.message}`);
