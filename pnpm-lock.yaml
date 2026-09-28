@@ -141,6 +141,9 @@ importers:
       puppeteer:
         specifier: ^23.11.1
         version: 23.11.1(supports-color@10.2.2)(typescript@6.0.3)
+      voyageai:
+        specifier: ^0.4.0
+        version: 0.4.0
 
 packages:
 
@@ -8922,6 +8925,18 @@ packages:
       '@volar/language-service': ~2.4.0
     peerDependenciesMeta:
       '@volar/language-service':
+        optional: true
+
+  voyageai@0.4.0:
+    resolution: {integrity: sha512-RCWGknFqwbZORdRo7dHwBuZYeO64TnE+G30Qv4IGxq5jkMa2uK+eqMbOv/DhszcFUtE1iZjb4LqO9G/hj2EjxA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@huggingface/transformers': ^3.8.0
+      onnxruntime-node: '>=1.17.0'
+    peerDependenciesMeta:
+      '@huggingface/transformers':
+        optional: true
+      onnxruntime-node:
         optional: true
 
   vscode-css-languageservice@6.3.10:
@@ -19661,6 +19676,12 @@ snapshots:
       yaml-language-server: 1.23.0
     optionalDependencies:
       '@volar/language-service': 2.4.28(typescript@6.0.3)
+
+  voyageai@0.4.0:
+    dependencies:
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
 
   vscode-css-languageservice@6.3.10:
     dependencies:

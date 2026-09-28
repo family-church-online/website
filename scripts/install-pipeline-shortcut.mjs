@@ -8,6 +8,7 @@ import { homedir } from 'os';
 
 const __dirname  = dirname(fileURLToPath(import.meta.url));
 const launchSh   = join(__dirname, '..', 'sermon-pipeline', 'launch.sh');
+const iconPath   = join(__dirname, '..', 'sermon-pipeline', 'pipeline.png');
 const desktopDir = join(homedir(), 'Desktop');
 const outFile    = join(desktopDir, 'Sermon Pipeline.desktop');
 
@@ -19,7 +20,7 @@ Type=Application
 Name=Sermon Pipeline
 Comment=Process and publish Sunday sermon
 Exec=${launchSh}
-Icon=media-record
+Icon=${iconPath}
 Terminal=false
 Categories=AudioVideo;
 `;
