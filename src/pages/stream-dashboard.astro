@@ -191,7 +191,6 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 
 		const recent: Record<string, number> = {};
 		const lastTs: Record<string, number> = {};
-		let hasSynced = false;
 
 		function slug(s: string) { return s.replace(/\s+/g, '-'); }
 
@@ -241,19 +240,6 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 			if (changed) tick();
 		}
 
-		// One-time fallback fetch: covers the case where the DO hibernated and
-		// has no SQLite state yet. Only applied if the WS sync hasn't arrived first.
-		async function loadInitial() {
-			try {
-				const res  = await fetch('/api/stream-reports');
-				const data = await res.json() as { recent: Record<string, number> };
-				if (!hasSynced) {
-					BUTTONS.forEach(b => { recent[b] = data.recent[b] ?? 0; });
-					tick();
-				}
-			} catch { /* ignore — WS sync will cover it */ }
-		}
-
 		function connectWS() {
 			const dot   = document.getElementById('ws-dot')!;
 			const label = document.getElementById('ws-label')!;
@@ -277,8 +263,6 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 						lastTimestamps?: Record<string, string>;
 					};
 					if (msg.type === 'sync') {
-						// Authoritative state from DO on connect
-						hasSynced = true;
 						applySync(msg.counts ?? {}, msg.lastTimestamps);
 					} else if (msg.type === 'report') {
 						if (msg.counts) {
@@ -308,7 +292,6 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 		setInterval(tick, 30_000);           // refresh "X min ago" labels
 		setInterval(expireOldCounts, 5 * 60_000); // client-side expiry, no KV
 
-		loadInitial();  // one-time fetch in case DO has no memory
 		connectWS();
 	</script>
 </body>
