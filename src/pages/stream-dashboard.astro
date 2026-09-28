@@ -191,6 +191,7 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 
 		const recent: Record<string, number> = {};
 		const lastTs: Record<string, number> = {};
+		let hasSynced = false;
 
 		function slug(s: string) { return s.replace(/\s+/g, '-'); }
 
@@ -241,13 +242,15 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 		}
 
 		// One-time fallback fetch: covers the case where the DO hibernated and
-		// lost its in-memory state before the WebSocket connected.
+		// has no SQLite state yet. Only applied if the WS sync hasn't arrived first.
 		async function loadInitial() {
 			try {
 				const res  = await fetch('/api/stream-reports');
 				const data = await res.json() as { recent: Record<string, number> };
-				BUTTONS.forEach(b => { recent[b] = data.recent[b] ?? 0; });
-				tick();
+				if (!hasSynced) {
+					BUTTONS.forEach(b => { recent[b] = data.recent[b] ?? 0; });
+					tick();
+				}
 			} catch { /* ignore — WS sync will cover it */ }
 		}
 
@@ -275,6 +278,7 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 					};
 					if (msg.type === 'sync') {
 						// Authoritative state from DO on connect
+						hasSynced = true;
 						applySync(msg.counts ?? {}, msg.lastTimestamps);
 					} else if (msg.type === 'report') {
 						if (msg.counts) {
