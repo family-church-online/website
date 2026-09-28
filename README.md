@@ -9,8 +9,8 @@ The public website for [Family Church, Fourways](https://familychurch.online). B
 - **Sveltia CMS** — lightweight git CMS at `/edit/` for structured content
 - **Tailwind CSS v4** — utility styling with CSS custom property brand tokens
 - **Cloudflare Workers** — hosting, on-demand routes, Durable Objects
-- **Cloudflare KV** — lesson progress, stream problem reports
-- **Cloudflare Durable Objects** — WebSocket hub for live stream dashboard
+- **Cloudflare KV** — lesson progress (course completions), sermon pipeline jobs
+- **Cloudflare Durable Objects** — WebSocket hub + SQLite persistence for live stream dashboard
 
 ## Getting started
 
@@ -23,6 +23,29 @@ pnpm dev               # Astro + TinaCMS dev server → http://localhost:4321
                        # TinaCMS admin → /admin/
                        # Sveltia CMS   → /edit/  (GitHub OAuth, needs deploy)
 ```
+
+### What works without credentials
+
+```sh
+pnpm build:local        # full static build — all content, no TinaCloud required
+pnpm preview            # serve the built site
+pnpm astro check        # TypeScript type-checking
+pnpm pipeline:shortcut  # install the sermon pipeline desktop shortcut
+```
+
+Everything else requires credentials. The table below shows what each variable unlocks:
+
+| Credential(s) | Unlocks |
+|--------------|---------|
+| `PUBLIC_TINA_CLIENT_ID` + `TINA_TOKEN` | `pnpm dev` with working /admin/, `pnpm build` (production) |
+| `PCO_APP_TOKEN` + `PCO_APP_SECRET` + `SESSION_SECRET` + `RESEND_API_KEY` | Magic-link auth, course access, `/course-admin`, `/cf-status` |
+| `VIMEO_TOKEN` | Live stream status widget, sermon pipeline video selection |
+| `VIMEO_TOKEN` + `DEEPGRAM_API_KEY` + `SERMON_PIPELINE_SECRET` + R2 vars + **Claude Code CLI (`claude`)** | Sermon pipeline CLI (`node sermon-pipeline/pipeline.mjs`) |
+| `GITHUB_TOKEN` + `GOOGLE_SERVICE_ACCOUNT` + `SERMON_NOTIFY_EMAIL` | Sermon publish workflow (Worker side — commits MDX, posts calendar events, Drive uploads) |
+| Cloudflare account + `wrangler login` | `wrangler deploy` |
+| `VOYAGE_API_KEY` + `DATABASE_URL` | AI search (optional — silently skipped if absent) |
+
+The sermon pipeline requires the [Claude Code CLI](https://claude.ai/code) to be installed and authenticated on the machine — it calls `claude -p` for all AI steps (transcript cleaning, taxonomy, devotions). No `ANTHROPIC_API_KEY` is needed; it uses the logged-in Claude subscription.
 
 ### Environment variables
 
@@ -100,7 +123,7 @@ New sermons are published via `sermon-pipeline/` — a local CLI that runs on Su
 **AV crew (GUI):**
 ```sh
 sermon-pipeline/launch.sh     # or double-click the desktop shortcut
-pnpm pipeline:shortcut        # install the desktop shortcut (once per machine)
+pnpm pipeline:shortcut        # install the desktop shortcut (once per machine — uses pipeline.png as icon)
 ```
 
 **Developer (terminal):**
@@ -108,7 +131,11 @@ pnpm pipeline:shortcut        # install the desktop shortcut (once per machine)
 node sermon-pipeline/pipeline.mjs
 ```
 
-The pipeline: reads `sermon-notes/current.mdx` → selects Vimeo video → downloads + converts → Deepgram transcription → Claude (clean transcript, taxonomy, sermon block, slug, 7 devotions) → reading plans from Google Calendar → uploads MP3 to R2 temp → POSTs job to Cloudflare Worker → prints review URL.
+The pipeline: reads `sermon-notes/current.mdx` → selects Vimeo video → downloads + converts to MP3 (MP4 cleaned up immediately) → Deepgram transcription (with retry) → Claude (clean transcript, taxonomy, sermon block, slug, 7 devotions) → reading plans from Google Calendar → generates a stable `guid` for the podcast feed → optional search ingestion (Voyage AI embeddings → Neon pgvector) → uploads MP3 to R2 temp → POSTs job to Cloudflare Worker → prints review URL.
+
+**Session resume**: if the pipeline is interrupted after an expensive step (download, transcription, AI), restarting on the same day offers to resume from the last completed checkpoint rather than starting over.
+
+**Sermon images** are extracted as JPEG (Apple Podcasts rejects WebP). Each sermon gets a stable UUID `guid` in its MDX — required by Spotify and Apple Podcasts to track episodes across feed updates.
 
 The reviewer visits `/sermon-admin/[jobId]`, edits content if needed, and approves. `SermonPublishWorkflow` then commits sermon MDX + 7 devotion MDX files + updated `related-sermons.json` + `sermon-tags.json` to GitHub in one atomic commit, posts devotions to Google Calendar, and uploads files to Drive.
 
@@ -176,8 +203,7 @@ These routes run as Worker handlers — everything else is pre-rendered static H
 | `/api/auth/logout` | Clears session cookie |
 | `/api/courses/progress` | Reads/writes lesson progress to Cloudflare KV |
 | `/api/stream-status` | Live stream check — Icecast + Vimeo in parallel. Vimeo uses `api.vimeo.com` only (`vimeo.com/*` is blocked from CF Workers). Checks `embed.badges.live.streaming`. |
-| `/api/stream-report` | POST — writes a stream problem report to KV + notifies dashboard via DO |
-| `/api/stream-reports` | GET — returns report counts and recent (last 60 min) totals |
+| `/api/stream-report` | POST — notifies `StreamMonitor` DO; DO stores report in SQLite and broadcasts to dashboard |
 | `/api/stream-ws` | WebSocket upgrade proxy — forwards to `StreamMonitor` Durable Object |
 | `/stream-dashboard` | Live stream problem dashboard (obscure URL, no auth) |
 | `/courses/` | Course listing — reads KV for member progress |
@@ -205,16 +231,11 @@ The three-way gate used in both static components:
 
 When a live stream is active, a "Report a Problem" widget appears on the `/video` page with five icon+label tappable items: No Sound, Low Volume, Sound Quality, No Picture, Picture Quality. The widget description text is editable via TinaCMS and Sveltia (`reportDescription` field on the Live Stream block).
 
-- Reports are stored in the **`STREAM_REPORTS`** KV namespace with the button label, timestamp, and IP (7-day TTL).
-- Each report also notifies the **`StreamMonitor`** Durable Object via `/notify`. The DO stores reports in memory (pruned to a 60-min window) and broadcasts authoritative counts to all connected WebSocket clients.
-- The dashboard at `/stream-dashboard` shows one tile per category with the count of reports in the last 60 minutes — green when none, red when active. It is driven entirely by WebSocket: on connect the DO sends a `sync` message with current counts; on each new report the DO broadcasts updated counts. A client-side timer expires stale counts every 5 minutes with no network calls. The dashboard does **not** poll the server. It is responsive for narrow OBS custom dock windows (~300px).
+- Each report POSTs to `/api/stream-report` with the button label. The Worker captures the reporter's city via Cloudflare's built-in geolocation (`request.cf.city`) and notifies the **`StreamMonitor`** Durable Object.
+- The DO stores reports in **SQLite** (`state.storage`) — pruned to a 60-min window. SQLite survives hibernation, so the DO always has correct state on wake.
+- The dashboard at `/stream-dashboard` is driven entirely by WebSocket — no KV reads. On connect the DO sends a `{type:'sync', counts, lastTimestamps, lastCities}` message; on each new report it broadcasts updated counts. Tiles show the count and the most recent reporter's city + time (e.g. "Cape Town · 2m ago"). A client-side timer expires stale counts every 5 minutes with no network calls. Responsive for narrow OBS custom dock windows (~300px).
 
 ### Cloudflare setup (once)
-
-```sh
-wrangler kv namespace create STREAM_REPORTS           # paste ID into wrangler.jsonc
-wrangler kv namespace create STREAM_REPORTS --preview # paste preview_id into wrangler.jsonc
-```
 
 The `StreamMonitor` Durable Object class is exported via a post-build `worker-entry.js` wrapper generated by `scripts/bundle-do.mjs`. The DO bindings and migrations are injected into `dist/server/wrangler.json` by `scripts/patch-wrangler.mjs` (kept out of `wrangler.jsonc` to avoid Miniflare errors during the Vite build phase).
 

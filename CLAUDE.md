@@ -30,9 +30,13 @@ node sermon-pipeline/pipeline.mjs
 pnpm pipeline:shortcut
 ```
 
-The pipeline: reads `sermon-notes/current.mdx` → selects Vimeo video → downloads + converts to MP3 → Deepgram transcription → Claude (clean, taxonomy, sermon block, slug, devotions) → reading plans from Google Calendar → uploads audio to R2 temp → POSTs job to Cloudflare Worker → prints review URL.
+The pipeline: reads `sermon-notes/current.mdx` → selects Vimeo video → downloads + converts to MP3 (MP4 deleted immediately) → Deepgram transcription → Claude (clean, taxonomy, sermon block, slug, devotions) → reading plans from Google Calendar → generates stable UUID `guid` for podcast feed → optional search ingestion (Voyage AI + Neon pgvector, skipped if vars absent) → uploads audio to R2 temp → POSTs job to Cloudflare Worker → prints review URL.
 
-The Worker stores the job in `SERMON_JOBS` KV (status `review`) and emails `SERMON_NOTIFY_EMAIL`. Reviewer visits `/sermon-admin/[jobId]`, edits if needed, and approves. Approval triggers `SermonPublishWorkflow` which commits sermon MDX + 7 devotion MDX files + updated `related-sermons.json` + `sermon-tags.json` to GitHub in one atomic commit, posts devotions to Google Calendar, and uploads transcript/taxonomy/sermon-block to Drive.
+**Session resume**: the pipeline saves a checkpoint (`sermon-pipeline/session/current.json`) after every expensive step. If interrupted and restarted on the same day, it offers to resume from the last completed step. Session is deleted on successful Worker POST.
+
+**Reliability**: Vimeo download retries up to 5× with exponential backoff (30s→300s). Deepgram transcription retries up to 5× on 429/5xx. Sermon image extracted as JPEG (`-q:v 2`) — Apple Podcasts rejects WebP. Each sermon gets a `guid` UUID in its MDX frontmatter; Spotify and Apple Podcasts require stable non-empty guids to track episodes.
+
+The Worker stores the job in `SERMON_JOBS` KV (status `review`, 30-day TTL) and emails `SERMON_NOTIFY_EMAIL`. Reviewer visits `/sermon-admin/[jobId]`, edits if needed, and approves. Approval triggers `SermonPublishWorkflow` which commits sermon MDX + 7 devotion MDX files + updated `related-sermons.json` + `sermon-tags.json` to GitHub in one atomic commit, posts devotions to Google Calendar, and uploads transcript/taxonomy/sermon-block to Drive.
 
 Worker secrets required: `SERMON_PIPELINE_SECRET`, `SERMON_NOTIFY_EMAIL`, `GITHUB_TOKEN`, `GOOGLE_SERVICE_ACCOUNT`, `RESEND_API_KEY`.
 
@@ -152,12 +156,9 @@ Pages use a composable block system. Each block type has two files:
 
 ### Stream reporting
 
-`src/components/blocks/LiveStream.astro` shows a "Report a Problem" widget when the stream is live (detected via `/api/stream-status`). Clicking a button POSTs to `/api/stream-report`, which:
+`src/components/blocks/LiveStream.astro` shows a "Report a Problem" widget when the stream is live (detected via `/api/stream-status`). Clicking a button POSTs to `/api/stream-report`, which captures the reporter's city via `request.cf.city` (Cloudflare free geolocation) and notifies the `StreamMonitor` DO via `POST /notify`. There is no KV write — the DO is the sole store.
 
-1. Writes `{ button, ip, timestamp }` to the `STREAM_REPORTS` KV namespace with a 7-day TTL
-2. Notifies the `StreamMonitor` Durable Object via `POST /notify`
-
-The DO broadcasts the report to all connected WebSocket clients (the dashboard). The dashboard at `/stream-dashboard` opens a WebSocket to `/api/stream-ws` and updates tiles in real time.
+The DO persists reports to SQLite (`state.storage.put('reports', ...)`) so state survives hibernation. It prunes to a 60-min window, then broadcasts `{ ...report, counts }` to all connected WebSocket clients. The dashboard at `/stream-dashboard` opens a WebSocket to `/api/stream-ws`; on connect the DO sends `{type:'sync', counts, lastTimestamps, lastCities}`. Tiles show count + "City · Xm ago".
 
 **Durable Object deployment**: The `StreamMonitor` class (`src/objects/StreamMonitor.ts`) is not in the Astro source tree — it is bundled post-build by `scripts/bundle-do.mjs` into `dist/server/StreamMonitor.js`. A thin `dist/server/worker-entry.js` re-exports both the Astro server handler and `StreamMonitor` as a named export. `scripts/patch-wrangler.mjs` injects the DO binding and migration into `dist/server/wrangler.json` (kept out of `wrangler.jsonc` so Miniflare doesn't try to resolve the class during the Vite build phase).
 
@@ -188,7 +189,7 @@ Dark mode is controlled by the `.dark` class on `<html>` (set by `ThemeToggle.as
 - **Sermon `review: true`** — Sermons with `review: true` in their frontmatter are excluded from the listing page. Use this flag to stage content before going live.
 - **Icons** — `src/components/Icon.astro` is a hand-rolled component with inline Phosphor SVG paths (256×256 viewBox, `fill="currentColor"`). There is no npm icon package at runtime. To add an icon: find the Phosphor Regular SVG path at `github.com/phosphor-icons/core/tree/main/assets/regular`, add it to the `paths` map and `IconName` union in `Icon.astro`.
 - **Cloudflare KV access** — use `import { env } from 'cloudflare:workers'` with a try/catch wrapper (see existing API routes for the pattern). Never access KV via `Astro.locals` or `process.env`.
-- **Stream report widget** — five icon+label tappable items (not buttons) in `LiveStream.astro`. The description text is CMS-editable via the `reportDescription` field on the Live Stream block. The dashboard is driven entirely by the WebSocket connection to `StreamMonitor` — no KV reads at all. The DO persists reports to SQLite (`state.storage`) so the `sync` message on connect is correct even after hibernation. The DO prunes reports to a 60-min window, sends `{type:'sync', counts, lastTimestamps}` on connect, and bundles authoritative counts into every broadcast. A client-side `setInterval` expires stale counts every 5 minutes with no network calls. `GET /api/stream-reports` exists as a diagnostic endpoint only — the dashboard does not call it.
+- **Stream report widget** — five icon+label tappable items (not buttons) in `LiveStream.astro`. The description text is CMS-editable via the `reportDescription` field on the Live Stream block. The dashboard is driven entirely by the WebSocket connection to `StreamMonitor` — no KV reads at all. The DO persists reports to SQLite (`state.storage`) so the `sync` message on connect is correct even after hibernation. The DO prunes reports to a 60-min window, sends `{type:'sync', counts, lastTimestamps, lastCities}` on connect (where `lastCities` is a `Record<string, string>` of the most recent reporter's city per button from Cloudflare geolocation), and bundles authoritative counts into every broadcast. A client-side `setInterval` expires stale counts every 5 minutes with no network calls.
 - **DO bindings in `patch-wrangler.mjs` not `wrangler.jsonc`** — DO bindings must not be in `wrangler.jsonc` or Miniflare will try to resolve the class during the Vite build phase and fail. Always add them in `patch-wrangler.mjs` instead.
 - **Admin pages** — `/course-admin` and `/cf-status` are SSR pages gated to the PCO list ID stored in `config.auth.adminListId` (editable via TinaCMS Global Config → Member Access). Both are `noindex`. The `adminListId` is included in `allTrackedIds` at login time in `src/pages/api/auth/login.ts` so it is baked into the session cookie. `CF_ACCOUNT_ID` and `CF_API_TOKEN` are optional Worker vars that unlock the Cloudflare Analytics API on `cf-status`; without them the page shows key counts only.
 - **Sermon notes drawer mobile fix** — the drawer in `LiveStream.astro` uses `translate-x-full` to hide off-screen. On mobile WebKit, translated `fixed` elements bypass `overflow-x: hidden` on `html`/`body` and create horizontal scroll. The fix is a `fixed inset-0 overflow-hidden pointer-events-none` wrapper div that clips the drawer while allowing the slide animation to work.
