@@ -2,7 +2,17 @@ export class StreamMonitor {
 	private sessions = new Set<WebSocket>();
 	private reports: Array<{ button: string; timestamp: string }> = [];
 
-	constructor(private state: DurableObjectState) {}
+	constructor(private state: DurableObjectState) {
+		// Restore reports after hibernation so the sync message on WS connect
+		// reflects real history instead of wiping the dashboard blank.
+		this.state.blockConcurrencyWhile(async () => {
+			const stored = await this.state.storage.get<Array<{ button: string; timestamp: string }>>('reports');
+			if (stored) {
+				this.reports = stored;
+				this.pruneReports();
+			}
+		});
+	}
 
 	private pruneReports() {
 		const cutoff = Date.now() - 60 * 60 * 1000;
@@ -60,6 +70,7 @@ export class StreamMonitor {
 			if (data.button && data.timestamp) {
 				this.reports.push({ button: data.button, timestamp: data.timestamp });
 				this.pruneReports();
+				await this.state.storage.put('reports', this.reports);
 			}
 
 			// Include authoritative counts so the dashboard never needs to poll KV
