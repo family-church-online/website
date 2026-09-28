@@ -1,12 +1,12 @@
 export class StreamMonitor {
 	private sessions = new Set<WebSocket>();
-	private reports: Array<{ button: string; timestamp: string }> = [];
+	private reports: Array<{ button: string; timestamp: string; city?: string | null }> = [];
 
 	constructor(private state: DurableObjectState) {
 		// Restore reports after hibernation so the sync message on WS connect
 		// reflects real history instead of wiping the dashboard blank.
 		this.state.blockConcurrencyWhile(async () => {
-			const stored = await this.state.storage.get<Array<{ button: string; timestamp: string }>>('reports');
+			const stored = await this.state.storage.get<Array<{ button: string; timestamp: string; city?: string | null }>>('reports');
 			if (stored) {
 				this.reports = stored;
 				this.pruneReports();
@@ -37,6 +37,18 @@ export class StreamMonitor {
 		return latest;
 	}
 
+	private latestCities(): Record<string, string> {
+		const seen: Record<string, string> = {};
+		const cities: Record<string, string> = {};
+		for (const r of this.reports) {
+			if (!seen[r.button] || r.timestamp > seen[r.button]) {
+				seen[r.button] = r.timestamp;
+				if (r.city) cities[r.button] = r.city;
+			}
+		}
+		return cities;
+	}
+
 	async fetch(request: Request): Promise<Response> {
 		const url = new URL(request.url);
 
@@ -58,6 +70,7 @@ export class StreamMonitor {
 					type: 'sync',
 					counts: this.currentCounts(),
 					lastTimestamps: this.latestTimestamps(),
+					lastCities: this.latestCities(),
 				}));
 			} catch { /* ignore */ }
 
@@ -65,15 +78,15 @@ export class StreamMonitor {
 		}
 
 		if (url.pathname.endsWith('/notify') && request.method === 'POST') {
-			const data = await request.json() as { type?: string; button?: string; timestamp?: string };
+			const data = await request.json() as { type?: string; button?: string; timestamp?: string; city?: string | null };
 
 			if (data.button && data.timestamp) {
-				this.reports.push({ button: data.button, timestamp: data.timestamp });
+				this.reports.push({ button: data.button, timestamp: data.timestamp, city: data.city });
 				this.pruneReports();
 				await this.state.storage.put('reports', this.reports);
 			}
 
-			// Include authoritative counts so the dashboard never needs to poll KV
+			// Include authoritative counts and the reporter's city so the dashboard stays accurate
 			this.broadcast({ ...data, counts: this.currentCounts() });
 			return new Response('ok');
 		}

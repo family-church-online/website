@@ -20,7 +20,8 @@ export const POST: APIRoute = async ({ request }) => {
 	               ?? request.headers.get('X-Forwarded-For')?.split(',')[0].trim()
 	               ?? 'unknown';
 	const timestamp = new Date().toISOString();
-	const report    = { type: 'report' as const, button: body.button, ip, timestamp };
+	const city      = (request as unknown as { cf?: { city?: string } }).cf?.city ?? null;
+	const report    = { type: 'report' as const, button: body.button, ip, timestamp, city };
 
 	const doNs = getDO();
 	if (doNs) {

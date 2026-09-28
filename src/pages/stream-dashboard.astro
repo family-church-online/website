@@ -110,10 +110,14 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 		}
 		.tile.green .indicator { background: #4ade80; }
 		.tile.red   .indicator { background: #f87171; animation: pulse 1.5s infinite; }
+		.label-group {
+			display: flex;
+			flex-direction: column;
+			gap: 0.2rem;
+		}
 		.tile .last-report {
-			font-size: 0.7rem;
-			color: rgba(255,255,255,0.35);
-			margin-top: -0.25rem;
+			font-size: 0.8rem;
+			color: rgba(255,255,255,0.6);
 		}
 
 		/* ── Compact / OBS dock mode (narrow screens) ── */
@@ -135,8 +139,11 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 				border-radius: 0.75rem;
 			}
 			.tile-icon { width: 1.5rem; height: 1.5rem; opacity: 0.7; }
-			.tile .label {
+			.label-group {
 				flex: 1;
+				min-width: 0;
+			}
+			.tile .label {
 				font-size: 0.65rem;
 				white-space: nowrap;
 				overflow: hidden;
@@ -149,7 +156,13 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 				min-width: 1.5rem;
 				text-align: right;
 			}
-			.tile .last-report { display: none; }
+			.tile .last-report {
+				font-size: 0.65rem;
+				color: rgba(255,255,255,0.55);
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
 			.tile .indicator {
 				width: 8px;
 				height: 8px;
@@ -178,9 +191,11 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 		{BUTTONS.map(label => (
 			<div class="tile" id={`tile-${label.replace(/\s+/g, '-')}`}>
 				<Icon name={BUTTON_ICONS[label]} class="tile-icon" />
-				<div class="label">{label}</div>
+				<div class="label-group">
+					<div class="label">{label}</div>
+					<div class="last-report" id={`last-${label.replace(/\s+/g, '-')}`}></div>
+				</div>
 				<div class="count" id={`count-${label.replace(/\s+/g, '-')}`}>0</div>
-				<div class="last-report" id={`last-${label.replace(/\s+/g, '-')}`}></div>
 				<div class="indicator"></div>
 			</div>
 		))}
@@ -191,6 +206,7 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 
 		const recent: Record<string, number> = {};
 		const lastTs: Record<string, number> = {};
+		const lastCity: Record<string, string> = {};
 
 		function slug(s: string) { return s.replace(/\s+/g, '-'); }
 
@@ -204,7 +220,9 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 			tile.className    = `tile ${n > 0 ? 'red' : ''}`;
 			if (lastTs[label]) {
 				const mins = Math.round((Date.now() - lastTs[label]) / 60_000);
-				last.textContent = mins < 1 ? 'just now' : `${mins} min ago`;
+				const time = mins < 1 ? 'just now' : `${mins}m ago`;
+				const city = lastCity[label];
+				last.textContent = city ? `${city} · ${time}` : time;
 			} else {
 				last.textContent = '';
 			}
@@ -216,11 +234,16 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 				'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 		}
 
-		function applySync(counts: Record<string, number>, lastTimestamps?: Record<string, string>) {
+		function applySync(counts: Record<string, number>, lastTimestamps?: Record<string, string>, lastCities?: Record<string, string>) {
 			BUTTONS.forEach(b => { recent[b] = counts[b] ?? 0; });
 			if (lastTimestamps) {
 				for (const [b, ts] of Object.entries(lastTimestamps)) {
 					lastTs[b] = new Date(ts).getTime();
+				}
+			}
+			if (lastCities) {
+				for (const [b, city] of Object.entries(lastCities)) {
+					lastCity[b] = city;
 				}
 			}
 			tick();
@@ -259,14 +282,15 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 						type: string;
 						button?: string;
 						timestamp?: string;
+						city?: string;
 						counts?: Record<string, number>;
 						lastTimestamps?: Record<string, string>;
+						lastCities?: Record<string, string>;
 					};
 					if (msg.type === 'sync') {
-						applySync(msg.counts ?? {}, msg.lastTimestamps);
+						applySync(msg.counts ?? {}, msg.lastTimestamps, msg.lastCities);
 					} else if (msg.type === 'report') {
 						if (msg.counts) {
-							// Authoritative counts bundled with the report
 							applySync(msg.counts);
 						} else if (msg.button) {
 							recent[msg.button] = (recent[msg.button] ?? 0) + 1;
@@ -274,6 +298,9 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 						}
 						if (msg.button && msg.timestamp) {
 							lastTs[msg.button] = new Date(msg.timestamp).getTime();
+						}
+						if (msg.button && msg.city) {
+							lastCity[msg.button] = msg.city;
 						}
 					}
 				} catch { /* ignore */ }
