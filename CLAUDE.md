@@ -17,7 +17,7 @@ There are no tests. Type-checking is the primary static verification tool.
 
 ### Sermon pipeline (Sunday publishing)
 
-The live Sunday pipeline is in `sermon-pipeline/`. The AV crew runs it after the service — it handles everything from Vimeo download to Worker submission. All AI steps run locally via `claude -p` (free).
+The live Sunday pipeline is in `sermon-pipeline/`. The AV crew runs it after the service — it handles everything from Vimeo download to Worker submission. All AI steps run locally via `claude -p` (free). **Requires the Claude Code CLI (`claude`) installed and authenticated on the machine.**
 
 ```sh
 # GUI mode (AV crew — double-click desktop shortcut, or:)
@@ -26,7 +26,7 @@ sermon-pipeline/launch.sh
 # Terminal mode (developer)
 node sermon-pipeline/pipeline.mjs
 
-# Install desktop shortcut (run once per machine)
+# Install desktop shortcut (run once per machine — uses sermon-pipeline/pipeline.png as icon)
 pnpm pipeline:shortcut
 ```
 
@@ -189,7 +189,7 @@ Dark mode is controlled by the `.dark` class on `<html>` (set by `ThemeToggle.as
 - **Sermon `review: true`** — Sermons with `review: true` in their frontmatter are excluded from the listing page. Use this flag to stage content before going live.
 - **Icons** — `src/components/Icon.astro` is a hand-rolled component with inline Phosphor SVG paths (256×256 viewBox, `fill="currentColor"`). There is no npm icon package at runtime. To add an icon: find the Phosphor Regular SVG path at `github.com/phosphor-icons/core/tree/main/assets/regular`, add it to the `paths` map and `IconName` union in `Icon.astro`.
 - **Cloudflare KV access** — use `import { env } from 'cloudflare:workers'` with a try/catch wrapper (see existing API routes for the pattern). Never access KV via `Astro.locals` or `process.env`.
-- **Stream report widget** — five icon+label tappable items (not buttons) in `LiveStream.astro`. The description text is CMS-editable via the `reportDescription` field on the Live Stream block. The dashboard does **not** poll `/api/stream-reports` — it is driven entirely by the WebSocket connection to `StreamMonitor`. The DO tracks reports in memory (pruned to 60 min), sends a `{type:'sync', counts, lastTimestamps}` message on connect, and bundles authoritative counts into every broadcast. A client-side `setInterval` expires stale counts every 5 minutes with no network calls. `GET /api/stream-reports` is only called once on page load as a fallback for when the DO has no memory (e.g. after hibernation).
+- **Stream report widget** — five icon+label tappable items (not buttons) in `LiveStream.astro`. The description text is CMS-editable via the `reportDescription` field on the Live Stream block. The dashboard is driven entirely by the WebSocket connection to `StreamMonitor` — no KV reads at all. The DO persists reports to SQLite (`state.storage`) so the `sync` message on connect is correct even after hibernation. The DO prunes reports to a 60-min window, sends `{type:'sync', counts, lastTimestamps}` on connect, and bundles authoritative counts into every broadcast. A client-side `setInterval` expires stale counts every 5 minutes with no network calls. `GET /api/stream-reports` exists as a diagnostic endpoint only — the dashboard does not call it.
 - **DO bindings in `patch-wrangler.mjs` not `wrangler.jsonc`** — DO bindings must not be in `wrangler.jsonc` or Miniflare will try to resolve the class during the Vite build phase and fail. Always add them in `patch-wrangler.mjs` instead.
 - **Admin pages** — `/course-admin` and `/cf-status` are SSR pages gated to the PCO list ID stored in `config.auth.adminListId` (editable via TinaCMS Global Config → Member Access). Both are `noindex`. The `adminListId` is included in `allTrackedIds` at login time in `src/pages/api/auth/login.ts` so it is baked into the session cookie. `CF_ACCOUNT_ID` and `CF_API_TOKEN` are optional Worker vars that unlock the Cloudflare Analytics API on `cf-status`; without them the page shows key counts only.
 - **Sermon notes drawer mobile fix** — the drawer in `LiveStream.astro` uses `translate-x-full` to hide off-screen. On mobile WebKit, translated `fixed` elements bypass `overflow-x: hidden` on `html`/`body` and create horizontal scroll. The fix is a `fixed inset-0 overflow-hidden pointer-events-none` wrapper div that clips the drawer while allowing the slide animation to work.
