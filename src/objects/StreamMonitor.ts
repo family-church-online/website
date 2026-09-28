@@ -6,10 +6,15 @@ export class StreamMonitor {
 		// Restore reports after hibernation so the sync message on WS connect
 		// reflects real history instead of wiping the dashboard blank.
 		this.state.blockConcurrencyWhile(async () => {
-			const stored = await this.state.storage.get<Array<{ button: string; timestamp: string; city?: string | null }>>('reports');
-			if (stored) {
-				this.reports = stored;
-				this.pruneReports();
+			try {
+				const stored = await this.state.storage.get<Array<{ button: string; timestamp: string; city?: string | null }>>('reports');
+				if (stored) {
+					this.reports = stored;
+					this.pruneReports();
+				}
+			} catch (err) {
+				console.error('[StreamMonitor] storage.get failed on init:', err);
+				// Start with empty reports — in-memory only for this instance lifetime
 			}
 		});
 	}
@@ -83,11 +88,20 @@ export class StreamMonitor {
 			if (data.button && data.timestamp) {
 				this.reports.push({ button: data.button, timestamp: data.timestamp, city: data.city });
 				this.pruneReports();
-				await this.state.storage.put('reports', this.reports);
 			}
 
-			// Include authoritative counts and the reporter's city so the dashboard stays accurate
+			// Broadcast first — storage failure must never block the dashboard update
 			this.broadcast({ ...data, counts: this.currentCounts() });
+
+			// Persist so reports survive hibernation — non-fatal if storage unavailable
+			if (data.button && data.timestamp) {
+				try {
+					await this.state.storage.put('reports', this.reports);
+				} catch (err) {
+					console.error('[StreamMonitor] storage.put failed:', err);
+				}
+			}
+
 			return new Response('ok');
 		}
 
