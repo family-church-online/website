@@ -49,10 +49,12 @@ const PIPELINE_DIR   = __dirname;
 const WEBSITE_DIR    = dirname(__dirname);
 const PROMPTS_DIR    = join(PIPELINE_DIR, 'prompts');
 const AUDIO_DIR      = join(PIPELINE_DIR, 'audio');
+const SESSION_DIR    = join(PIPELINE_DIR, 'session');
+const SESSION_FILE   = join(SESSION_DIR, 'current.json');
 const SERMON_NOTES   = join(WEBSITE_DIR, 'src', 'content', 'sermon-notes', 'current.mdx');
 const WHATS_NEXT_DIR = join(WEBSITE_DIR, 'src', 'content', 'whats-next');
 
-for (const d of [AUDIO_DIR]) mkdirSync(d, { recursive: true });
+for (const d of [AUDIO_DIR, SESSION_DIR]) mkdirSync(d, { recursive: true });
 
 // ─── Env ──────────────────────────────────────────────────────────────────────
 
@@ -929,6 +931,21 @@ async function fetchReadingPlans(auth, monday) {
   return plans;
 }
 
+// ─── Session (resume support) ─────────────────────────────────────────────────
+
+function saveSession(data) {
+  writeFileSync(SESSION_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+function loadSession() {
+  if (!existsSync(SESSION_FILE)) return null;
+  try { return JSON.parse(readFileSync(SESSION_FILE, 'utf8')); } catch { return null; }
+}
+
+function deleteSession() {
+  if (existsSync(SESSION_FILE)) unlinkSync(SESSION_FILE);
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -948,6 +965,31 @@ async function main() {
     console.log(`  Series:  ${notes.series  || '(none)'}\n`);
   }
 
+  // Session check — offer resume if a previous run exists for this date
+  let session = loadSession();
+  let resumeFrom = null;
+  if (session?.notes?.date === notes.date) {
+    const msg = `Found a saved session for ${notes.date} (last step: ${session.step}).`;
+    const doResume = GUI_MODE
+      ? zenityQuestion('Resume Session', `${msg}\nResume from where it left off?`)
+      : (await ask(`\n  ${msg}\n  Resume? [Y/n]: `)).trim().toLowerCase() !== 'n';
+    if (doResume) {
+      resumeFrom = session.step;
+      if (session.notes?.image) notes.image = session.notes.image;
+      log(`[RESUME] Resuming from after "${resumeFrom}" step`);
+    } else {
+      deleteSession();
+      session = { step: 'start', notes: { ...notes } };
+      saveSession(session);
+    }
+  } else {
+    if (session) warn(`Discarding stale session for ${session.notes?.date || 'unknown'}`);
+    session = { step: 'start', notes: { ...notes } };
+    saveSession(session);
+  }
+  const STEPS = ['start', 'download', 'transcript', 'taxonomy', 'sermonBlock', 'slug', 'devotions', 'readingPlans', 'r2'];
+  const canSkip = name => resumeFrom != null && STEPS.indexOf(resumeFrom) >= STEPS.indexOf(name);
+
   // 1b. Record the source image path — normalisation happens after the slug is
   //     generated in step 7 so the filename includes the full scripture reference.
   let imageData = null;
@@ -959,66 +1001,110 @@ async function main() {
     warn(`Image not found locally — will NOT be committed to GitHub: ${imageSrcPath}`);
   }
 
-  // 2. Select Vimeo video
-  if (!VIMEO_TOKEN) {
-    if (GUI_MODE) zenityError('Configuration Error', 'VIMEO_TOKEN is not set.');
-    else console.error('VIMEO_TOKEN not set');
-    process.exit(1);
-  }
-  const videos = await fetchVimeoVideos();
-  if (!videos.length) {
-    if (GUI_MODE) zenityError('No Videos Found', 'No Vimeo videos found.');
-    else console.error('No Vimeo videos found');
-    process.exit(1);
-  }
+  // 2 + 3. Select Vimeo video + download + convert (skippable if MP3 is on disk)
+  const mp3Path = join(AUDIO_DIR, `${notes.date}.mp3`);
+  let vimeoUrl;
 
-  let video;
-  if (GUI_MODE) {
-    const items = videos.map(v => `${v.name}  (${new Date(v.created_time).toLocaleDateString('en-ZA')})  ${v.status}`);
-    const selected = zenityList(`Select video for: ${notes.title} — ${notes.date}`, items);
-    const idx = items.indexOf(selected);
-    if (idx === -1) process.exit(0);
-    video = videos[idx];
+  if (canSkip('download') && existsSync(mp3Path) && session.vimeoUrl) {
+    log(`[RESUME] Skipping download — MP3 already on disk: ${basename(mp3Path)}`);
+    vimeoUrl = session.vimeoUrl;
   } else {
-    console.log('Recent Vimeo videos:');
-    videos.forEach((v, i) => {
-      const date = new Date(v.created_time).toLocaleDateString('en-ZA');
-      console.log(`  [${i + 1}] ${v.name}  (${date})  ${v.status}`);
-    });
-    console.log('');
-    const choice = await ask(`Select video [1–${videos.length}] or press Enter for [1]: `);
-    const idx    = choice.trim() ? parseInt(choice.trim()) - 1 : 0;
-    if (isNaN(idx) || idx < 0 || idx >= videos.length) { console.error('Invalid selection'); process.exit(1); }
-    video = videos[idx];
-    console.log(`\nSelected: ${video.name}\n`);
+    if (!VIMEO_TOKEN) {
+      if (GUI_MODE) zenityError('Configuration Error', 'VIMEO_TOKEN is not set.');
+      else console.error('VIMEO_TOKEN not set');
+      process.exit(1);
+    }
+    const videos = await fetchVimeoVideos();
+    if (!videos.length) {
+      if (GUI_MODE) zenityError('No Videos Found', 'No Vimeo videos found.');
+      else console.error('No Vimeo videos found');
+      process.exit(1);
+    }
+
+    let video;
+    if (GUI_MODE) {
+      const items = videos.map(v => `${v.name}  (${new Date(v.created_time).toLocaleDateString('en-ZA')})  ${v.status}`);
+      const selected = zenityList(`Select video for: ${notes.title} — ${notes.date}`, items);
+      const idx = items.indexOf(selected);
+      if (idx === -1) process.exit(0);
+      video = videos[idx];
+    } else {
+      console.log('Recent Vimeo videos:');
+      videos.forEach((v, i) => {
+        const date = new Date(v.created_time).toLocaleDateString('en-ZA');
+        console.log(`  [${i + 1}] ${v.name}  (${date})  ${v.status}`);
+      });
+      console.log('');
+      const choice = await ask(`Select video [1–${videos.length}] or press Enter for [1]: `);
+      const idx    = choice.trim() ? parseInt(choice.trim()) - 1 : 0;
+      if (isNaN(idx) || idx < 0 || idx >= videos.length) { console.error('Invalid selection'); process.exit(1); }
+      video = videos[idx];
+      console.log(`\nSelected: ${video.name}\n`);
+    }
+
+    vimeoUrl = getVimeoEmbedUrl(video);
+    startProgress(`Downloading: ${video.name}`);
+
+    const videoPath = join(AUDIO_DIR, `${notes.date}.mp4`);
+    await downloadVideo(getSmallestDownload(video).link, videoPath);
+    convertToMp3(videoPath, mp3Path);
+    unlinkSync(videoPath);
+    log('  Video file removed');
+
+    session = { ...session, step: 'download', vimeoUrl };
+    saveSession(session);
   }
-
-  const vimeoUrl = getVimeoEmbedUrl(video);
-  startProgress(`Downloading: ${video.name}`);
-
-  const videoPath = join(AUDIO_DIR, `${notes.date}.mp4`);
-  const mp3Path   = join(AUDIO_DIR, `${notes.date}.mp3`);
-
-  // 3. Download and convert
-  await downloadVideo(getSmallestDownload(video).link, videoPath);
-  convertToMp3(videoPath, mp3Path);
-  unlinkSync(videoPath);
-  log('  Video file removed');
 
   // 4. Transcribe + clean
-  const { transcript: rawTranscript, durationMins } = await transcribeAudio(mp3Path);
-  const transcript = cleanTranscript(rawTranscript);
+  let rawTranscript, transcript, durationMins;
+  if (canSkip('transcript') && session.transcript) {
+    log('[RESUME] Using saved transcript');
+    ({ rawTranscript, transcript, durationMins } = session);
+  } else {
+    startProgress('Transcribing…');
+    ({ transcript: rawTranscript, durationMins } = await transcribeAudio(mp3Path));
+    transcript = cleanTranscript(rawTranscript);
+    session = { ...session, step: 'transcript', rawTranscript, transcript, durationMins };
+    saveSession(session);
+  }
 
   // 5. Taxonomy
-  const pendingUrl = `${SITE_URL}/sermons/${notes.date}-pending`;
-  const taxonomy   = generateTaxonomy(notes, transcript, pendingUrl);
+  let taxonomy;
+  if (canSkip('taxonomy') && session.taxonomy) {
+    log('[RESUME] Using saved taxonomy');
+    taxonomy = session.taxonomy;
+  } else {
+    startProgress('Generating taxonomy…');
+    const pendingUrl = `${SITE_URL}/sermons/${notes.date}-pending`;
+    taxonomy = generateTaxonomy(notes, transcript, pendingUrl);
+    session = { ...session, step: 'taxonomy', taxonomy };
+    saveSession(session);
+  }
   if (taxonomy.review) console.log(`\n  ⚠  Taxonomy needs review: ${taxonomy.review_notes}\n`);
 
   // 6. Sermon block
-  const sermonBlock = generateSermonBlock(notes, transcript, taxonomy);
+  let sermonBlock;
+  if (canSkip('sermonBlock') && session.sermonBlock) {
+    log('[RESUME] Using saved sermon block');
+    sermonBlock = session.sermonBlock;
+  } else {
+    startProgress('Generating sermon block…');
+    sermonBlock = generateSermonBlock(notes, transcript, taxonomy);
+    session = { ...session, step: 'sermonBlock', sermonBlock };
+    saveSession(session);
+  }
 
   // 7. SEO slug + title
-  const { title: optimisedTitle, slug } = generateSeoSlug(notes, taxonomy, sermonBlock);
+  let slug, optimisedTitle;
+  if (canSkip('slug') && session.slug) {
+    log('[RESUME] Using saved slug');
+    ({ slug, optimisedTitle } = session);
+  } else {
+    startProgress('Generating SEO slug…');
+    ({ title: optimisedTitle, slug } = generateSeoSlug(notes, taxonomy, sermonBlock));
+    session = { ...session, step: 'slug', slug, optimisedTitle };
+    saveSession(session);
+  }
   console.log(`\n  Slug:  ${slug}`);
   console.log(`  Title: ${optimisedTitle}\n`);
 
@@ -1049,34 +1135,66 @@ async function main() {
       log(`Image ready for commit: ${(imageData.length * 3 / 4 / 1024).toFixed(0)} KB`);
     }
   }
+  // Persist updated notes.image (may have changed to canonical path above)
+  session = { ...session, notes: { ...session.notes, image: notes.image } };
+  saveSession(session);
 
   // 8. Devotions
-  const imageUrl = notes.image ? `https://familychurch.online${notes.image}` : '';
-  const devotions = generateDevotions(notes, transcript, slug, imageUrl);
-  log(`  ${devotions.length}/7 devotions generated`);
+  let devotions;
+  if (canSkip('devotions') && session.devotions) {
+    log('[RESUME] Using saved devotions');
+    devotions = session.devotions;
+  } else {
+    startProgress('Generating devotions…');
+    const imageUrl = notes.image ? `https://familychurch.online${notes.image}` : '';
+    devotions = generateDevotions(notes, transcript, slug, imageUrl);
+    log(`  ${devotions.length}/7 devotions generated`);
+    session = { ...session, step: 'devotions', devotions };
+    saveSession(session);
+  }
 
   // 9. Reading plans
-  const googleAuth = await getGoogleAuth();
-  const monday = getNextMonday(notes.date);
-  const readingPlans = googleAuth ? await fetchReadingPlans(googleAuth, monday) : null;
-  if (!readingPlans) warn('Reading plans unavailable — devotions will be committed without them');
+  let readingPlans;
+  if (canSkip('readingPlans') && 'readingPlans' in session) {
+    log('[RESUME] Using saved reading plans');
+    readingPlans = session.readingPlans;
+  } else {
+    const googleAuth = await getGoogleAuth();
+    const monday = getNextMonday(notes.date);
+    readingPlans = googleAuth ? await fetchReadingPlans(googleAuth, monday) : null;
+    if (!readingPlans) warn('Reading plans unavailable — devotions will be committed without them');
+    session = { ...session, step: 'readingPlans', readingPlans };
+    saveSession(session);
+  }
 
   // 9.5. Append reading plan HTML to each devotion's content
+  //      Guard against double-append on resume (devotions already have RP HTML)
   if (readingPlans) {
     for (const dev of devotions) {
-      const rp = readingPlans[dev.date];
-      if (rp?.html) dev.content = dev.content.trimEnd() + '\n\n' + rp.html;
-      else warn(`  No reading plan HTML for devotion ${dev.date}`);
+      if (!dev.content.includes('reading-plans')) {
+        const rp = readingPlans[dev.date];
+        if (rp?.html) dev.content = dev.content.trimEnd() + '\n\n' + rp.html;
+        else warn(`  No reading plan HTML for devotion ${dev.date}`);
+      }
     }
   }
 
   // 10. Upload audio to R2 temp
-  const tempAudioKey = await uploadTempAudio(mp3Path, notes.date);
+  let tempAudioKey;
+  if (canSkip('r2') && session.tempAudioKey) {
+    log('[RESUME] Using cached R2 temp key');
+    tempAudioKey = session.tempAudioKey;
+  } else {
+    tempAudioKey = await uploadTempAudio(mp3Path, notes.date);
+    session = { ...session, step: 'r2', tempAudioKey };
+    saveSession(session);
+  }
 
   // 10.5. Upload transcript/taxonomy/sermon-block to Google Drive (local OAuth —
   //       the Worker service account has no Drive storage quota on personal Drive)
   const baseName = `${notes.date}-${slug}`;
   try {
+    const googleAuth = await getGoogleAuth();
     await uploadSermonToDrive(googleAuth, baseName, transcript, taxonomy, sermonBlock, {
       optimisedTitle,
       date: notes.date,
@@ -1109,6 +1227,7 @@ async function main() {
     tempAudioKey,
   });
 
+  deleteSession();
   closeProgress();
 
   if (GUI_MODE) {
