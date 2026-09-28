@@ -471,7 +471,7 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 				throw new Error('Job is missing required fields (taxonomy, sermonBlock, slug, optimisedTitle)');
 			}
 
-			const sermonUrl = `${SITE_URL}/sermons/${job.metadata.date}-${job.slug}`;
+			const sermonUrl = `${SITE_URL}/sermons/${job.slug}`;
 
 			// Sermon MDX
 			const mdx = buildSermonMdx(
@@ -554,7 +554,7 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 			const job = await getJob(jobId);
 			if (!job) return;
 
-			const sermonUrl = `${SITE_URL}/sermons/${job.metadata.date}-${job.slug}`;
+			const sermonUrl = `${SITE_URL}/sermons/${job.slug}`;
 			await patchJob(jobId, { status: 'complete', currentStep: null });
 
 			const notifyEmail = process.env.SERMON_NOTIFY_EMAIL;
