@@ -127,6 +127,18 @@ export async function putJob(job: SermonJob): Promise<void> {
 	await kv.put(`sermon-job:${job.jobId}`, JSON.stringify(job), { expirationTtl: JOB_TTL });
 }
 
+export async function getLatestJobId(): Promise<string | null> {
+	const kv = getKV();
+	if (!kv) return null;
+	return kv.get('sermon-job:latest');
+}
+
+export async function setLatestJobId(jobId: string): Promise<void> {
+	const kv = getKV();
+	if (!kv) return;
+	await kv.put('sermon-job:latest', jobId, { expirationTtl: JOB_TTL });
+}
+
 export async function patchJob(jobId: string, patch: Partial<SermonJob>): Promise<SermonJob> {
 	const existing = await getJob(jobId);
 	if (!existing) throw new Error(`Job not found: ${jobId}`);

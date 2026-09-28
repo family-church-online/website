@@ -1,7 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
-import { putJob, type SermonJob, type SermonJobMetadata, type Taxonomy, type SermonBlock, type Devotion, type ReadingPlanDay } from '../../../lib/sermon-job';
+import { putJob, setLatestJobId, type SermonJob, type SermonJobMetadata, type Taxonomy, type SermonBlock, type Devotion, type ReadingPlanDay } from '../../../lib/sermon-job';
 
 function randomId(): string {
 	return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -80,6 +80,7 @@ export const POST: APIRoute = async ({ request }) => {
 	};
 
 	await putJob(job);
+	await setLatestJobId(jobId);
 
 	const reviewUrl = `${new URL(request.url).origin}/sermon-admin/${jobId}`;
 	// non-blocking — don't fail the request if email fails

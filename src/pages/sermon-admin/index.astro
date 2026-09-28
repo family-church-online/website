@@ -1,0 +1,27 @@
+---
+export const prerender = false;
+
+import Base from '../../layouts/Base.astro';
+import { getConfig } from '../../lib/data';
+import { requireAuth } from '../../lib/auth';
+import { getLatestJobId, getJob } from '../../lib/sermon-job';
+
+const siteConfig = await getConfig();
+const adminListId = (siteConfig.data?.config?.auth as Record<string, unknown> | null | undefined)?.adminListId as string | undefined;
+const auth = requireAuth(Astro, adminListId);
+if (auth instanceof Response) return auth;
+
+const latestId = await getLatestJobId();
+const job = latestId ? await getJob(latestId) : null;
+
+if (job && job.status !== 'complete') {
+	return Astro.redirect(`/sermon-admin/${job.jobId}`);
+}
+---
+
+<Base title="Sermon Admin" description="Sermon pipeline admin" noindex>
+	<div class="max-w-xl mx-auto px-4 py-24 text-center">
+		<p class="text-2xl font-semibold text-[var(--navy)] dark:text-white mb-2">No pending sermons</p>
+		<p class="text-gray-500">The last job has been published, or no jobs have been submitted yet.</p>
+	</div>
+</Base>
