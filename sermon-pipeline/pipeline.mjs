@@ -40,6 +40,7 @@ import matter                                  from 'gray-matter';
 import { createClient as createDeepgram }      from '@deepgram/sdk';
 import { S3Client, PutObjectCommand }          from '@aws-sdk/client-s3';
 import { google }                              from 'googleapis';
+import { parse as parseHtml }                  from 'node-html-parser';
 
 // ─── Paths ────────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,9 @@ const R2_PUBLIC_URL    = process.env.R2_AUDIO_PUBLIC_URL || process.env.R2_PUBLI
 const PIPELINE_SECRET  = process.env.SERMON_PIPELINE_SECRET || '';
 const SITE_URL         = process.env.SITE_URL || 'https://familychurch.online';
 const DEEPGRAM_MODEL   = 'nova-2';
+const VOYAGE_API_KEY   = process.env.VOYAGE_API_KEY   || '';
+const DATABASE_URL     = process.env.DATABASE_URL     || '';
+const MAX_CHUNK_WORDS  = 600;
 
 const READING_PLANS_CAL_ID = '9e339a64af832e22e2845990e12e5734996425604454b26ff45a86230c00d463@group.calendar.google.com';
 const GOOGLE_CREDENTIALS_FILE = existsSync(join(PIPELINE_DIR, 'oauth_credentials.json'))
@@ -931,6 +935,107 @@ async function fetchReadingPlans(auth, monday) {
   return plans;
 }
 
+// ─── Search ingestion (Voyage AI + Neon pgvector) ────────────────────────────
+
+function _blockRowsFromHtml(html) {
+  const root = parseHtml(html);
+  const rows = [];
+  for (const section of root.querySelectorAll('div.sfc-notes-section')) {
+    const label = section.querySelector('.sfc-col-label')?.text.trim().toLowerCase() || '';
+    if (label.includes('main points')) {
+      for (const li of section.querySelectorAll('ol.sfc-notes-list li'))
+        if (li.text.trim()) rows.push({ sectionType: 'main_point', content: li.text.trim() });
+    }
+  }
+  for (const li of root.querySelectorAll('ul.sfc-tags li'))
+    if (li.text.trim()) rows.push({ sectionType: 'take_away', content: li.text.trim() });
+  for (const li of root.querySelectorAll('ul.sfc-audience li'))
+    if (li.text.trim()) rows.push({ sectionType: 'audience_fit', content: li.text.trim() });
+  for (const entry of root.querySelectorAll('div.sfc-scripture-entry')) {
+    const ref   = entry.querySelector('.sfc-ref')?.text.trim() || '';
+    const theme = entry.querySelector('.sfc-theme')?.text.trim() || '';
+    if (ref && theme) rows.push({ sectionType: 'related_scripture', content: `${ref} — ${theme}` });
+  }
+  return rows;
+}
+
+function _chunkTranscript(transcript) {
+  const text = transcript.trim();
+  if (!/(?:^|\n)### /.test(text)) return null;
+  const chunks = [];
+  for (const part of text.split(/\n(?=### )/).filter(Boolean)) {
+    const trimmed = part.trim();
+    const tsMatch = trimmed.match(/\[(\d{2}):(\d{2})\]/);
+    const startSeconds = tsMatch ? parseInt(tsMatch[1]) * 60 + parseInt(tsMatch[2]) : null;
+    const clean = trimmed.replace(/\[\d{2}:\d{2}\]\s*/g, '').trim();
+    if (clean.split(/\s+/).length <= MAX_CHUNK_WORDS) {
+      chunks.push({ content: clean, startSeconds });
+    } else {
+      let current = [], count = 0;
+      for (const s of clean.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+(?=[A-Z"'])/)) {
+        current.push(s);
+        count += s.split(/\s+/).length;
+        if (count >= MAX_CHUNK_WORDS) {
+          chunks.push({ content: current.join(' '), startSeconds });
+          current = []; count = 0;
+        }
+      }
+      if (current.length) chunks.push({ content: current.join(' '), startSeconds });
+    }
+  }
+  return chunks;
+}
+
+async function ingestToSearch(date, slug, speaker, taxonomy, sermonBlock, transcript) {
+  if (!VOYAGE_API_KEY || !DATABASE_URL) {
+    warn('Search ingestion skipped — VOYAGE_API_KEY or DATABASE_URL not set');
+    return;
+  }
+  log('Ingesting sermon into search database...');
+
+  const blockRows = _blockRowsFromHtml(sermonBlock);
+  const txChunks  = _chunkTranscript(transcript) || [];
+  const allTexts  = [...blockRows.map(r => r.content), ...txChunks.map(c => c.content)];
+  if (!allTexts.length) { warn('  Nothing to embed — skipping'); return; }
+
+  const { VoyageAIClient } = await import('voyageai');
+  const pgMod              = await import('pg');
+  const { Pool }           = pgMod.default ?? pgMod;
+
+  const voyage   = new VoyageAIClient({ apiKey: VOYAGE_API_KEY });
+  const response = await voyage.embed({ model: 'voyage-context-4', input: allTexts, inputType: 'document' });
+  const embeddings = response.data.map(d => d.embedding);
+
+  const pool   = new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  const client = await pool.connect();
+  try {
+    await client.query('DELETE FROM sermon_chunks WHERE sermon_date = $1', [date]);
+    const webUrl   = `${SITE_URL}/sermons/${date}-${slug}`;
+    const audioUrl = `${R2_PUBLIC_URL}/sermons/${date}-${slug}.mp3`;
+    for (let i = 0; i < allTexts.length; i++) {
+      const isBlock     = i < blockRows.length;
+      const sectionType = isBlock ? blockRows[i].sectionType : 'transcript';
+      const startSecs   = isBlock ? null : txChunks[i - blockRows.length].startSeconds;
+      await client.query(
+        `INSERT INTO sermon_chunks
+           (sermon_date, sermon_title, speaker, series, category, tags,
+            sermon_scripture, section_type, content, embedding,
+            audio_url, web_url, start_seconds)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::vector,$11,$12,$13)`,
+        [date, taxonomy.title || '', speaker || '', taxonomy.series || '',
+         taxonomy.category || [], taxonomy.tags || [],
+         taxonomy.sermon_scripture || '',
+         sectionType, allTexts[i], `[${embeddings[i].join(',')}]`,
+         audioUrl, webUrl, startSecs]
+      );
+    }
+    log(`  Inserted ${allTexts.length} rows (${blockRows.length} block + ${txChunks.length} transcript chunks)`);
+  } finally {
+    client.release();
+    await pool.end();
+  }
+}
+
 // ─── Session (resume support) ─────────────────────────────────────────────────
 
 function saveSession(data) {
@@ -1206,6 +1311,13 @@ async function main() {
     });
   } catch (err) {
     warn(`Drive upload failed (non-fatal): ${err.message}`);
+  }
+
+  // 10.6. Ingest into search database
+  try {
+    await ingestToSearch(notes.date, slug, notes.speaker, taxonomy, sermonBlock, transcript);
+  } catch (err) {
+    warn(`Search ingestion failed (non-fatal): ${err.message}`);
   }
 
   // 11. POST to Worker

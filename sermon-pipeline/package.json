@@ -17,6 +17,7 @@
     "node-html-parser": "^6",
     "pg": "^8",
     "pgvector": "^0.2",
-    "puppeteer": "^23.11.1"
+    "puppeteer": "^23.11.1",
+    "voyageai": "^0.4.0"
   }
 }
