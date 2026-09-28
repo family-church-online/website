@@ -101,6 +101,7 @@ export interface SermonJob {
 	audioSizeBytes: number | null;
 	devotions: Devotion[] | null;
 	readingPlans: Record<string, ReadingPlanDay> | null;
+	guid: string | null;
 	// error state
 	error: string | null;
 	failedStep: string | null;

@@ -42,6 +42,7 @@ export const POST: APIRoute = async ({ request }) => {
 		optimisedTitle: string;
 		devotions: Devotion[];
 		readingPlans?: Record<string, ReadingPlanDay> | null;
+		guid?: string | null;
 	};
 
 	try {
@@ -73,6 +74,7 @@ export const POST: APIRoute = async ({ request }) => {
 		audioSizeBytes: null,
 		devotions: body.devotions ?? [],
 		readingPlans: body.readingPlans ?? null,
+		guid: body.guid ?? null,
 		error: null,
 		failedStep: null,
 	};

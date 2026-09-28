@@ -30,10 +30,11 @@
  */
 
 import { spawnSync, spawn }                    from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync, unlinkSync } from 'node:fs';
 import { join, dirname, basename }             from 'node:path';
 import { fileURLToPath }                       from 'node:url';
 import { createInterface }                     from 'node:readline';
+import { randomUUID }                          from 'node:crypto';
 
 import matter                                  from 'gray-matter';
 import { createClient as createDeepgram }      from '@deepgram/sdk';
@@ -279,18 +280,29 @@ function getVimeoEmbedUrl(video) {
 
 async function downloadVideo(url, destPath) {
   log(`Downloading video to ${basename(destPath)}...`);
-  const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-  if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
-  const total = Number(resp.headers.get('content-length') || 0);
-  let downloaded = 0;
-  const chunks = [];
-  for await (const chunk of resp.body) {
-    chunks.push(chunk);
-    downloaded += chunk.length;
-    if (total) process.stdout.write(`  ${(downloaded / total * 100).toFixed(1)}%\r`);
+  let delay = 30000;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+      const total = Number(resp.headers.get('content-length') || 0);
+      let downloaded = 0;
+      const chunks = [];
+      for await (const chunk of resp.body) {
+        chunks.push(chunk);
+        downloaded += chunk.length;
+        if (total) process.stdout.write(`  ${(downloaded / total * 100).toFixed(1)}%\r`);
+      }
+      writeFileSync(destPath, Buffer.concat(chunks));
+      console.log(`  Download complete (${(downloaded / 1048576).toFixed(1)} MB)`);
+      return;
+    } catch (err) {
+      if (attempt === 5) throw err;
+      warn(`Download failed (attempt ${attempt}/5): ${err.message} — retrying in ${delay / 1000}s...`);
+      await new Promise(r => setTimeout(r, delay));
+      delay = Math.min(delay * 2, 300000);
+    }
   }
-  writeFileSync(destPath, Buffer.concat(chunks));
-  console.log(`  Download complete (${(downloaded / 1048576).toFixed(1)} MB)`);
 }
 
 function convertToMp3(videoPath, mp3Path) {
@@ -304,30 +316,44 @@ function convertToMp3(videoPath, mp3Path) {
 
 async function transcribeAudio(audioPath) {
   if (!DEEPGRAM_API_KEY) { console.error('DEEPGRAM_API_KEY not set'); process.exit(1); }
-  log('Transcribing via Deepgram Nova-2...');
   const deepgram = createDeepgram(DEEPGRAM_API_KEY);
-  const { result, error } = await deepgram.listen.prerecorded.transcribeFile(readFileSync(audioPath), {
-    model: DEEPGRAM_MODEL, language: 'en', punctuate: true, filler_words: true, paragraphs: true,
-  });
-  if (error) throw error;
+  const audioBytes = readFileSync(audioPath);
+  let delay = 60000;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      log(`Transcribing via Deepgram Nova-2 (attempt ${attempt}/5)...`);
+      const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBytes, {
+        model: DEEPGRAM_MODEL, language: 'en', punctuate: true, filler_words: true, paragraphs: true,
+      });
+      if (error) throw error;
 
-  const alt          = result.results.channels[0].alternatives[0];
-  const durationMins = Math.round(result.metadata.duration / 60 * 10) / 10;
-  const paraData     = alt.paragraphs;
+      const alt          = result.results.channels[0].alternatives[0];
+      const durationMins = Math.round(result.metadata.duration / 60 * 10) / 10;
+      const paraData     = alt.paragraphs;
 
-  let transcript;
-  if (paraData?.paragraphs?.length) {
-    transcript = paraData.paragraphs.map(para => {
-      const mm = String(Math.floor(para.start / 60)).padStart(2, '0');
-      const ss = String(Math.floor(para.start % 60)).padStart(2, '0');
-      return `[${mm}:${ss}] ${para.sentences.map(s => s.text).join(' ')}`;
-    }).join('\n\n');
-  } else {
-    transcript = alt.transcript || '';
+      let transcript;
+      if (paraData?.paragraphs?.length) {
+        transcript = paraData.paragraphs.map(para => {
+          const mm = String(Math.floor(para.start / 60)).padStart(2, '0');
+          const ss = String(Math.floor(para.start % 60)).padStart(2, '0');
+          return `[${mm}:${ss}] ${para.sentences.map(s => s.text).join(' ')}`;
+        }).join('\n\n');
+      } else {
+        transcript = alt.transcript || '';
+      }
+
+      log(`  ${transcript.split(/\s+/).filter(Boolean).length.toLocaleString()} words — ${durationMins} min`);
+      return { transcript, durationMins };
+    } catch (err) {
+      const msg = String(err?.message || err).toLowerCase();
+      const isRetryable = msg.includes('429') || msg.includes('rate limit') ||
+        msg.includes('500') || msg.includes('502') || msg.includes('503') || msg.includes('504');
+      if (attempt === 5 || !isRetryable) throw err;
+      warn(`Deepgram error (attempt ${attempt}/5): ${err.message} — retrying in ${delay / 1000}s...`);
+      await new Promise(r => setTimeout(r, delay));
+      delay = Math.min(delay * 2, 600000);
+    }
   }
-
-  log(`  ${transcript.split(/\s+/).filter(Boolean).length.toLocaleString()} words — ${durationMins} min`);
-  return { transcript, durationMins };
 }
 
 function cleanTranscript(rawTranscript) {
@@ -976,6 +1002,8 @@ async function main() {
   // 3. Download and convert
   await downloadVideo(getSmallestDownload(video).link, videoPath);
   convertToMp3(videoPath, mp3Path);
+  unlinkSync(videoPath);
+  log('  Video file removed');
 
   // 4. Transcribe + clean
   const { transcript: rawTranscript, durationMins } = await transcribeAudio(mp3Path);
@@ -998,14 +1026,15 @@ async function main() {
   taxonomy.url = `${SITE_URL}/sermons/${notes.date}-${slug}`;
 
   // 7b. Normalise image now that we have the full slug (title + scripture reference).
-  //     Canonical name: YYYY-MM-DD-{slug}.webp in /images/sermons/
+  //     Canonical name: YYYY-MM-DD-{slug}.jpg in /images/sermons/
+  //     Must be JPEG — Apple Podcasts does not support WebP for episode artwork.
   if (notes.image && imageSrcPath && existsSync(imageSrcPath)) {
-    const canonicalRelative = `/images/sermons/${notes.date}-${slug}.webp`;
-    const canonicalPath = join(WEBSITE_DIR, 'public', 'images', 'sermons', `${notes.date}-${slug}.webp`);
+    const canonicalRelative = `/images/sermons/${notes.date}-${slug}.jpg`;
+    const canonicalPath = join(WEBSITE_DIR, 'public', 'images', 'sermons', `${notes.date}-${slug}.jpg`);
     mkdirSync(join(WEBSITE_DIR, 'public', 'images', 'sermons'), { recursive: true });
     if (imageSrcPath !== canonicalPath) {
       log(`Normalising image → ${canonicalRelative}`);
-      const r = spawnSync('ffmpeg', ['-y', '-i', imageSrcPath, canonicalPath], { encoding: 'utf8' });
+      const r = spawnSync('ffmpeg', ['-y', '-i', imageSrcPath, '-q:v', '2', canonicalPath], { encoding: 'utf8' });
       if (r.status === 0) {
         notes.image = canonicalRelative;
         log(`  Saved: ${basename(canonicalPath)} (${(statSync(canonicalPath).size / 1024).toFixed(0)} KB)`);
@@ -1015,7 +1044,7 @@ async function main() {
     }
     const finalPath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
     if (existsSync(finalPath)) {
-      imageMimeType = notes.image.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+      imageMimeType = 'image/jpeg';
       imageData = readFileSync(finalPath).toString('base64');
       log(`Image ready for commit: ${(imageData.length * 3 / 4 / 1024).toFixed(0)} KB`);
     }
@@ -1062,6 +1091,7 @@ async function main() {
   }
 
   // 11. POST to Worker
+  const guid = randomUUID();
   const { jobId, reviewUrl } = await postJobToWorker({
     transcript,
     metadata: { title: notes.title, speaker: notes.speaker, series: notes.series, date: notes.date, image: notes.image, vimeoUrl, durationMinutes: durationMins },
@@ -1071,6 +1101,7 @@ async function main() {
     sermonBlock,
     slug,
     optimisedTitle,
+    guid,
     devotions,
     readingPlans: readingPlans
       ? Object.fromEntries(Object.entries(readingPlans).map(([d, v]) => [d, v.parsed]))
