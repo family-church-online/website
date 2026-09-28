@@ -126,8 +126,7 @@ Sermon filenames follow the pattern `{title-slug}-{scripture-slug}.mdx` — no d
 - `src/pages/course-admin.astro` — Admin: course completion viewer (gated to `adminListId` PCO list); `noindex`
 - `src/pages/cf-status.astro` — Admin: Cloudflare free-tier usage dashboard (gated to `adminListId`); `noindex`
 - `src/pages/api/stream-status.ts` — GET; checks Icecast and Vimeo in parallel. Vimeo: fetches most recent clip via `GET /me/videos?filter=live_event&live_event_id={id}`, then checks `embed.badges.live.streaming === true` via `GET /videos/{id}?fields=embed`. **Never use `vimeo.com/*` URLs — they are blocked from Cloudflare Workers. Always use `api.vimeo.com`.**
-- `src/pages/api/stream-report.ts` — POST; writes problem report to `STREAM_REPORTS` KV, notifies DO
-- `src/pages/api/stream-reports.ts` — GET; returns report counts + recent (last 60 min) from KV
+- `src/pages/api/stream-report.ts` — POST; notifies `StreamMonitor` DO (no KV write — DO SQLite is the store)
 - `src/pages/api/stream-ws.ts` — GET; proxies WebSocket upgrades to `StreamMonitor` Durable Object
 - `src/pages/stream-dashboard.astro` — Live problem dashboard (no auth); responsive for OBS docks
 - `src/pages/whats-next.astro` — Upcoming service schedule; reads `src/content/whats-next/*.mdx` via `import.meta.glob`

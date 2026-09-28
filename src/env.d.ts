@@ -3,7 +3,6 @@
 
 interface CloudflareEnv {
 	LESSON_PROGRESS: KVNamespace;
-	STREAM_REPORTS: KVNamespace;
 	STREAM_MONITOR: DurableObjectNamespace;
 	SERMON_JOBS: KVNamespace;
 	SERMON_AUDIO: R2Bucket;

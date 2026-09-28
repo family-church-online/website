@@ -21,7 +21,6 @@ const hasApi = !!(cfAccountId && cfApiToken);
 // KV namespace IDs (from wrangler.jsonc) — needed for per-namespace breakdown
 const KV_NS = {
 	LESSON_PROGRESS: '56984b88d58641dbb252b1e40fd897da',
-	STREAM_REPORTS:  'aac02cbf9d654272a4a5321fddb472a5',
 };
 
 // ── KV helpers ────────────────────────────────────────────────────────────────
@@ -166,10 +165,9 @@ async function fetchAnalytics(): Promise<{ workers: WorkersStats | null; kv: KVS
 
 // ── Fetch everything in parallel ──────────────────────────────────────────────
 
-const [analytics, lessonKeys, reportKeys] = await Promise.all([
+const [analytics, lessonKeys] = await Promise.all([
 	fetchAnalytics(),
 	countKVKeys(getKV('LESSON_PROGRESS')),
-	countKVKeys(getKV('STREAM_REPORTS')),
 ]);
 
 const { workers: workersStats, kv: kvStats } = analytics;
@@ -307,7 +305,7 @@ const cfDash = 'https://dash.cloudflare.com';
 						<span class={`w-2 h-2 rounded-full shrink-0 ${statusDot(kvStats?.total.write, 1_000)}`} />
 						<div>
 							<p class="font-semibold text-[var(--navy)] dark:text-white">Workers KV</p>
-							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">LESSON_PROGRESS + STREAM_REPORTS · today</p>
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">LESSON_PROGRESS · today</p>
 						</div>
 					</div>
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
@@ -353,9 +351,6 @@ const cfDash = 'https://dash.cloudflare.com';
 									</div>
 									{name === 'LESSON_PROGRESS' && lessonKeys !== null && (
 										<p class="text-[10px] text-[var(--ink)]/35 dark:text-white/25 mt-1">{lessonKeys.toLocaleString()} keys stored</p>
-									)}
-									{name === 'STREAM_REPORTS' && reportKeys !== null && (
-										<p class="text-[10px] text-[var(--ink)]/35 dark:text-white/25 mt-1">{reportKeys.toLocaleString()} active keys · 7d TTL</p>
 									)}
 								</div>
 							);
