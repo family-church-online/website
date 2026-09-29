@@ -1,0 +1,42 @@
+{
+	// Living Waters MCP Worker — stateless, no Durable Objects needed.
+	//
+	// Setup (run once before first deploy):
+	//   1. wrangler d1 create living-waters
+	//      → paste the database_id below
+	//   2. wrangler vectorize create sermon-chunks \
+	//        --dimensions 1024 --metric cosine \
+	//        --metadata-index chunk_type \
+	//        --metadata-index speaker \
+	//        --metadata-index sermon_id
+	//   3. wrangler d1 execute living-waters --remote --file=schema.sql
+	//   4. wrangler secret put VOYAGE_API_KEY
+	//      wrangler secret put INGEST_SECRET   (same value as LIVING_WATERS_INGEST_SECRET in main Worker)
+	//   5. wrangler deploy
+	//   6. npx tsx scripts/backfill.ts   (after deploy)
+	"name": "living-waters",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-09-01",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "living-waters",
+			"database_id": "55973654-4f04-4d4e-bf84-bdc7ab792547"
+		}
+	],
+	"vectorize": [
+		{
+			"binding": "VECTORIZE",
+			"index_name": "sermon-chunks"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "AUDIO_BUCKET",
+			"bucket_name": "family-church-sermons"
+		}
+	]
+}
