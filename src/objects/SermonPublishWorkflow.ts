@@ -528,7 +528,40 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 			return sha;
 		});
 
-		// ── Step 3: calendar ──────────────────────────────────────────────────────
+		// ── Step 3: ingest-search ─────────────────────────────────────────────────
+		// Index the published sermon in Living Waters (D1 + Vectorize) so it's
+		// immediately searchable. Uses a Service Binding — no external HTTP call.
+		// Soft-fail: errors are caught inside the step so the Workflow continues
+		// and the sermon goes live regardless of search-index status.
+		await step.do('ingest-search', async () => {
+			if (!this.env.LIVING_WATERS) return; // binding not configured — skip silently
+
+			const secret = process.env.LIVING_WATERS_INGEST_SECRET;
+			if (!secret) return; // secret not configured — skip silently
+
+			const job = await getJob(jobId);
+			if (!job?.slug) return;
+
+			try {
+				const res = await this.env.LIVING_WATERS.fetch(
+					new Request('https://living-waters/ingest', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `Bearer ${secret}`,
+						},
+						body: JSON.stringify({ mdx: sermonMdx, filename: `${job.slug}.mdx` }),
+					}),
+				);
+				if (!res.ok) {
+					console.error(`[ingest-search] failed: ${res.status} — ${await res.text()}`);
+				}
+			} catch (err) {
+				console.error('[ingest-search] error (non-fatal):', err);
+			}
+		});
+
+		// ── Step 4: calendar ──────────────────────────────────────────────────────
 		await step.do('calendar', { retries: { limit: 2, delay: '15 seconds', backoff: 'exponential' } }, async () => {
 			await patchJob(jobId, { currentStep: 'calendar' });
 			const job = await getJob(jobId);

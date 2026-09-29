@@ -48,6 +48,9 @@ config.workflows = [
 // R2 bucket binding
 config.r2_buckets = [{ binding: 'SERMON_AUDIO', bucket_name: 'family-church-sermons' }];
 
+// Service binding — Living Waters MCP Worker (called by SermonPublishWorkflow after approval)
+config.services = [{ binding: 'LIVING_WATERS', service: 'living-waters' }];
+
 // NOTE: we deliberately do NOT change config.main here. The Cloudflare Vite
 // plugin sets main to the actual Vite-bundled filename (e.g. "index.js") and
 // also sets no_bundle: true. bundle-do.mjs reads that filename, creates

@@ -8,6 +8,7 @@ interface CloudflareEnv {
 	SERMON_AUDIO: R2Bucket;
 	SERMON_PUBLISH_WORKFLOW: Workflow;
 	EMAIL: SendEmail;
+	LIVING_WATERS?: Fetcher;
 }
 
 declare namespace App {
