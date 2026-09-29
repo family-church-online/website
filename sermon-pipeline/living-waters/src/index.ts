@@ -75,9 +75,9 @@ async function handleClip(request: Request, env: Env): Promise<Response> {
   if (isNaN(start) || isNaN(end) || end <= start)
     return new Response('Invalid start/end', { status: 400 });
 
-  const row = await env.DB.prepare('SELECT audio_url, audio_size_bytes FROM sermons WHERE id = ?')
+  const row = await env.DB.prepare('SELECT audio_url, audio_size_bytes, duration_minutes FROM sermons WHERE id = ?')
     .bind(sermon_id)
-    .first<{ audio_url: string | null; audio_size_bytes: number | null }>();
+    .first<{ audio_url: string | null; audio_size_bytes: number | null; duration_minutes: number | null }>();
 
   if (!row?.audio_url) return new Response('Sermon not found', { status: 404 });
   if (!row.audio_url.startsWith(R2_PUBLIC_URL)) return new Response('Audio not in R2', { status: 404 });
@@ -85,10 +85,17 @@ async function handleClip(request: Request, env: Env): Promise<Response> {
   // Strip base URL prefix to get R2 key: "sermons/YYYY-MM-DD-slug.mp3"
   const r2Key = row.audio_url.slice(R2_PUBLIC_URL.length).replace(/^\//, '');
 
-  const byteStart = Math.floor(start * CBR_BYTES_PER_SECOND);
-  let byteLength = Math.ceil((end - start) * CBR_BYTES_PER_SECOND);
-  // Clamp to file size so a clip at the end of a sermon doesn't produce an
-  // unsatisfiable range (R2 error 10039).
+  // Derive bytes-per-second from the file's actual size and duration so the
+  // byte math is correct regardless of bitrate. Fall back to 64kbps CBR if
+  // either value is missing.
+  const bytesPerSecond =
+    row.audio_size_bytes && row.duration_minutes
+      ? row.audio_size_bytes / (row.duration_minutes * 60)
+      : CBR_BYTES_PER_SECOND;
+
+  const byteStart = Math.floor(start * bytesPerSecond);
+  let byteLength = Math.ceil((end - start) * bytesPerSecond);
+  // Clamp to file size so a clip at the end of a sermon doesn't overshoot.
   if (row.audio_size_bytes) {
     byteLength = Math.min(byteLength, row.audio_size_bytes - byteStart);
   }
