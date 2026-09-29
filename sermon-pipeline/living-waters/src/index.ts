@@ -75,9 +75,9 @@ async function handleClip(request: Request, env: Env): Promise<Response> {
   if (isNaN(start) || isNaN(end) || end <= start)
     return new Response('Invalid start/end', { status: 400 });
 
-  const row = await env.DB.prepare('SELECT audio_url FROM sermons WHERE id = ?')
+  const row = await env.DB.prepare('SELECT audio_url, audio_size_bytes FROM sermons WHERE id = ?')
     .bind(sermon_id)
-    .first<{ audio_url: string | null }>();
+    .first<{ audio_url: string | null; audio_size_bytes: number | null }>();
 
   if (!row?.audio_url) return new Response('Sermon not found', { status: 404 });
   if (!row.audio_url.startsWith(R2_PUBLIC_URL)) return new Response('Audio not in R2', { status: 404 });
@@ -86,7 +86,13 @@ async function handleClip(request: Request, env: Env): Promise<Response> {
   const r2Key = row.audio_url.slice(R2_PUBLIC_URL.length).replace(/^\//, '');
 
   const byteStart = Math.floor(start * CBR_BYTES_PER_SECOND);
-  const byteLength = Math.ceil((end - start) * CBR_BYTES_PER_SECOND);
+  let byteLength = Math.ceil((end - start) * CBR_BYTES_PER_SECOND);
+  // Clamp to file size so a clip at the end of a sermon doesn't produce an
+  // unsatisfiable range (R2 error 10039).
+  if (row.audio_size_bytes) {
+    byteLength = Math.min(byteLength, row.audio_size_bytes - byteStart);
+  }
+  if (byteLength <= 0) return new Response('Start is beyond end of audio', { status: 416 });
 
   const obj = await env.AUDIO_BUCKET.get(r2Key, {
     range: { offset: byteStart, length: byteLength },
