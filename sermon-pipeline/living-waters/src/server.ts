@@ -11,7 +11,7 @@ const PER_SERMON_CAP = 3;      // max chunks from one sermon before reranking
 const CANDIDATE_POOL = 30;     // rerank input cap
 const RERANK_MAX_DOCS = 900;   // Voyage rerank API batch limit
 const R2_PUBLIC_URL = 'https://audio.familychurch.online';
-const CLIP_BASE_URL = 'https://mcp.familychurch.online';
+const CLIP_BASE_URL = 'https://cflw.familychurch.online';
 
 // ── Per-sermon diversity cap ──────────────────────────────────────────────────
 
