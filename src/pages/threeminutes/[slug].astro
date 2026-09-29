@@ -109,7 +109,7 @@ const articleLd = {
 			<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">Share</p>
 			<h2 class="text-lg font-semibold text-[var(--navy)] dark:text-white mb-2">Know someone searching for faith?</h2>
 			<p class="text-sm text-[var(--ink)]/65 dark:text-white/55 leading-relaxed mb-5 max-w-sm mx-auto">
-				These articles are written to share. Copy the link and send it to a friend in a message or WhatsApp — they can read it in under three minutes.
+				These articles are written to share. Copy the text and paste it into a message — they can read it in under three minutes. Or share the link via WhatsApp.
 			</p>
 			<div class="flex gap-3 justify-center flex-wrap">
 				<button
@@ -117,7 +117,7 @@ const articleLd = {
 					class="inline-flex items-center gap-2 rounded-lg bg-[var(--green)] text-white font-semibold text-sm px-5 py-2.5 hover:opacity-90 transition-opacity cursor-pointer"
 				>
 					<Icon name="copy" class="w-4 h-4 shrink-0" />
-					<span id="share-btn-label">Copy link</span>
+					<span id="share-btn-label">Copy text</span>
 				</button>
 				<a
 					id="whatsapp-btn"
@@ -131,7 +131,7 @@ const articleLd = {
 				</a>
 			</div>
 			<p id="share-hint" class="text-sm text-[var(--green)] font-medium mt-3 opacity-0 transition-opacity duration-300">
-				Link copied — open a new message and paste it in!
+				Text copied — open a new message and paste it in!
 			</p>
 		</div>
 
@@ -165,15 +165,24 @@ const articleLd = {
 <script>
 	const url = window.location.href;
 
+	const parts: string[] = [];
+	const h1 = document.querySelector('h1');
+	const time = document.querySelector('time');
+	const prose = document.querySelector('.prose-guide');
+	if (h1) parts.push(h1.innerText.trim());
+	if (time) parts.push(time.innerText.trim());
+	if (prose) parts.push((prose as HTMLElement).innerText.trim());
+	const copyText = parts.filter(Boolean).join('\n\n');
+
 	const btn = document.getElementById('share-btn');
 	const label = document.getElementById('share-btn-label');
 	const hint = document.getElementById('share-hint');
 	btn?.addEventListener('click', async () => {
 		try {
-			await navigator.clipboard.writeText(url);
+			await navigator.clipboard.writeText(copyText);
 		} catch {
 			const inp = document.createElement('input');
-			inp.value = url;
+			inp.value = copyText;
 			document.body.appendChild(inp);
 			inp.select();
 			document.execCommand('copy');
@@ -182,7 +191,7 @@ const articleLd = {
 		if (label) label.textContent = '✓ Copied!';
 		if (hint) hint.style.opacity = '1';
 		setTimeout(() => {
-			if (label) label.textContent = 'Copy link';
+			if (label) label.textContent = 'Copy text';
 			if (hint) hint.style.opacity = '0';
 		}, 3000);
 	});

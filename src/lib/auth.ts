@@ -1,6 +1,5 @@
 import type { AstroGlobal } from 'astro';
 import { getSecret } from 'astro:env/server';
-import { env } from 'cloudflare:workers';
 
 // In CF Workers production: nodejs_compat_populate_process_env fills process.env
 // with all worker secrets/bindings before any module runs.
@@ -119,13 +118,13 @@ export interface MagicLinkEmailConfig {
 	footer?: string | null;
 }
 
-export async function sendMagicLink(to: string, verifyUrl: string, emailConfig?: MagicLinkEmailConfig): Promise<void> {
+export async function sendMagicLink(emailBinding: SendEmail, to: string, verifyUrl: string, emailConfig?: MagicLinkEmailConfig): Promise<void> {
 	const subject = emailConfig?.subject ?? 'Your sign-in link for Family Church';
 	const intro = emailConfig?.intro ?? 'Click the link below to sign in. It expires in 10 minutes.';
 	const linkText = emailConfig?.linkText ?? 'Sign in to Family Church';
 	const footer = emailConfig?.footer ?? "If you didn't request this, you can ignore this email.";
 
-	await env.EMAIL.send({
+	await emailBinding.send({
 		from: { email: 'noreply@familychurch.online', name: 'Family Church' },
 		to,
 		subject,

@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 import { lookupPersonByEmail, fetchListMemberships, createSession, sendMagicLink } from '../../../lib/auth';
 import { getConfig } from '../../../lib/data';
 
@@ -63,7 +64,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 			const origin = new URL(request.url).origin;
 			const verifyUrl = `${origin}/api/auth/verify?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(returnTo)}`;
 
-			await sendMagicLink(email, verifyUrl, emailConfig);
+			await sendMagicLink(env.EMAIL, email, verifyUrl, emailConfig);
 		} catch (err) {
 			console.error('[auth/login]', err);
 		}

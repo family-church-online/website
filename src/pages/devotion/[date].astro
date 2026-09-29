@@ -314,9 +314,40 @@ const articleLd = {
       </section>
     )}
 
+    {/* ── SHARE ──────────────────────────────────────────────────────────────── */}
+    <div data-nocopy class="reveal rounded-2xl bg-[var(--navy)]/5 dark:bg-white/5 ring-1 ring-[var(--navy)]/10 dark:ring-white/10 px-6 py-8 text-center esv-crossref-ignore">
+      <p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-2">Share</p>
+      <h2 class="text-lg font-semibold text-[var(--navy)] dark:text-white mb-2">Start someone's day with God's Word</h2>
+      <p class="text-sm text-[var(--ink)]/65 dark:text-white/55 leading-relaxed mb-5 max-w-sm mx-auto">
+        Know someone who could use some encouragement today? Copy the text and paste it into a message, or share the link via WhatsApp.
+      </p>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <button
+          id="share-btn"
+          class="inline-flex items-center gap-2 rounded-lg bg-[var(--green)] text-white font-semibold text-sm px-5 py-2.5 hover:opacity-90 transition-opacity cursor-pointer"
+        >
+          <Icon name="copy" class="w-4 h-4 shrink-0" />
+          <span id="share-btn-label">Copy text</span>
+        </button>
+        <a
+          id="whatsapp-btn"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 rounded-lg bg-[#25D366] text-white font-semibold text-sm px-5 py-2.5 hover:opacity-90 transition-opacity"
+        >
+          <Icon name="whatsapp" class="w-4 h-4 shrink-0" />
+          WhatsApp
+        </a>
+      </div>
+      <p id="share-hint" class="text-sm text-[var(--green)] font-medium mt-3 opacity-0 transition-opacity duration-300">
+        Text copied — open a new message and paste it in!
+      </p>
+    </div>
+
     {/* ── PREV / NEXT ─────────────────────────────────────────────────────────── */}
     {(prev || next || isLatest) && (
-      <nav class="reveal flex items-stretch gap-3 mt-2 mb-8 esv-crossref-ignore">
+      <nav data-nocopy class="reveal flex items-stretch gap-3 mt-2 mb-8 esv-crossref-ignore">
         {prev ? (
           <a href={`/devotion/${prev.date}`} class="group flex-1 flex items-center gap-3 bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 px-5 py-4 hover:shadow-md transition-shadow">
             <Icon name="caret-left" class="shrink-0 w-4 h-4 text-[var(--navy)]/40 group-hover:text-[var(--green)] transition-colors" />
@@ -351,3 +382,52 @@ const articleLd = {
 
   <EsvCrossref />
 </Base>
+
+<script>
+  const url = window.location.href;
+
+  const parts: string[] = [];
+  const h1 = document.querySelector('h1');
+  const time = document.querySelector('time');
+  if (h1) parts.push(h1.innerText.trim());
+  if (time) parts.push(time.innerText.trim());
+  const main = document.querySelector('main');
+  if (main) {
+    for (const el of main.children) {
+      if (el.id === 'readings' || el.hasAttribute('data-nocopy')) continue;
+      const text = (el as HTMLElement).innerText.trim();
+      if (text) parts.push(text);
+    }
+  }
+  const copyText = parts.filter(Boolean).join('\n\n');
+
+  const btn = document.getElementById('share-btn');
+  const label = document.getElementById('share-btn-label');
+  const hint = document.getElementById('share-hint');
+  btn?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(copyText);
+    } catch {
+      const inp = document.createElement('input');
+      inp.value = copyText;
+      document.body.appendChild(inp);
+      inp.select();
+      document.execCommand('copy');
+      document.body.removeChild(inp);
+    }
+    if (label) label.textContent = '✓ Copied!';
+    if (hint) hint.style.opacity = '1';
+    setTimeout(() => {
+      if (label) label.textContent = 'Copy text';
+      if (hint) hint.style.opacity = '0';
+    }, 3000);
+  });
+
+  const waBtn = document.getElementById('whatsapp-btn');
+  if (waBtn) {
+    waBtn.setAttribute(
+      'href',
+      `https://wa.me/?text=${encodeURIComponent(`Today's devotion from Family Church — ${url}`)}`,
+    );
+  }
+</script>
