@@ -1,7 +1,7 @@
 import yaml from 'js-yaml';
 import type { Env, SermonFrontmatter, TranscriptSection, ChunkToEmbed, ChunkCounts, VectorMetadata } from './types';
 import { getChunkCounts, upsertSermon, upsertTags, upsertAdditionalScriptures } from './db';
-import { embedChunks, deleteSermonVectors, insertVectors } from './vectorize';
+import { embedChunks, deleteSermonVectors, insertVectors, getByIdsBatched, upsertVectors } from './vectorize';
 import { makeChunkId } from './utils';
 
 // ── Frontmatter parsing ───────────────────────────────────────────────────────
@@ -270,4 +270,53 @@ export async function ingestSermon(
   await upsertAdditionalScriptures(env.DB, sermon_id, fm.additionalScriptures ?? []);
 
   return { sermon_id, chunk_count: chunks.length };
+}
+
+// ── Metadata-only refresh ─────────────────────────────────────────────────────
+
+// Refresh Vectorize metadata for all chunks of a sermon without re-embedding.
+// Loads each chunk's existing embedding from Vectorize and upserts with the
+// freshly-built metadata (full transcript content, no 2,000-char slice).
+// D1 is also refreshed. No Voyage API calls.
+export async function ingestSermonMetadata(
+  env: { DB: D1Database; VECTORIZE: VectorizeIndex },
+  mdxContent: string,
+  filename: string,
+): Promise<{ sermon_id: string; updated: number; missing: number }> {
+  const sermon_id = filename.replace(/\.mdx$/, '');
+  const { data: fm, body } = parseMdxFrontmatter(mdxContent);
+
+  if (fm.review === true) {
+    throw new Error(`Sermon ${sermon_id} has review: true — skipping unstaged content`);
+  }
+
+  const { chunks, counts } = buildChunks(sermon_id, fm, body);
+
+  // Fetch existing embeddings — no re-embedding, preserve the original vectors.
+  const ids = chunks.map(c => c.id);
+  const existing = await getByIdsBatched(env.VECTORIZE, ids);
+  const valueById = new Map(existing.map(v => [v.id, Array.from(v.values)]));
+
+  let missing = 0;
+  const toUpsert: { id: string; values: number[]; metadata: Record<string, VectorizeVectorMetadataValue> }[] = [];
+  for (const chunk of chunks) {
+    const values = valueById.get(chunk.id);
+    if (!values || values.length === 0) {
+      console.warn(`[ingest-metadata] missing vector ${chunk.id} — skipping`);
+      missing++;
+      continue;
+    }
+    toUpsert.push({
+      id: chunk.id,
+      values,
+      metadata: chunk.metadata as unknown as Record<string, VectorizeVectorMetadataValue>,
+    });
+  }
+
+  await upsertVectors(env.VECTORIZE, toUpsert);
+  await upsertSermon(env.DB, sermon_id, fm, counts);
+  await upsertTags(env.DB, sermon_id, fm.tags ?? []);
+  await upsertAdditionalScriptures(env.DB, sermon_id, fm.additionalScriptures ?? []);
+
+  return { sermon_id, updated: toUpsert.length, missing };
 }

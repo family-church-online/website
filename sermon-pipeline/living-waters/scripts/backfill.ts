@@ -27,6 +27,7 @@ const WORKER_URL = process.env.WORKER_URL ?? '';
 const INGEST_SECRET = process.env.INGEST_SECRET ?? '';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN ?? '';
 const LIMIT = process.env.LIMIT ? Number(process.env.LIMIT) : undefined; // e.g. LIMIT=3 for a test run
+const MODE = process.env.MODE ?? '';  // 'metadata' = refresh Vectorize metadata only, no re-embedding
 const GITHUB_OWNER = 'family-church-online';
 const GITHUB_REPO = 'website';
 const SERMONS_PATH = 'src/content/sermons';
@@ -82,16 +83,34 @@ async function ingestFile(filename: string, mdx: string): Promise<{ sermon_id: s
   return res.json() as Promise<{ sermon_id: string; chunk_count: number }>;
 }
 
+async function ingestFileMetadata(filename: string, mdx: string): Promise<{ sermon_id: string; updated: number; missing: number }> {
+  const res = await fetch(`${WORKER_URL}/ingest-metadata`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${INGEST_SECRET}`,
+    },
+    body: JSON.stringify({ mdx, filename }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Ingest-metadata ${filename} → ${res.status}: ${text}`);
+  }
+  return res.json() as Promise<{ sermon_id: string; updated: number; missing: number }>;
+}
+
 async function sleep(ms: number): Promise<void> {
   return new Promise(r => setTimeout(r, ms));
 }
 
 async function main(): Promise<void> {
-  console.log('Fetching sermon list from GitHub…');
+  const isMetadataMode = MODE === 'metadata';
+
+  console.log(`Fetching sermon list from GitHub… ${isMetadataMode ? '[MODE=metadata — no re-embedding]' : ''}`);
   const files = await fetchSermonFiles();
   console.log(`Found ${files.length} sermon files\n`);
 
-  let ok = 0, skipped = 0, failed = 0;
+  let ok = 0, skipped = 0, failed = 0, totalMissing = 0;
   const total = LIMIT !== undefined ? Math.min(LIMIT, files.length) : files.length;
   if (LIMIT !== undefined) console.log(`LIMIT=${LIMIT} — testing with first ${total} sermon(s)\n`);
 
@@ -100,8 +119,15 @@ async function main(): Promise<void> {
     process.stdout.write(`[${i + 1}/${total}] ${file.name} … `);
     try {
       const mdx = await downloadFile(file.download_url);
-      const result = await ingestFile(file.name, mdx);
-      console.log(`✓  ${result.chunk_count} chunks`);
+      if (isMetadataMode) {
+        const result = await ingestFileMetadata(file.name, mdx);
+        const missingNote = result.missing > 0 ? ` (${result.missing} missing)` : '';
+        console.log(`✓  ${result.updated} updated${missingNote}`);
+        totalMissing += result.missing;
+      } else {
+        const result = await ingestFile(file.name, mdx);
+        console.log(`✓  ${result.chunk_count} chunks`);
+      }
       ok++;
     } catch (err) {
       const msg = String(err);
@@ -114,10 +140,16 @@ async function main(): Promise<void> {
       }
     }
 
-    if (i < total - 1) await sleep(DELAY_MS);
+    // Metadata mode has no Voyage calls — no throttle needed. Full ingest throttles
+    // to avoid hammering the Voyage API rate limit.
+    if (!isMetadataMode && i < total - 1) await sleep(DELAY_MS);
   }
 
-  console.log(`\nDone — ${ok} ingested, ${skipped} skipped, ${failed} failed`);
+  if (isMetadataMode) {
+    console.log(`\nDone — ${ok} refreshed, ${skipped} skipped, ${failed} failed, ${totalMissing} chunks missing from index`);
+  } else {
+    console.log(`\nDone — ${ok} ingested, ${skipped} skipped, ${failed} failed`);
+  }
   if (failed > 0) process.exit(1);
 }
 

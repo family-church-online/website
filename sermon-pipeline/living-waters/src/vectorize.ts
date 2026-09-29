@@ -6,6 +6,7 @@ const RERANK_MODEL = 'rerank-2.5-lite';
 const EMBED_GROUP_LIMIT = 128;        // item-count safety cap
 const EMBED_GROUP_MAX_WORDS = 20000;  // conservative token-budget cap — tune against Voyage's documented per-call limit for voyage-context-4
 const INSERT_BATCH_SIZE = 500;        // Vectorize recommended batch size
+const GET_BY_IDS_LIMIT = 20;         // undocumented Vectorize limit (observed: max 20 ids per call)
 
 // ── Voyage embedding ──────────────────────────────────────────────────────────
 
@@ -124,6 +125,21 @@ export async function rerank(
   return data.data.map(d => ({ index: d.index, score: d.relevance_score }));
 }
 
+// ── Vectorize read helpers ────────────────────────────────────────────────────
+
+// getByIds is limited to 20 ids per call — batch automatically.
+export async function getByIdsBatched(
+  vectorize: VectorizeIndex,
+  ids: string[],
+): Promise<VectorizeVector[]> {
+  const results: VectorizeVector[] = [];
+  for (let i = 0; i < ids.length; i += GET_BY_IDS_LIMIT) {
+    const batch = await vectorize.getByIds(ids.slice(i, i + GET_BY_IDS_LIMIT));
+    results.push(...batch);
+  }
+  return results;
+}
+
 // ── Vectorize writes ──────────────────────────────────────────────────────────
 
 // Delete all vectors for a sermon using the deterministic ID scheme.
@@ -155,5 +171,16 @@ export async function insertVectors(
 
   for (let i = 0; i < vectors.length; i += INSERT_BATCH_SIZE) {
     await vectorize.insert(vectors.slice(i, i + INSERT_BATCH_SIZE));
+  }
+}
+
+// Upsert vectors (same IDs, same embeddings, refreshed metadata).
+// Used by the metadata-only refresh path — preserves embeddings from the index.
+export async function upsertVectors(
+  vectorize: VectorizeIndex,
+  vectors: { id: string; values: number[]; metadata: Record<string, VectorizeVectorMetadataValue> }[],
+): Promise<void> {
+  for (let i = 0; i < vectors.length; i += INSERT_BATCH_SIZE) {
+    await vectorize.upsert(vectors.slice(i, i + INSERT_BATCH_SIZE));
   }
 }

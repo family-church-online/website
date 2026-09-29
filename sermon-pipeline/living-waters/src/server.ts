@@ -3,31 +3,15 @@ import { z } from 'zod';
 import type { Env } from './types';
 import * as db from './db';
 import type { AudienceSituationRow } from './db';
-import { embedQuery, rerank } from './vectorize';
+import { embedQuery, rerank, getByIdsBatched } from './vectorize';
 import { makeChunkId } from './utils';
 
 const RETRIEVE_POOL = 100;     // wide Vectorize retrieval (requires returnMetadata:'indexed')
 const PER_SERMON_CAP = 3;      // max chunks from one sermon before reranking
 const CANDIDATE_POOL = 30;     // rerank input cap
 const RERANK_MAX_DOCS = 900;   // Voyage rerank API batch limit
-const GET_BY_IDS_LIMIT = 20;   // Vectorize getByIds undocumented limit (observed: max 20 ids per call)
 const R2_PUBLIC_URL = 'https://audio.familychurch.online';
 const CLIP_BASE_URL = 'https://mcp.familychurch.online';
-
-// ── Vectorize helpers ─────────────────────────────────────────────────────────
-
-// getByIds is limited to 20 ids per call — batch automatically.
-async function getByIdsBatched(
-  vectorize: VectorizeIndex,
-  ids: string[],
-): Promise<VectorizeVector[]> {
-  const results: VectorizeVector[] = [];
-  for (let i = 0; i < ids.length; i += GET_BY_IDS_LIMIT) {
-    const batch = await vectorize.getByIds(ids.slice(i, i + GET_BY_IDS_LIMIT));
-    results.push(...batch);
-  }
-  return results;
-}
 
 // ── Per-sermon diversity cap ──────────────────────────────────────────────────
 

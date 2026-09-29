@@ -1,7 +1,7 @@
 import { createMcpHandler } from 'agents/mcp/server';
 import type { Env } from './types';
 import { createServer } from './server';
-import { ingestSermon } from './ingest';
+import { ingestSermon, ingestSermonMetadata } from './ingest';
 
 // Sermon audio is 64kbps CBR mono MP3 — byte-range math is exact.
 const CBR_BYTES_PER_SECOND = 8000;
@@ -19,6 +19,11 @@ export default {
     // ── Internal: per-sermon ingestion (called by SermonPublishWorkflow) ─
     if (url.pathname === '/ingest' && request.method === 'POST') {
       return handleIngest(request, env);
+    }
+
+    // ── Internal: metadata-only refresh (backfill after ingest.ts changes) ──
+    if (url.pathname === '/ingest-metadata' && request.method === 'POST') {
+      return handleIngestMetadata(request, env);
     }
 
     // All other paths only valid at /mcp
@@ -121,6 +126,33 @@ async function handleIngest(request: Request, env: Env): Promise<Response> {
 
   try {
     const result = await ingestSermon(env, body.mdx, body.filename);
+    return Response.json(result);
+  } catch (err) {
+    return Response.json({ error: String(err) }, { status: 500 });
+  }
+}
+
+// ── /ingest-metadata ──────────────────────────────────────────────────────────
+
+async function handleIngestMetadata(request: Request, env: Env): Promise<Response> {
+  const token = request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
+  if (!token || token !== env.INGEST_SECRET) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  let body: { mdx: string; filename: string };
+  try {
+    body = await request.json() as { mdx: string; filename: string };
+  } catch {
+    return new Response('Invalid JSON', { status: 400 });
+  }
+
+  if (!body.mdx || !body.filename) {
+    return new Response('Missing mdx or filename', { status: 400 });
+  }
+
+  try {
+    const result = await ingestSermonMetadata(env, body.mdx, body.filename);
     return Response.json(result);
   } catch (err) {
     return Response.json({ error: String(err) }, { status: 500 });
