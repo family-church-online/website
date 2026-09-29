@@ -185,7 +185,7 @@ export function createServer(env: Env): () => McpServer {
 
         // Only hit D1 for framing when RERANK_CONTEXT requires it.
         let framingMap: Map<string, { big_idea: string | null }> | undefined;
-        if (rerankContext !== 'none') {
+        if (rerankContext === 'big_idea') {
           const sermonIds = [...new Set(enrichedMatches.map(m => m.metadata.sermon_id as string))];
           framingMap = await db.getFramingContext(env.DB, sermonIds);
         }
