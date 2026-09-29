@@ -31,16 +31,35 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 	let email = '';
 	let returnTo = '/courses';
 
+	let turnstileToken = '';
 	try {
 		const data = await request.formData();
 		email = (data.get('email')?.toString() ?? '').trim().toLowerCase();
 		returnTo = data.get('redirect')?.toString() ?? '/courses';
+		turnstileToken = data.get('cf-turnstile-response')?.toString() ?? '';
 	} catch {
 		return redirect('/login?error=invalid');
 	}
 
 	if (!email || !email.includes('@')) {
 		return redirect(`/login?error=email&redirect=${encodeURIComponent(returnTo)}`);
+	}
+
+	const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+	if (turnstileSecret) {
+		if (!turnstileToken) {
+			return redirect(`/login?error=turnstile&redirect=${encodeURIComponent(returnTo)}`);
+		}
+		const ip = request.headers.get('CF-Connecting-IP') ?? undefined;
+		const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ secret: turnstileSecret, response: turnstileToken, ...(ip && { remoteip: ip }) }),
+		});
+		const { success } = await res.json() as { success: boolean };
+		if (!success) {
+			return redirect(`/login?error=turnstile&redirect=${encodeURIComponent(returnTo)}`);
+		}
 	}
 
 	const [siteConfig] = await Promise.all([getConfig()]);

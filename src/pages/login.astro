@@ -12,6 +12,7 @@ const footer = loginPage?.footer ?? 'Sign-in links are for church members only. 
 
 const redirect = Astro.url.searchParams.get('redirect') ?? '/courses';
 const error = Astro.url.searchParams.get('error');
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string | undefined;
 ---
 
 <Base
@@ -19,6 +20,9 @@ const error = Astro.url.searchParams.get('error');
 	description="Sign in to access member content."
 	noindex={true}
 >
+	{turnstileSiteKey && (
+		<script is:inline slot="head" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+	)}
 	<div class="max-w-[var(--content-width)] mx-auto px-4 sm:px-6 py-24 flex flex-col items-center">
 		<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">
 			Members
@@ -54,6 +58,13 @@ const error = Astro.url.searchParams.get('error');
 
 			{error === 'email' && (
 				<p class="text-sm text-[var(--red)]">Please enter a valid email address.</p>
+			)}
+			{error === 'turnstile' && (
+				<p class="text-sm text-[var(--red)]">Verification failed — please try again.</p>
+			)}
+
+			{turnstileSiteKey && (
+				<div class="cf-turnstile" data-sitekey={turnstileSiteKey} data-theme="auto"></div>
 			)}
 
 			<button
