@@ -4,6 +4,10 @@ export interface Env {
   AUDIO_BUCKET: R2Bucket;
   VOYAGE_API_KEY: string;
   INGEST_SECRET: string;
+  // Controls what the reranker reads for each chunk in search():
+  //   'none' (default): bare chunk content only — no framing context D1 lookup.
+  //   'big_idea': prepends "Big idea: {big_idea}\n" to the chunk content.
+  RERANK_CONTEXT?: string;
 }
 
 // Frontmatter shape from sermon MDX files

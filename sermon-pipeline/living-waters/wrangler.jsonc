@@ -38,5 +38,10 @@
 			"binding": "AUDIO_BUCKET",
 			"bucket_name": "family-church-sermons"
 		}
-	]
+	],
+	"vars": {
+		// "none" (default): bare chunk content only, no D1 framing lookup.
+		// "big_idea": prepends "Big idea: ..." to each chunk before reranking.
+		"RERANK_CONTEXT": ""
+	}
 }

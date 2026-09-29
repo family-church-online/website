@@ -227,11 +227,7 @@ export async function getSermonSummary(db: D1Database, id: string): Promise<Serm
 // ── Framing context (enriched reranking) ─────────────────────────────────────
 
 export interface FramingContext {
-  title: string;
-  series: string | null;
-  main_points: { title: string; body: string }[];
-  takeaways: string[];
-  audience: string[];
+  big_idea: string | null;
 }
 
 export async function getFramingContext(
@@ -242,20 +238,14 @@ export async function getFramingContext(
   const placeholders = sermonIds.map(() => '?').join(',');
   const rows = await db
     .prepare(
-      `SELECT id, title, series, main_points, takeaways, audience FROM sermons WHERE id IN (${placeholders})`,
+      `SELECT id, big_idea FROM sermons WHERE id IN (${placeholders})`,
     )
     .bind(...sermonIds)
-    .all<{ id: string; title: string; series: string | null; main_points: string; takeaways: string; audience: string }>();
+    .all<{ id: string; big_idea: string | null }>();
 
   const map = new Map<string, FramingContext>();
   for (const row of rows.results) {
-    map.set(row.id, {
-      title: row.title,
-      series: row.series,
-      main_points: JSON.parse(row.main_points || '[]'),
-      takeaways: JSON.parse(row.takeaways || '[]'),
-      audience: JSON.parse(row.audience || '[]'),
-    });
+    map.set(row.id, { big_idea: row.big_idea });
   }
   return map;
 }
