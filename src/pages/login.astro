@@ -57,12 +57,23 @@ const error = Astro.url.searchParams.get('error');
 			)}
 
 			<button
+				id="submit-btn"
 				type="submit"
-				class="w-full rounded-full bg-[var(--navy)] text-white text-sm font-semibold py-2.5 hover:bg-[var(--green)] transition-colors"
+				class="w-full rounded-full bg-[var(--navy)] text-white text-sm font-semibold py-2.5 hover:bg-[var(--green)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				Send sign-in link
 			</button>
 		</form>
+
+		<script>
+			document.querySelector('form')?.addEventListener('submit', () => {
+				const btn = document.getElementById('submit-btn') as HTMLButtonElement | null;
+				if (btn) {
+					btn.disabled = true;
+					btn.textContent = 'Sending…';
+				}
+			});
+		</script>
 
 		<p class="mt-8 text-xs text-[var(--ink)]/45 dark:text-white/35 text-center max-w-xs">
 			{footer}
