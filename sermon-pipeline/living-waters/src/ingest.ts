@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import type { Env, SermonFrontmatter, TranscriptSection, ChunkToEmbed, ChunkCounts } from './types';
+import type { Env, SermonFrontmatter, TranscriptSection, ChunkToEmbed, ChunkCounts, VectorMetadata } from './types';
 import { getChunkCounts, upsertSermon, upsertTags, upsertAdditionalScriptures } from './db';
 import { embedChunks, deleteSermonVectors, insertVectors } from './vectorize';
 import { makeChunkId } from './utils';
@@ -95,6 +95,29 @@ function parseTranscriptSections(body: string): TranscriptSection[] {
   return sections;
 }
 
+// ── Metadata size guard ───────────────────────────────────────────────────────
+
+const METADATA_MAX_BYTES = 9500; // leave 500 bytes headroom under Vectorize's 10 KiB limit
+
+// Truncate content at a sentence boundary if the serialised metadata exceeds the limit.
+function guardMetadataSize(
+  metadata: Record<string, unknown>,
+  sermon_id: string,
+  chunkIdx: number,
+): Record<string, unknown> {
+  if (JSON.stringify(metadata).length <= METADATA_MAX_BYTES) return metadata;
+
+  let content = metadata.content as string;
+  const original = content.length;
+  while (JSON.stringify({ ...metadata, content }).length > METADATA_MAX_BYTES) {
+    const lastSentence = content.lastIndexOf('. ', content.length - 2);
+    content = lastSentence !== -1 ? content.slice(0, lastSentence + 1) : content.slice(0, content.length - 100);
+    if (content.length < 100) break; // safety valve
+  }
+  console.warn(`[ingest] metadata size guard: ${sermon_id} chunk ${chunkIdx} truncated content ${original} → ${content.length} chars`);
+  return { ...metadata, content };
+}
+
 // ── Chunk builder ─────────────────────────────────────────────────────────────
 
 export function buildChunks(
@@ -122,18 +145,19 @@ export function buildChunks(
     );
   }
   sections.forEach((sec, idx) => {
+    const rawMeta = {
+      ...baseMeta,
+      chunk_type: 'transcript_section',
+      content: sec.text,   // full text — no 2,000 char slice; guard below catches oversized metadata
+      time_range_start: sec.time_range_start,
+      time_range_end: sec.time_range_end,
+      markers: JSON.stringify(sec.markers),
+    };
     chunks.push({
       id: makeChunkId(sermon_id, 'transcript_section', idx),
       chunk_type: 'transcript_section',
       text: sec.text,
-      metadata: {
-        ...baseMeta,
-        chunk_type: 'transcript_section',
-        content: sec.text.slice(0, 2000),
-        time_range_start: sec.time_range_start,
-        time_range_end: sec.time_range_end,
-        markers: JSON.stringify(sec.markers),
-      },
+      metadata: guardMetadataSize(rawMeta, sermon_id, idx) as unknown as VectorMetadata,
     });
   });
 
