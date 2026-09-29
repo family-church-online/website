@@ -10,8 +10,24 @@ const RETRIEVE_POOL = 100;     // wide Vectorize retrieval (requires returnMetad
 const PER_SERMON_CAP = 3;      // max chunks from one sermon before reranking
 const CANDIDATE_POOL = 30;     // rerank input cap
 const RERANK_MAX_DOCS = 900;   // Voyage rerank API batch limit
+const GET_BY_IDS_LIMIT = 20;   // Vectorize getByIds undocumented limit (observed: max 20 ids per call)
 const R2_PUBLIC_URL = 'https://audio.familychurch.online';
 const CLIP_BASE_URL = 'https://mcp.familychurch.online';
+
+// ── Vectorize helpers ─────────────────────────────────────────────────────────
+
+// getByIds is limited to 20 ids per call — batch automatically.
+async function getByIdsBatched(
+  vectorize: VectorizeIndex,
+  ids: string[],
+): Promise<VectorizeVector[]> {
+  const results: VectorizeVector[] = [];
+  for (let i = 0; i < ids.length; i += GET_BY_IDS_LIMIT) {
+    const batch = await vectorize.getByIds(ids.slice(i, i + GET_BY_IDS_LIMIT));
+    results.push(...batch);
+  }
+  return results;
+}
 
 // ── Per-sermon diversity cap ──────────────────────────────────────────────────
 
@@ -166,7 +182,7 @@ export function createServer(env: Env): () => McpServer {
 
         // Load full metadata (content, markers, title, etc.) for surviving chunks.
         const survivorIds = cappedMatches.map(m => m.id);
-        const fullVectors = await env.VECTORIZE.getByIds(survivorIds);
+        const fullVectors = await getByIdsBatched(env.VECTORIZE,survivorIds);
         const vectorById = new Map(fullVectors.map(v => [v.id, v]));
 
         // Reconstruct ordered matches with full metadata; drop any that failed to load.
@@ -493,7 +509,7 @@ async function locateQuote(
     const ids = Array.from({ length: transcriptCount }, (_, i) =>
       makeChunkId(sermon_id, 'transcript_section', i),
     );
-    const vectors = await env.VECTORIZE.getByIds(ids);
+    const vectors = await getByIdsBatched(env.VECTORIZE,ids);
     chunks = vectors
       .map(v => {
         if (!v.metadata) return null;
@@ -570,7 +586,7 @@ async function locateQuote(
 
   if (vectorMatches.matches.length > 0) {
     const matchIds = vectorMatches.matches.map(m => m.id);
-    const fullVectors = await env.VECTORIZE.getByIds(matchIds);
+    const fullVectors = await getByIdsBatched(env.VECTORIZE,matchIds);
     const firstWithMeta = fullVectors.find(v => v.metadata);
     if (firstWithMeta?.metadata) {
       const m = firstWithMeta.metadata as Record<string, unknown>;
