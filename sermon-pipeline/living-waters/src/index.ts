@@ -85,27 +85,32 @@ async function handleClip(request: Request, env: Env): Promise<Response> {
   // Strip base URL prefix to get R2 key: "sermons/YYYY-MM-DD-slug.mp3"
   const r2Key = row.audio_url.slice(R2_PUBLIC_URL.length).replace(/^\//, '');
 
-  // Derive bytes-per-second from the file's actual size and duration so the
-  // byte math is correct regardless of bitrate. Fall back to 64kbps CBR if
-  // either value is missing.
-  const bytesPerSecond =
-    row.audio_size_bytes && row.duration_minutes
-      ? row.audio_size_bytes / (row.duration_minutes * 60)
-      : CBR_BYTES_PER_SECOND;
+  // Resolve the real file size: use D1 value if present, otherwise HEAD R2
+  // (cheap metadata-only call, no body). Required for accurate byte math and
+  // to clamp the range so we never overshoot the file.
+  const fileSize: number | null = row.audio_size_bytes
+    ?? (await env.AUDIO_BUCKET.head(r2Key))?.size
+    ?? null;
+
+  if (!fileSize) return new Response('Audio not found in R2', { status: 404 });
+
+  // Derive bytes-per-second from real size + duration; fall back to 64kbps CBR.
+  const bytesPerSecond = row.duration_minutes
+    ? fileSize / (row.duration_minutes * 60)
+    : CBR_BYTES_PER_SECOND;
 
   const byteStart = Math.floor(start * bytesPerSecond);
-  let byteLength = Math.ceil((end - start) * bytesPerSecond);
-  // Clamp to file size so a clip at the end of a sermon doesn't overshoot.
-  if (row.audio_size_bytes) {
-    byteLength = Math.min(byteLength, row.audio_size_bytes - byteStart);
-  }
+  const byteLength = Math.min(
+    Math.ceil((end - start) * bytesPerSecond),
+    fileSize - byteStart,
+  );
   if (byteLength <= 0) return new Response('Start is beyond end of audio', { status: 416 });
 
   const obj = await env.AUDIO_BUCKET.get(r2Key, {
     range: { offset: byteStart, length: byteLength },
   });
 
-  if (!obj) return new Response('Audio not found in R2', { status: 404 });
+  if (!obj) return new Response('Audio object missing from R2', { status: 404 });
 
   return new Response(obj.body, {
     headers: {
