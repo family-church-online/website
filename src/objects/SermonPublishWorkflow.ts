@@ -383,18 +383,13 @@ async function createCalendarEvent(token: string, calendarId: string, summary: s
 	}
 }
 
-async function sendNotificationEmail(to: string, subject: string, html: string): Promise<void> {
-	const resendKey = process.env.RESEND_API_KEY;
-	if (!resendKey) return;
-	await fetch('https://api.resend.com/emails', {
-		method: 'POST',
-		headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-		body: JSON.stringify({
-			from: 'Family Church Pipeline <noreply@familychurch.online>',
-			to,
-			subject,
-			html,
-		}),
+async function sendNotificationEmail(email: SendEmail, to: string, subject: string, html: string, text: string): Promise<void> {
+	await email.send({
+		from: { email: 'noreply@familychurch.online', name: 'Family Church Pipeline' },
+		to,
+		subject,
+		html,
+		text,
 	});
 }
 
@@ -558,14 +553,16 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 			await patchJob(jobId, { status: 'complete', currentStep: null });
 
 			const notifyEmail = process.env.SERMON_NOTIFY_EMAIL;
-			if (notifyEmail) {
+			if (notifyEmail && this.env.EMAIL) {
 				await sendNotificationEmail(
+					this.env.EMAIL,
 					notifyEmail,
 					`Sermon published: ${job.optimisedTitle}`,
 					`<p>The sermon "<strong>${job.optimisedTitle}</strong>" has been committed to GitHub.</p>
 					<p>Commit: ${commitSha}</p>
 					<p>Once the Cloudflare build completes, it will be live at:<br>
 					<a href="${sermonUrl}">${sermonUrl}</a></p>`,
+					`The sermon "${job.optimisedTitle}" has been committed to GitHub.\n\nCommit: ${commitSha}\n\nOnce the Cloudflare build completes, it will be live at: ${sermonUrl}`,
 				);
 			}
 		});

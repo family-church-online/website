@@ -7,6 +7,7 @@ interface CloudflareEnv {
 	SERMON_JOBS: KVNamespace;
 	SERMON_AUDIO: R2Bucket;
 	SERMON_PUBLISH_WORKFLOW: Workflow;
+	EMAIL: SendEmail;
 }
 
 declare namespace App {

@@ -1,6 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 import { putJob, setLatestJobId, type SermonJob, type SermonJobMetadata, type Taxonomy, type SermonBlock, type Devotion, type ReadingPlanDay } from '../../../lib/sermon-job';
 
 function randomId(): string {
@@ -8,18 +9,14 @@ function randomId(): string {
 }
 
 async function sendNotificationEmail(reviewUrl: string, title: string): Promise<void> {
-	const resendKey = process.env.RESEND_API_KEY;
 	const notifyEmail = process.env.SERMON_NOTIFY_EMAIL;
-	if (!resendKey || !notifyEmail) return;
-	await fetch('https://api.resend.com/emails', {
-		method: 'POST',
-		headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-		body: JSON.stringify({
-			from: 'Family Church Pipeline <noreply@familychurch.online>',
-			to: notifyEmail,
-			subject: `Sermon ready for review: ${title}`,
-			html: `<p>The sermon "<strong>${title}</strong>" has been processed and is ready for review.</p><p><a href="${reviewUrl}">Review and approve →</a></p>`,
-		}),
+	if (!notifyEmail || !env.EMAIL) return;
+	await env.EMAIL.send({
+		from: { email: 'noreply@familychurch.online', name: 'Family Church Pipeline' },
+		to: notifyEmail,
+		subject: `Sermon ready for review: ${title}`,
+		html: `<p>The sermon "<strong>${title}</strong>" has been processed and is ready for review.</p><p><a href="${reviewUrl}">Review and approve →</a></p>`,
+		text: `The sermon "${title}" has been processed and is ready for review.\n\nReview and approve: ${reviewUrl}`,
 	});
 }
 

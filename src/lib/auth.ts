@@ -1,5 +1,6 @@
 import type { AstroGlobal } from 'astro';
 import { getSecret } from 'astro:env/server';
+import { env } from 'cloudflare:workers';
 
 // In CF Workers production: nodejs_compat_populate_process_env fills process.env
 // with all worker secrets/bindings before any module runs.
@@ -109,7 +110,7 @@ export async function lookupPersonByEmail(
 	return { pcoId, name: personJson.data.attributes.name ?? email };
 }
 
-// ── Magic link email via Resend ───────────────────────────────────────────────
+// ── Magic link email via Cloudflare Email ─────────────────────────────────────
 
 export interface MagicLinkEmailConfig {
 	subject?: string | null;
@@ -119,34 +120,22 @@ export interface MagicLinkEmailConfig {
 }
 
 export async function sendMagicLink(to: string, verifyUrl: string, emailConfig?: MagicLinkEmailConfig): Promise<void> {
-	const from = 'Family Church <noreply@familychurch.online>';
 	const subject = emailConfig?.subject ?? 'Your sign-in link for Family Church';
 	const intro = emailConfig?.intro ?? 'Click the link below to sign in. It expires in 10 minutes.';
 	const linkText = emailConfig?.linkText ?? 'Sign in to Family Church';
 	const footer = emailConfig?.footer ?? "If you didn't request this, you can ignore this email.";
 
-	const res = await fetch('https://api.resend.com/emails', {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${secret('RESEND_API_KEY')}`,
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify({
-			from,
-			to,
-			subject,
-			html: `
-				<p>${intro}</p>
-				<p><a href="${verifyUrl}" style="font-size:16px;font-weight:bold">${linkText}</a></p>
-				<p style="color:#666;font-size:13px">${footer}</p>
-			`,
-			text: `${linkText}:\n\n${verifyUrl}\n\nThis link expires in 10 minutes. ${footer}`,
-		}),
+	await env.EMAIL.send({
+		from: { email: 'noreply@familychurch.online', name: 'Family Church' },
+		to,
+		subject,
+		html: `
+			<p>${intro}</p>
+			<p><a href="${verifyUrl}" style="font-size:16px;font-weight:bold">${linkText}</a></p>
+			<p style="color:#666;font-size:13px">${footer}</p>
+		`,
+		text: `${linkText}:\n\n${verifyUrl}\n\nThis link expires in 10 minutes. ${footer}`,
 	});
-	if (!res.ok) {
-		const body = await res.text();
-		throw new Error(`Resend failed: ${res.status} — ${body}`);
-	}
 }
 
 // ── PCO list membership (server-side PAT check) ───────────────────────────────

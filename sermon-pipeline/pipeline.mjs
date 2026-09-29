@@ -1217,15 +1217,14 @@ async function main() {
   taxonomy.url = `${SITE_URL}/sermons/${notes.date}-${slug}`;
 
   // 7b. Normalise image now that we have the full slug (title + scripture reference).
-  //     Canonical name: YYYY-MM-DD-{slug}.jpg in /images/sermons/
-  //     Must be JPEG — Apple Podcasts does not support WebP for episode artwork.
+  //     Canonical name: YYYY-MM-DD-{slug}.webp in /images/sermons/
   if (notes.image && imageSrcPath && existsSync(imageSrcPath)) {
-    const canonicalRelative = `/images/sermons/${notes.date}-${slug}.jpg`;
-    const canonicalPath = join(WEBSITE_DIR, 'public', 'images', 'sermons', `${notes.date}-${slug}.jpg`);
+    const canonicalRelative = `/images/sermons/${notes.date}-${slug}.webp`;
+    const canonicalPath = join(WEBSITE_DIR, 'public', 'images', 'sermons', `${notes.date}-${slug}.webp`);
     mkdirSync(join(WEBSITE_DIR, 'public', 'images', 'sermons'), { recursive: true });
     if (imageSrcPath !== canonicalPath) {
       log(`Normalising image → ${canonicalRelative}`);
-      const r = spawnSync('ffmpeg', ['-y', '-i', imageSrcPath, '-q:v', '2', canonicalPath], { encoding: 'utf8' });
+      const r = spawnSync('ffmpeg', ['-y', '-i', imageSrcPath, '-quality', '85', canonicalPath], { encoding: 'utf8' });
       if (r.status === 0) {
         notes.image = canonicalRelative;
         log(`  Saved: ${basename(canonicalPath)} (${(statSync(canonicalPath).size / 1024).toFixed(0)} KB)`);
@@ -1235,7 +1234,7 @@ async function main() {
     }
     const finalPath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
     if (existsSync(finalPath)) {
-      imageMimeType = 'image/jpeg';
+      imageMimeType = 'image/webp';
       imageData = readFileSync(finalPath).toString('base64');
       log(`Image ready for commit: ${(imageData.length * 3 / 4 / 1024).toFixed(0)} KB`);
     }

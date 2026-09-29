@@ -34,11 +34,11 @@ The pipeline: reads `sermon-notes/current.mdx` → selects Vimeo video → downl
 
 **Session resume**: the pipeline saves a checkpoint (`sermon-pipeline/session/current.json`) after every expensive step. If interrupted and restarted on the same day, it offers to resume from the last completed step. Session is deleted on successful Worker POST.
 
-**Reliability**: Vimeo download retries up to 5× with exponential backoff (30s→300s). Deepgram transcription retries up to 5× on 429/5xx. Sermon image extracted as JPEG (`-q:v 2`) — Apple Podcasts rejects WebP. Each sermon gets a `guid` UUID in its MDX frontmatter; Spotify and Apple Podcasts require stable non-empty guids to track episodes.
+**Reliability**: Vimeo download retries up to 5× with exponential backoff (30s→300s). Deepgram transcription retries up to 5× on 429/5xx. Sermon image converted to WebP (`-quality 85`). Each sermon gets a `guid` UUID in its MDX frontmatter; Spotify and Apple Podcasts require stable non-empty guids to track episodes.
 
 The Worker stores the job in `SERMON_JOBS` KV (status `review`, 30-day TTL) and emails `SERMON_NOTIFY_EMAIL`. Reviewer visits `/sermon-admin/[jobId]`, edits if needed, and approves. Approval triggers `SermonPublishWorkflow` which commits sermon MDX + 7 devotion MDX files + updated `related-sermons.json` + `sermon-tags.json` to GitHub in one atomic commit, posts devotions to Google Calendar, and uploads transcript/taxonomy/sermon-block to Drive.
 
-Worker secrets required: `SERMON_PIPELINE_SECRET`, `SERMON_NOTIFY_EMAIL`, `GITHUB_TOKEN`, `GOOGLE_SERVICE_ACCOUNT`, `RESEND_API_KEY`.
+Worker secrets required: `SERMON_PIPELINE_SECRET`, `SERMON_NOTIFY_EMAIL`, `GITHUB_TOKEN`, `GOOGLE_SERVICE_ACCOUNT`.
 
 ### Legacy sermon import (backfill from Google Drive)
 

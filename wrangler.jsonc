@@ -13,6 +13,9 @@
 		{ "binding": "LESSON_PROGRESS", "id": "56984b88d58641dbb252b1e40fd897da", "remote": true },
 		{ "binding": "SERMON_JOBS", "id": "11aeec1bb02e4e68add35e292ae0e3fb" }
 	],
+	"send_email": [
+		{ "name": "EMAIL", "allowed_sender_addresses": ["noreply@familychurch.online"] }
+	],
 	"limits": {
 		"cpu_ms": 50
 	},
