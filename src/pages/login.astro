@@ -64,7 +64,13 @@ const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY;
 			)}
 
 			{turnstileSiteKey && (
-				<div class="cf-turnstile" data-sitekey={turnstileSiteKey} data-theme="auto"></div>
+				<div class="cf-turnstile" data-sitekey={turnstileSiteKey} data-theme="light"></div>
+				<script is:inline>
+					(function() {
+						const w = document.querySelector('.cf-turnstile');
+						if (w) w.dataset.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+					})();
+				</script>
 			)}
 
 			<button
