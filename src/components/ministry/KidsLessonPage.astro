@@ -102,8 +102,8 @@ const pdfs       = (fm.pdfs ?? []).filter(p => p?.file).map(p => ({ file: p.file
 	{fm.memoryVerse && (
 		<section>
 			<h3 class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-4">Memory Verse</h3>
-			<div class="rounded-xl border-l-4 border-[var(--green)] bg-white dark:bg-[var(--card)] px-6 py-5">
-				<p class="text-base italic leading-relaxed text-[var(--ink)]/80 dark:text-white/80">{fm.memoryVerse}</p>
+			<div class="rounded-xl bg-[var(--green)]/80 px-6 py-5">
+				<p class="text-base italic leading-relaxed text-white">{fm.memoryVerse}</p>
 			</div>
 		</section>
 	)}
