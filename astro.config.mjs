@@ -129,9 +129,12 @@ export default defineConfig({
 					return { ...item, lastmod: sermonDateMap[sermonSlug], priority };
 				}
 
-				// Devotion pages — date is the slug itself
+				// Devotion pages — date is the slug itself; cap at today so future devotions don't get future lastmod
 				const devotionDate = path.match(/\/devotion\/(\d{4}-\d{2}-\d{2})\/?$/)?.[1];
-				if (devotionDate) return { ...item, lastmod: devotionDate, priority };
+				if (devotionDate) {
+					const today = new Date().toISOString().slice(0, 10);
+					return { ...item, lastmod: devotionDate > today ? today : devotionDate, priority };
+				}
 
 				// Kids-church lesson pages — date is the last path segment
 				const kidsDate = path.match(/\/kids-church\/[^/]+\/(\d{4}-\d{2}-\d{2})\/?$/)?.[1];
