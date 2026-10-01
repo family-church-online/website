@@ -111,24 +111,36 @@ export default defineConfig({
 			serialize(item) {
 				const path = new URL(item.url).pathname;
 
+				// Priority tiers
+				let priority = 0.5;
+				if (path === '/')                                             priority = 1.0;
+				else if (path.match(/\/sermons\/?$/))                        priority = 0.9;
+				else if (path.match(/\/(services|groups|ministries|events)\/?$/)) priority = 0.8;
+				else if (path.match(/\/sermons\/[^/]+\/?$/))                 priority = 0.8;
+				else if (path.match(/\/devotion\/\d{4}-\d{2}-\d{2}\/?$/))   priority = 0.8;
+				else if (path.match(/\/events\/[^/]+\/?$/))                  priority = 0.7;
+				else if (path.match(/\/(kids-church|amplify)\//))            priority = 0.7;
+				else if (path.match(/\/(guides|threeminutes|memorial)\//))   priority = 0.6;
+
 				// Sermon pages — date from frontmatter map
 				const sermonSlug = path.match(/\/sermons\/([^/]+)\/?$/)?.[1];
 				if (sermonSlug && sermonDateMap[sermonSlug]) {
-					return { ...item, lastmod: sermonDateMap[sermonSlug] };
+					return { ...item, lastmod: sermonDateMap[sermonSlug], priority };
 				}
 
 				// Devotion pages — date is the slug itself
 				const devotionDate = path.match(/\/devotion\/(\d{4}-\d{2}-\d{2})\/?$/)?.[1];
-				if (devotionDate) return { ...item, lastmod: devotionDate };
+				if (devotionDate) return { ...item, lastmod: devotionDate, priority };
 
 				// Kids-church lesson pages — date is the last path segment
 				const kidsDate = path.match(/\/kids-church\/[^/]+\/(\d{4}-\d{2}-\d{2})\/?$/)?.[1];
-				if (kidsDate) return { ...item, lastmod: kidsDate };
+				if (kidsDate) return { ...item, lastmod: kidsDate, priority };
 
 				// Video page — inject <video:video> metadata
 				if (path.match(/\/video\/?$/) && videoBlockUrl) {
 					return {
 						...item,
+						priority,
 						video: [{
 							thumbnail_loc: item.url.replace(/\/video\/?$/, '/images/hero.jpg'),
 							title: 'Watch & Listen Live · Family Church',
@@ -139,7 +151,7 @@ export default defineConfig({
 					};
 				}
 
-				return item;
+				return { ...item, priority };
 			},
 		}),
 		icon(),
