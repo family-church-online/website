@@ -58,6 +58,9 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 
 		<!-- Right end -->
 		<div class="flex items-center gap-3 flex-shrink-0">
+			<button id="search-trigger" aria-label="Search" class="search-icon-btn">
+				<Icon name="tabler:search" class="w-5 h-5" />
+			</button>
 			<ThemeToggle />
 			<a href="/today" class="nav-cta hidden sm:inline-block">Today's Devotion</a>
 			<button
@@ -102,6 +105,11 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 			<a href="/today" class="nav-cta self-start mt-4 mb-2">Today's Devotion</a>
 		</div>
 	</div>
+	<search-modal-snippet
+		api-url="https://21533d2b-f1ae-4e8d-b72b-f823a8986758.search.ai.cloudflare.com"
+		placeholder="Search..."
+		hide-branding="true">
+	</search-modal-snippet>
 </header>
 
 <style>
@@ -222,6 +230,18 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 	}
 	.nav-cta:hover { transform: translateY(-1px); background: #a3d63a; }
 
+	.search-icon-btn {
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: rgba(255,255,255,0.72);
+		padding: 0.35rem;
+		display: flex;
+		align-items: center;
+		transition: color 0.2s;
+	}
+	.search-icon-btn:hover { color: var(--green); }
+
 	.nav-hamburger {
 		background: none;
 		border: none;
@@ -271,6 +291,34 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 	}
 </style>
 
+<style is:global>
+	/* Light mode */
+	search-modal-snippet {
+		--search-snippet-primary-color: #92c423;
+		--search-snippet-primary-hover: #a3d63a;
+		--search-snippet-background: #ffffff;
+		--search-snippet-surface: #f4f6f8;
+		--search-snippet-text-color: #14202f;
+		--search-snippet-text-secondary: #4a5a6e;
+		--search-snippet-text-description: #6b7a8d;
+		--search-snippet-border-color: #dde3ea;
+		--search-snippet-hover-background: #eef1f5;
+		--search-snippet-focus-ring: #92c423;
+		--search-snippet-font-family: 'Inter Variable', system-ui, sans-serif;
+		--search-snippet-border-radius: 0.75rem;
+	}
+	/* Dark mode */
+	.dark search-modal-snippet {
+		--search-snippet-background: oklch(0.16 0.02 285);
+		--search-snippet-surface: oklch(0.21 0.025 285);
+		--search-snippet-text-color: rgba(255, 255, 255, 0.92);
+		--search-snippet-text-secondary: rgba(255, 255, 255, 0.58);
+		--search-snippet-text-description: rgba(255, 255, 255, 0.42);
+		--search-snippet-border-color: rgba(255, 255, 255, 0.1);
+		--search-snippet-hover-background: rgba(255, 255, 255, 0.06);
+	}
+</style>
+
 <script is:inline>
 	if (!window.__mobileMenuBound) {
 		window.__mobileMenuBound = true;
@@ -305,5 +353,19 @@ const nav = (config?.nav ?? []).filter(item => item !== null);
 		document.addEventListener('keydown', (e) => {
 			if (e.key === 'Escape') setOpen(false);
 		});
+
+		document.addEventListener('click', (e) => {
+			if (e.target.closest('#search-trigger')) {
+				document.querySelector('search-modal-snippet')?.open();
+			}
+		});
+
+		const syncSearchTheme = () => {
+			const modal = document.querySelector('search-modal-snippet');
+			if (modal) modal.setAttribute('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+		};
+		syncSearchTheme();
+		new MutationObserver(syncSearchTheme).observe(document.documentElement, { attributeFilter: ['class'] });
+		document.addEventListener('astro:after-swap', syncSearchTheme);
 	}
 </script>

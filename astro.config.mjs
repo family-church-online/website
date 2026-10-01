@@ -77,7 +77,6 @@ export default defineConfig({
 		sitemap({
 			filter: (page) =>
 				!page.includes('/sermons/feed.xml') &&
-				!page.match(/\/sermons\/?$/) &&
 				!page.includes('/404') &&
 				!page.includes('/tina-island') &&
 				!page.includes('/api/') &&
@@ -89,7 +88,8 @@ export default defineConfig({
 				!page.includes('/stream-dashboard') &&
 				!page.includes('/sermon-notes') &&
 				!page.includes('/cf-status') &&
-				!page.includes('/course-admin'),
+				!page.includes('/course-admin') &&
+				!page.includes('/sermon-admin'),
 			serialize(item) {
 				if (item.url.match(/\/video\/?$/) && videoBlockUrl) {
 					return {

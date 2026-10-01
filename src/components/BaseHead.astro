@@ -99,6 +99,9 @@ const resolvedHeight = imageHeight ?? (image === '/images/hero.jpg' ? 667  : und
 
 <!-- TinaCMS visual editing is wired by the tina() integration in astro.config.mjs; its middleware only touches edit-mode responses, so there's nothing to add here. -->
 
+<!-- Cloudflare AI Search -->
+<script type="module" src="https://21533d2b-f1ae-4e8d-b72b-f823a8986758.search.ai.cloudflare.com/assets/v0.0.40/search-snippet.es.js"></script>
+
 <!-- Google Analytics 4 — only fires on the production domain -->
 <script is:inline>
   if (window.location.hostname === 'familychurch.online' || window.location.hostname === 'www.familychurch.online') {
