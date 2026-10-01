@@ -20,6 +20,24 @@ function getVideoBlockUrl() {
 }
 const videoBlockUrl = getVideoBlockUrl();
 
+// Build a slug→date map for all sermon MDX files so serialize() can set
+// accurate lastmod values without re-reading files per URL.
+function buildSermonDateMap() {
+	try {
+		const dir = new URL('./src/content/sermons/', import.meta.url);
+		const map = /** @type {Record<string,string>} */ ({});
+		for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.mdx'))) {
+			const src = fs.readFileSync(new URL(file, dir), 'utf-8');
+			const date = src.match(/^date:\s*["']?(\d{4}-\d{2}-\d{2})/m)?.[1];
+			if (date) map[file.replace(/\.mdx$/, '')] = date;
+		}
+		return map;
+	} catch {
+		return {};
+	}
+}
+const sermonDateMap = buildSermonDateMap();
+
 // Host-neutral: every content page prerenders to static HTML, and the one
 // on-demand route (/tina-island, the visual-editing endpoint) is served by
 // whichever host built the site. Each platform sets its own build env var
@@ -91,7 +109,24 @@ export default defineConfig({
 				!page.includes('/course-admin') &&
 				!page.includes('/sermon-admin'),
 			serialize(item) {
-				if (item.url.match(/\/video\/?$/) && videoBlockUrl) {
+				const path = new URL(item.url).pathname;
+
+				// Sermon pages — date from frontmatter map
+				const sermonSlug = path.match(/\/sermons\/([^/]+)\/?$/)?.[1];
+				if (sermonSlug && sermonDateMap[sermonSlug]) {
+					return { ...item, lastmod: sermonDateMap[sermonSlug] };
+				}
+
+				// Devotion pages — date is the slug itself
+				const devotionDate = path.match(/\/devotion\/(\d{4}-\d{2}-\d{2})\/?$/)?.[1];
+				if (devotionDate) return { ...item, lastmod: devotionDate };
+
+				// Kids-church lesson pages — date is the last path segment
+				const kidsDate = path.match(/\/kids-church\/[^/]+\/(\d{4}-\d{2}-\d{2})\/?$/)?.[1];
+				if (kidsDate) return { ...item, lastmod: kidsDate };
+
+				// Video page — inject <video:video> metadata
+				if (path.match(/\/video\/?$/) && videoBlockUrl) {
 					return {
 						...item,
 						video: [{
@@ -103,6 +138,7 @@ export default defineConfig({
 						}],
 					};
 				}
+
 				return item;
 			},
 		}),
