@@ -114,7 +114,7 @@ export default defineConfig({
 				// Priority tiers
 				let priority = 0.5;
 				if (path === '/')                                                  priority = 1.0;
-				else if (path.match(/\/(services|groups|ministries|events)\/?$/)) priority = 0.9;
+				else if (path.match(/\/(services|groups|ministries|events|about|whats-next|statement-of-faith)\/?$/)) priority = 0.9;
 				else if (path.match(/\/events\/[^/]+\/?$/))                       priority = 0.8;
 				else if (path.match(/\/sermons\/?$/))                             priority = 0.7;
 				else if (path.match(/\/(kids-church|amplify)\/?$/))               priority = 0.7;
