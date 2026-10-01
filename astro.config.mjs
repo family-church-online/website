@@ -113,14 +113,14 @@ export default defineConfig({
 
 				// Priority tiers
 				let priority = 0.5;
-				if (path === '/')                                             priority = 1.0;
-				else if (path.match(/\/sermons\/?$/))                        priority = 0.9;
-				else if (path.match(/\/(services|groups|ministries|events)\/?$/)) priority = 0.8;
-				else if (path.match(/\/sermons\/[^/]+\/?$/))                 priority = 0.8;
-				else if (path.match(/\/devotion\/\d{4}-\d{2}-\d{2}\/?$/))   priority = 0.8;
-				else if (path.match(/\/events\/[^/]+\/?$/))                  priority = 0.7;
-				else if (path.match(/\/(kids-church|amplify)\//))            priority = 0.7;
-				else if (path.match(/\/(guides|threeminutes|memorial)\//))   priority = 0.6;
+				if (path === '/')                                                  priority = 1.0;
+				else if (path.match(/\/(services|groups|ministries|events)\/?$/)) priority = 0.9;
+				else if (path.match(/\/events\/[^/]+\/?$/))                       priority = 0.8;
+				else if (path.match(/\/(kids-church|amplify)\//))                 priority = 0.8;
+				else if (path.match(/\/sermons\/?$/))                             priority = 0.7;
+				else if (path.match(/\/devotion\/\d{4}-\d{2}-\d{2}\/?$/))        priority = 0.7;
+				else if (path.match(/\/sermons\/[^/]+\/?$/))                      priority = 0.6;
+				else if (path.match(/\/(guides|threeminutes|memorial)\//))        priority = 0.6;
 
 				// Sermon pages — date from frontmatter map
 				const sermonSlug = path.match(/\/sermons\/([^/]+)\/?$/)?.[1];
