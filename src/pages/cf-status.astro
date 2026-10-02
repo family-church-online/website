@@ -312,7 +312,7 @@ function fmtMs(ms: number | null | undefined): string {
 	return `${ms.toFixed(2)} ms`;
 }
 
-const cfDash = 'https://dash.cloudflare.com';
+const cfDash = 'https://dash.cloudflare.com/51664962e28cf86f46cfa16bbab96813/billing/billable-usage';
 const fmtDate = (d: Date) => d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const month = `${fmtDate(cycleStart)} – ${fmtDate(cycleEnd)}`;
 const refreshed = now.toLocaleTimeString('en-ZA', {
