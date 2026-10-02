@@ -58,11 +58,16 @@ async function gql<T>(query: string): Promise<T | null> {
 	} catch { return null; }
 }
 
-// ── Date ranges (calendar month, UTC) ────────────────────────────────────────
+// ── Date ranges (billing cycle: 23rd → 24th) ─────────────────────────────────
 
 const now = new Date();
-const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-const mDT  = monthStart.toISOString();
+// Billing cycle runs from the 23rd of the previous month to the 24th of the current month.
+const cycleStart = new Date(Date.UTC(
+	now.getUTCDate() >= 23 ? now.getUTCFullYear() : (now.getUTCMonth() === 0 ? now.getUTCFullYear() - 1 : now.getUTCFullYear()),
+	now.getUTCDate() >= 23 ? now.getUTCMonth() : (now.getUTCMonth() === 0 ? 11 : now.getUTCMonth() - 1),
+	23
+));
+const mDT  = cycleStart.toISOString();
 const mD   = mDT.slice(0, 10);
 const nowDT = now.toISOString();
 const nowD  = nowDT.slice(0, 10);
@@ -295,7 +300,13 @@ function fmtMs(ms: number | null | undefined): string {
 }
 
 const cfDash = 'https://dash.cloudflare.com';
-const month = monthStart.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+const cycleEnd = new Date(Date.UTC(
+	now.getUTCDate() >= 23 ? (now.getUTCMonth() === 11 ? now.getUTCFullYear() + 1 : now.getUTCFullYear()) : now.getUTCFullYear(),
+	now.getUTCDate() >= 23 ? (now.getUTCMonth() === 11 ? 0 : now.getUTCMonth() + 1) : now.getUTCMonth(),
+	24
+));
+const fmtDate = (d: Date) => d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const month = `${fmtDate(cycleStart)} – ${fmtDate(cycleEnd)}`;
 const refreshed = now.toLocaleTimeString('en-ZA', {
 	timeZone: 'Africa/Johannesburg',
 	hour: '2-digit', minute: '2-digit', second: '2-digit',
@@ -310,7 +321,7 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 			<div>
 				<p class="text-xs font-semibold uppercase tracking-widest text-[var(--olive)] mb-1">Admin</p>
 				<h1 class="font-display text-3xl font-semibold text-[var(--navy)] dark:text-white">Cloudflare Usage</h1>
-				<p class="text-xs text-[var(--ink)]/45 dark:text-white/40 mt-1">{month} · account-wide</p>
+				<p class="text-xs text-[var(--ink)]/45 dark:text-white/40 mt-1">Billing cycle {month} · account-wide</p>
 			</div>
 			<p class="text-xs text-[var(--ink)]/40 dark:text-white/30 mt-2 text-right">
 				Refreshed<br />{refreshed}
@@ -637,7 +648,7 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 		</div>
 
 		<p class="text-[10px] text-[var(--ink)]/25 dark:text-white/20 text-center mt-8">
-			All limits are account-wide · billing cycle resets 1st of each month UTC
+			All limits are account-wide · billing cycle resets 23rd of each month UTC
 		</p>
 
 	</div>
