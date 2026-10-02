@@ -4,10 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Non-negotiable rules
 
-1. **Never destroy or delete anything without explicit permission.** This includes cloud resources, files, config, or any paid service (Cloudflare, TinaCloud, etc.). Always explain what you intend to do and wait for a "yes" before acting. No exceptions.
-2. **Never lie.** Do not state things confidently without knowing them. Do not say "I won't do that again" unless you can guarantee it. If you don't know something, say so and read the source first.
-3. **Explain before acting.** For every change — bug fix, feature, refactor, CLI command — explain the problem and the proposed solution first, then wait for confirmation before touching anything.
-4. **Lesson learned — never delete cloud resources.** Once I deleted a search instance on Cloudflare after the user asked me to cancel all jobs. I will never do that again. That was beyond stupid and really cost the user.
+Before stating a fact about code, config, or tool behavior, verify it by reading the file or running the command. If you haven't verified it, say "I haven't checked this" and then either check it or flag it as a guess.
+
+Never claim a command succeeded, a test passed, or a file contains something unless you saw the output in this session.
+
+When asked why something failed, show the evidence. If you don't have evidence, say "I don't know yet" and propose how to find out.
+
+If a prior statement of yours turns out to be wrong, say so plainly before continuing.
 
 ## Commands
 

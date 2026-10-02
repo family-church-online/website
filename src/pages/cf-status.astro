@@ -67,6 +67,11 @@ const cycleStart = new Date(Date.UTC(
 	now.getUTCDate() >= 23 ? now.getUTCMonth() : (now.getUTCMonth() === 0 ? 11 : now.getUTCMonth() - 1),
 	23
 ));
+const cycleEnd = new Date(Date.UTC(
+	now.getUTCDate() >= 23 ? (now.getUTCMonth() === 11 ? now.getUTCFullYear() + 1 : now.getUTCFullYear()) : now.getUTCFullYear(),
+	now.getUTCDate() >= 23 ? (now.getUTCMonth() === 11 ? 0 : now.getUTCMonth() + 1) : now.getUTCMonth(),
+	24
+));
 const mDT  = cycleStart.toISOString();
 const mD   = mDT.slice(0, 10);
 const nowDT = now.toISOString();
@@ -313,11 +318,6 @@ function fmtMs(ms: number | null | undefined): string {
 }
 
 const cfDash = 'https://dash.cloudflare.com';
-const cycleEnd = new Date(Date.UTC(
-	now.getUTCDate() >= 23 ? (now.getUTCMonth() === 11 ? now.getUTCFullYear() + 1 : now.getUTCFullYear()) : now.getUTCFullYear(),
-	now.getUTCDate() >= 23 ? (now.getUTCMonth() === 11 ? 0 : now.getUTCMonth() + 1) : now.getUTCMonth(),
-	24
-));
 const fmtDate = (d: Date) => d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const month = `${fmtDate(cycleStart)} – ${fmtDate(cycleEnd)}`;
 const refreshed = now.toLocaleTimeString('en-ZA', {
