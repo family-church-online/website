@@ -341,7 +341,7 @@ export function createServer(env: Env): () => McpServer {
           }
         }
 
-        const STAGE_A_SHORTLIST_SIZE = 150;
+        const STAGE_A_SHORTLIST_SIZE = 30;
         const stageADocs = candidates.map(c => c.text);
         const stageAScored = await rerankBatched(description, stageADocs, env.VOYAGE_API_KEY);
 
