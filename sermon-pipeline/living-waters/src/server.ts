@@ -12,6 +12,7 @@ const CANDIDATE_POOL = 30;     // rerank input cap
 const RERANK_MAX_DOCS = 900;   // Voyage rerank API batch limit
 const R2_PUBLIC_URL = 'https://audio.familychurch.online';
 const CLIP_BASE_URL = 'https://cflw.familychurch.online';
+const SITE_URL = 'https://familychurch.online/sermons'; // page URL = {SITE_URL}/{sermon_id}
 
 // ── Per-sermon diversity cap ──────────────────────────────────────────────────
 
@@ -233,7 +234,12 @@ export function createServer(env: Env): () => McpServer {
         const sermon = await db.getSermon(env.DB, sermon_id);
         if (!sermon)
           return { content: [{ type: 'text', text: 'Sermon not found' }], isError: true };
-        return { content: [{ type: 'text', text: JSON.stringify(sermon) }] };
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ ...sermon, web_url: `${SITE_URL}/${sermon.id}` }),
+          }],
+        };
       },
     );
 
@@ -252,7 +258,12 @@ export function createServer(env: Env): () => McpServer {
         const summary = await db.getSermonSummary(env.DB, sermon_id);
         if (!summary)
           return { content: [{ type: 'text', text: 'Sermon not found' }], isError: true };
-        return { content: [{ type: 'text', text: JSON.stringify(summary) }] };
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ ...summary, web_url: `${SITE_URL}/${summary.id}` }),
+          }],
+        };
       },
     );
 
@@ -357,6 +368,7 @@ export function createServer(env: Env): () => McpServer {
             speaker: s.speaker,
             date: s.date,
             scripture: s.scripture,
+            web_url: `${SITE_URL}/${s.sermon_id}`,
             score,
           };
         });
