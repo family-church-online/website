@@ -192,7 +192,7 @@ async function qDOD1() {
 	return { doReqs, doActiveTimeUs, doRowsRead, doRowsWritten, doSqlBytes, d1Reads };
 }
 
-// ── Query 4: Build minutes + Vectorize + KV storage ──────────────────────────
+// ── Query 4: Build minutes + Vectorize + KV storage + Workers AI ─────────────
 // Field names verified via GraphQL introspection against live account.
 
 async function qExtras() {
@@ -200,6 +200,7 @@ async function qExtras() {
 		workersBuildsBuildMinutesAdaptiveGroups: Array<{ sum: { buildMinutes: number } }>;
 		vectorizeV2StorageAdaptiveGroups:        Array<{ max: { storedVectorDimensions: number; vectorCount: number } }>;
 		kvStorageAdaptiveGroups:                 Array<{ max: { byteCount: number } }>;
+		aiInferenceAdaptiveGroups:               Array<{ sum: { totalNeurons: number } }>;
 	}] } };
 
 	const d = await gql<R>(`{
@@ -214,18 +215,22 @@ async function qExtras() {
         kvStorageAdaptiveGroups(limit:10000,filter:{
           date_geq:"${mD}",date_leq:"${nowD}"
         }) { max{byteCount} }
+        aiInferenceAdaptiveGroups(limit:10000,filter:{
+          date_geq:"${mD}",date_leq:"${nowD}"
+        }) { sum{totalNeurons} }
       }
     }
   }`);
 
-	if (!d) return { buildMins: null as number | null, vectorDims: null as number | null, vectorCount: null as number | null, kvBytes: null as number | null };
+	if (!d) return { buildMins: null as number | null, vectorDims: null as number | null, vectorCount: null as number | null, kvBytes: null as number | null, aiNeurons: null as number | null };
 	const acc = d.viewer.accounts[0];
-	const buildMins  = (acc.workersBuildsBuildMinutesAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.buildMinutes, 0);
-	const vectorRow  = acc.vectorizeV2StorageAdaptiveGroups?.reduce((best, r) => r.max.storedVectorDimensions > (best?.max.storedVectorDimensions ?? 0) ? r : best, acc.vectorizeV2StorageAdaptiveGroups[0]);
-	const vectorDims = vectorRow?.max?.storedVectorDimensions ?? 0;
+	const buildMins   = (acc.workersBuildsBuildMinutesAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.buildMinutes, 0);
+	const vectorRow   = acc.vectorizeV2StorageAdaptiveGroups?.reduce((best, r) => r.max.storedVectorDimensions > (best?.max.storedVectorDimensions ?? 0) ? r : best, acc.vectorizeV2StorageAdaptiveGroups[0]);
+	const vectorDims  = vectorRow?.max?.storedVectorDimensions ?? 0;
 	const vectorCount = vectorRow?.max?.vectorCount ?? 0;
-	const kvBytes    = (acc.kvStorageAdaptiveGroups ?? []).reduce((max, r) => Math.max(max, r.max.byteCount), 0);
-	return { buildMins, vectorDims, vectorCount, kvBytes };
+	const kvBytes     = (acc.kvStorageAdaptiveGroups ?? []).reduce((max, r) => Math.max(max, r.max.byteCount), 0);
+	const aiNeurons   = (acc.aiInferenceAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.totalNeurons, 0);
+	return { buildMins, vectorDims, vectorCount, kvBytes, aiNeurons };
 }
 
 // ── Fetch everything in parallel ─────────────────────────────────────────────
@@ -253,6 +258,9 @@ const buildMins      = extrasData.buildMins;
 const vectorDims     = extrasData.vectorDims;
 const vectorCount    = extrasData.vectorCount;
 const kvBytes        = extrasData.kvBytes;
+const aiNeurons      = extrasData.aiNeurons;
+// Free tier: 10,000 neurons/day. Approximate cycle limit = 10,000 × 30 days.
+const aiNeuronsLimit = 300_000;
 
 // ── Display helpers ───────────────────────────────────────────────────────────
 
@@ -632,16 +640,25 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 				<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/6 dark:border-white/6">
 					<div class="flex items-center gap-2.5">
-						<span class="w-2 h-2 rounded-full shrink-0 bg-[var(--navy)]/20 dark:bg-white/15" />
+						<span class={`w-2 h-2 rounded-full shrink-0 ${statusDot(aiNeurons, aiNeuronsLimit)}`} />
 						<div>
 							<p class="font-semibold text-[var(--navy)] dark:text-white">Workers AI</p>
-							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Regular Twitch Neurons (RTN)</p>
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Regular Twitch Neurons (RTN) · {month}</p>
 						</div>
 					</div>
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
-				<div class="px-5 py-4">
-					<p class="text-xs text-[var(--ink)]/50 dark:text-white/40">Neuron usage is not in the analytics GraphQL API schema. Check the Workers AI section of the Cloudflare dashboard directly.</p>
+				<div class="px-5 py-4 space-y-4">
+					<div>
+						<div class="flex justify-between items-baseline mb-1.5">
+							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Neurons used</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{aiNeurons != null ? Math.round(aiNeurons).toLocaleString() : '—'} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ ~300k</span></span>
+						</div>
+						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+							<div class={`h-full rounded-full ${barColor(aiNeurons, aiNeuronsLimit)}`} style={`width:${pct(aiNeurons, aiNeuronsLimit)}%`} />
+						</div>
+					</div>
+					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">Free tier: 10,000 neurons/day (~300k/cycle). Limit is per-day — a spike day can incur charges even if the cycle total looks low.</p>
 				</div>
 			</div>
 
