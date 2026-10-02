@@ -67,7 +67,7 @@ const mD   = mDT.slice(0, 10);
 const nowDT = now.toISOString();
 const nowD  = nowDT.slice(0, 10);
 
-// ── Query 1: Workers + KV (account-wide, monthly) ────────────────────────────
+// ── Query 1: Workers + KV ────────────────────────────────────────────────────
 
 interface WRow { sum: { requests: number; errors: number }; quantiles: { cpuTimeP50: number; cpuTimeP99: number } }
 interface KVRow { dimensions: { actionType: string; namespaceId: string }; sum: { requests: number } }
@@ -102,14 +102,14 @@ async function qWorkersKV() {
 		const { actionType: at, namespaceId: ns } = r.dimensions;
 		const n = r.sum.requests;
 		if (!kv.byNS[ns]) kv.byNS[ns] = { reads: 0, writes: 0, lists: 0 };
-		if (at === 'read')  { kv.reads  += n; kv.byNS[ns].reads  += n; }
+		if (at === 'read')       { kv.reads  += n; kv.byNS[ns].reads  += n; }
 		else if (at === 'write') { kv.writes += n; kv.byNS[ns].writes += n; }
 		else if (at === 'list')  { kv.lists  += n; kv.byNS[ns].lists  += n; }
 	}
 	return { workers, kv };
 }
 
-// ── Query 2: R2 (account-wide, monthly) ──────────────────────────────────────
+// ── Query 2: R2 ──────────────────────────────────────────────────────────────
 
 const CLASS_B_OPS = new Set(['GetObject', 'HeadObject', 'HeadBucket']);
 
@@ -138,44 +138,96 @@ async function qR2() {
 	return { storageBytes, classAOps: classA, classBOps: classB };
 }
 
-// ── Query 3: Durable Objects + D1 (account-wide, monthly) ────────────────────
+// ── Query 3: DO + D1 (known-good field names from CF docs) ───────────────────
 
 async function qDOD1() {
-	type R = { viewer: { accounts: [{ durableObjectsInvocationsAdaptiveGroups: Array<{ sum: { requests: number } }>; d1AnalyticsAdaptiveGroups: Array<{ sum: { rowsRead: number; rowsWritten: number } }> }] } };
+	type R = { viewer: { accounts: [{
+		durableObjectsInvocationsAdaptiveGroups: Array<{ sum: { requests: number } }>;
+		durableObjectsPeriodicGroups:           Array<{ sum: { cpuTime: number } }>;
+		durableObjectsStorageGroups:            Array<{ max: { storedBytes: number } }>;
+		d1AnalyticsAdaptiveGroups:              Array<{ sum: { rowsRead: number; rowsWritten: number } }>;
+	}] } };
 	const d = await gql<R>(`{
     viewer {
       accounts(filter:{accountTag:"${cfAccountId}"}) {
         durableObjectsInvocationsAdaptiveGroups(limit:10000,filter:{
           date_geq:"${mD}",date_leq:"${nowD}"
         }) { sum{requests} }
+        durableObjectsPeriodicGroups(limit:10000,filter:{
+          date_geq:"${mD}",date_leq:"${nowD}"
+        }) { sum{cpuTime} }
+        durableObjectsStorageGroups(limit:1,orderBy:[date_DESC],filter:{
+          date_geq:"${mD}",date_leq:"${nowD}"
+        }) { max{storedBytes} }
         d1AnalyticsAdaptiveGroups(limit:10000,filter:{
           date_geq:"${mD}",date_leq:"${nowD}"
         }) { sum{rowsRead rowsWritten} }
       }
     }
   }`);
-	if (!d) return { doReqs: null as number | null, d1Reads: null as number | null };
+	if (!d) return { doReqs: null as number | null, doCpuTimeUs: null as number | null, doStorageBytes: null as number | null, d1Reads: null as number | null };
 	const acc = d.viewer.accounts[0];
-	const doReqs  = (acc.durableObjectsInvocationsAdaptiveGroups  ?? []).reduce((s, r) => s + r.sum.requests, 0);
-	const d1Reads = (acc.d1AnalyticsAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.rowsRead, 0);
-	return { doReqs, d1Reads };
+	const doReqs        = (acc.durableObjectsInvocationsAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.requests, 0);
+	const doCpuTimeUs   = (acc.durableObjectsPeriodicGroups ?? []).reduce((s, r) => s + r.sum.cpuTime, 0);
+	const doStorageBytes = acc.durableObjectsStorageGroups?.[0]?.max?.storedBytes ?? 0;
+	const d1Reads       = (acc.d1AnalyticsAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.rowsRead, 0);
+	return { doReqs, doCpuTimeUs, doStorageBytes, d1Reads };
+}
+
+// ── Query 4: Build minutes (field name is a best guess — isolated) ────────────
+
+async function qBuildMinutes() {
+	type R = { viewer: { accounts: [{ workersBuildsBuildMinutesAdaptiveGroups: Array<{ sum: { buildMinutes: number } }> }] } };
+	const d = await gql<R>(`{
+    viewer {
+      accounts(filter:{accountTag:"${cfAccountId}"}) {
+        workersBuildsBuildMinutesAdaptiveGroups(limit:10000,filter:{
+          date_geq:"${mD}",date_leq:"${nowD}"
+        }) { sum{buildMinutes} }
+      }
+    }
+  }`);
+	if (!d) return null;
+	return (d.viewer.accounts[0]?.workersBuildsBuildMinutesAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.buildMinutes, 0);
+}
+
+// ── Query 5: Vectorize (field name is a best guess — isolated) ───────────────
+
+async function qVectorize() {
+	type R = { viewer: { accounts: [{ vectorizeV2StorageAdaptiveGroups: Array<{ max: { storedDimensions: number } }> }] } };
+	const d = await gql<R>(`{
+    viewer {
+      accounts(filter:{accountTag:"${cfAccountId}"}) {
+        vectorizeV2StorageAdaptiveGroups(limit:1,orderBy:[date_DESC],filter:{
+          date_geq:"${mD}",date_leq:"${nowD}"
+        }) { max{storedDimensions} }
+      }
+    }
+  }`);
+	if (!d) return null;
+	return d.viewer.accounts[0]?.vectorizeV2StorageAdaptiveGroups?.[0]?.max?.storedDimensions ?? 0;
 }
 
 // ── Fetch everything in parallel ─────────────────────────────────────────────
 
-const [wkvData, r2Data, dod1Data, lessonKeys, sermonJobKeys] = await Promise.all([
+const [wkvData, r2Data, dod1Data, buildMins, vectorizeDims, lessonKeys, sermonJobKeys] = await Promise.all([
 	qWorkersKV(),
 	qR2(),
 	qDOD1(),
+	qBuildMinutes(),
+	qVectorize(),
 	countKVKeys(getKV('LESSON_PROGRESS')),
 	countKVKeys(getKV('SERMON_JOBS')),
 ]);
 
-const workersStats = wkvData.workers;
-const kvStats      = wkvData.kv;
-const r2Stats      = r2Data;
-const doReqs       = dod1Data.doReqs;
-const d1Reads      = dod1Data.d1Reads;
+const workersStats   = wkvData.workers;
+const kvStats        = wkvData.kv;
+const r2Stats        = r2Data;
+const doReqs         = dod1Data.doReqs;
+// DO compute duration: cpuTime in µs × 0.128 GB (128 MB per DO) = GB·S
+const doGBSeconds    = dod1Data.doCpuTimeUs != null ? (dod1Data.doCpuTimeUs / 1_000_000) * 0.128 : null;
+const doStorageBytes = dod1Data.doStorageBytes;
+const d1Reads        = dod1Data.d1Reads;
 
 // ── Display helpers ───────────────────────────────────────────────────────────
 
@@ -277,7 +329,7 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 						<span class={`w-2 h-2 rounded-full shrink-0 ${statusDot(workersStats?.requests, 10_000_000)}`} />
 						<div>
 							<p class="font-semibold text-[var(--navy)] dark:text-white">Workers</p>
-							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Standard requests · {month}</p>
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Account-wide · {month}</p>
 						</div>
 					</div>
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
@@ -297,6 +349,19 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 						</div>
 					</div>
 
+					{/* Build minutes */}
+					<div>
+						<div class="flex justify-between items-baseline mb-1.5">
+							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Build minutes</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
+								{fmt(buildMins)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 6,000</span>
+							</span>
+						</div>
+						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+							<div class={`h-full rounded-full ${barColor(buildMins, 6_000)}`} style={`width:${pct(buildMins, 6_000)}%`} />
+						</div>
+					</div>
+
 					{/* CPU stats */}
 					<div class="grid grid-cols-3 gap-2 text-sm">
 						<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2">
@@ -311,15 +376,6 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">CPU p99 <span class="font-normal normal-case tracking-normal opacity-60">/ 10ms</span></p>
 							<p class={`font-semibold tabular-nums ${workersStats && workersStats.cpuP99ms > 9 ? 'text-[var(--red)]' : 'text-[var(--navy)] dark:text-white'}`}>{fmtMs(workersStats?.cpuP99ms)}</p>
 						</div>
-					</div>
-
-					{/* Build minutes — not in analytics API, link to billing */}
-					<div class="flex items-center justify-between rounded-xl bg-[var(--navy)]/4 dark:bg-white/5 px-3 py-2">
-						<div>
-							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">Build minutes <span class="font-normal normal-case tracking-normal opacity-60">/ 6,000</span></p>
-							<p class="text-xs text-[var(--ink)]/50 dark:text-white/40">Not in analytics API</p>
-						</div>
-						<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-[10px] font-semibold text-[var(--green)] hover:underline">Check billing →</a>
 					</div>
 
 					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">10M req/month · 30M CPU ms/month · 6k build min/month · resets 1st UTC</p>
@@ -430,11 +486,11 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 						</div>
 					</div>
 
-					{/* Class A + B ops */}
-					<div class="grid grid-cols-2 gap-2">
+					{/* Class A + B ops in a grid */}
+					<div class="grid grid-cols-2 gap-4">
 						<div>
 							<div class="flex justify-between items-baseline mb-1.5">
-								<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Class A ops <span class="font-normal text-[var(--ink)]/35">(writes)</span></span>
+								<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Class A <span class="font-normal text-[var(--ink)]/35">(writes)</span></span>
 								<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
 									{fmt(r2Stats?.classAOps)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1M</span>
 								</span>
@@ -445,7 +501,7 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 						</div>
 						<div>
 							<div class="flex justify-between items-baseline mb-1.5">
-								<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Class B ops <span class="font-normal text-[var(--ink)]/35">(reads)</span></span>
+								<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Class B <span class="font-normal text-[var(--ink)]/35">(reads)</span></span>
 								<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
 									{fmt(r2Stats?.classBOps)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10M</span>
 								</span>
@@ -487,22 +543,33 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 						</div>
 					</div>
 
-					{/* Storage metrics — not in invocations API */}
-					<div class="grid grid-cols-3 gap-2">
-						{[
-							['Compute duration', '400k GB·S'],
-							['SQL rows read',    '25B'],
-							['SQL rows written', '50M'],
-						].map(([label, limit]) => (
-							<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2">
-								<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">{label}</p>
-								<p class="text-[10px] text-[var(--ink)]/40 dark:text-white/30">/ {limit}</p>
-								<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-[10px] font-semibold text-[var(--green)] hover:underline">Billing →</a>
-							</div>
-						))}
+					{/* Compute duration GB·S */}
+					<div>
+						<div class="flex justify-between items-baseline mb-1.5">
+							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Compute duration</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
+								{doGBSeconds != null ? `${doGBSeconds.toFixed(1)} GB·S` : '—'} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 400k</span>
+							</span>
+						</div>
+						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+							<div class={`h-full rounded-full ${barColor(doGBSeconds, 400_000)}`} style={`width:${pct(doGBSeconds, 400_000)}%`} />
+						</div>
 					</div>
 
-					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">1M req/month · 400k GB·S duration · 5 GB SQL storage · 25B rows read · 50M rows written</p>
+					{/* KV storage */}
+					<div>
+						<div class="flex justify-between items-baseline mb-1.5">
+							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">KV storage</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
+								{fmtGB(doStorageBytes)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 5 GB</span>
+							</span>
+						</div>
+						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+							<div class={`h-full rounded-full ${barColor(doStorageBytes, 5_368_709_120)}`} style={`width:${pct(doStorageBytes, 5_368_709_120)}%`} />
+						</div>
+					</div>
+
+					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">1M req/month · 400k GB·S duration · 5 GB SQL storage · resets 1st UTC</p>
 				</div>
 			</div>
 
@@ -535,32 +602,49 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 				</div>
 			</div>
 
-			{/* ── Vectorize + Workers AI ───────────────────────────────────────── */}
+			{/* ── Vectorize ────────────────────────────────────────────────────── */}
+			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
+				<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/6 dark:border-white/6">
+					<div class="flex items-center gap-2.5">
+						<span class={`w-2 h-2 rounded-full shrink-0 ${statusDot(vectorizeDims, 10_000_000)}`} />
+						<div>
+							<p class="font-semibold text-[var(--navy)] dark:text-white">Vectorize</p>
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Sermon embeddings · {month}</p>
+						</div>
+					</div>
+					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
+				</div>
+
+				<div class="px-5 py-4 space-y-4">
+					<div>
+						<div class="flex justify-between items-baseline mb-1.5">
+							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Stored dimensions</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
+								{fmt(vectorizeDims)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10M</span>
+							</span>
+						</div>
+						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+							<div class={`h-full rounded-full ${barColor(vectorizeDims, 10_000_000)}`} style={`width:${pct(vectorizeDims, 10_000_000)}%`} />
+						</div>
+					</div>
+					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">10M dimension-months free · resets 1st UTC</p>
+				</div>
+			</div>
+
+			{/* ── Workers AI ───────────────────────────────────────────────────── */}
 			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 				<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/6 dark:border-white/6">
 					<div class="flex items-center gap-2.5">
 						<span class="w-2 h-2 rounded-full shrink-0 bg-[var(--navy)]/20 dark:bg-white/15" />
 						<div>
-							<p class="font-semibold text-[var(--navy)] dark:text-white">Vectorize + Workers AI</p>
-							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Semantic search embeddings</p>
+							<p class="font-semibold text-[var(--navy)] dark:text-white">Workers AI</p>
+							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Regular Twitch Neurons (RTN)</p>
 						</div>
 					</div>
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
 				<div class="px-5 py-4">
-					<div class="grid grid-cols-2 gap-2">
-						<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2.5">
-							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">Stored dimensions</p>
-							<p class="text-[10px] text-[var(--ink)]/40 dark:text-white/30">/ 10M dimension-months</p>
-							<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-[10px] font-semibold text-[var(--green)] hover:underline">Check billing →</a>
-						</div>
-						<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2.5">
-							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">RTN neurons</p>
-							<p class="text-[10px] text-[var(--ink)]/40 dark:text-white/30">Workers AI inference</p>
-							<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-[10px] font-semibold text-[var(--green)] hover:underline">Check billing →</a>
-						</div>
-					</div>
-					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25 mt-3">Not available in the analytics GraphQL API — check the billing dashboard directly.</p>
+					<p class="text-xs text-[var(--ink)]/50 dark:text-white/40">Neuron usage is not exposed in the Cloudflare analytics GraphQL API — it is only visible in the Workers AI section of the dashboard.</p>
 				</div>
 			</div>
 
