@@ -23,7 +23,7 @@ const KV_NS = {
 	SERMON_JOBS:     '11aeec1bb02e4e68add35e292ae0e3fb',
 };
 
-// ── KV helpers ──────────────────────────────────────────────────────────────
+// ── KV key count helpers ─────────────────────────────────────────────────────
 
 function getKV(binding: keyof CloudflareEnv): KVNamespace | null {
 	try { return (env as unknown as CloudflareEnv)[binding] as KVNamespace ?? null; }
@@ -67,13 +67,13 @@ const mD   = mDT.slice(0, 10);
 const nowDT = now.toISOString();
 const nowD  = nowDT.slice(0, 10);
 
-// ── Query 1: Workers + KV ────────────────────────────────────────────────────
-
-interface WRow { sum: { requests: number; errors: number }; quantiles: { cpuTimeP50: number; cpuTimeP99: number } }
-interface KVRow { dimensions: { actionType: string; namespaceId: string }; sum: { requests: number } }
+// ── Query 1: Workers + KV operations ────────────────────────────────────────
 
 async function qWorkersKV() {
+	type WRow = { sum: { requests: number; errors: number }; quantiles: { cpuTimeP50: number; cpuTimeP99: number } };
+	type KVRow = { dimensions: { actionType: string; namespaceId: string }; sum: { requests: number } };
 	type R = { viewer: { accounts: [{ workersInvocationsAdaptive: WRow[]; kvOperationsAdaptiveGroups: KVRow[] }] } };
+
 	const d = await gql<R>(`{
     viewer {
       accounts(filter:{accountTag:"${cfAccountId}"}) {
@@ -86,6 +86,7 @@ async function qWorkersKV() {
       }
     }
   }`);
+
 	if (!d) return { workers: null as null | { requests: number; errors: number; cpuP50ms: number; cpuP99ms: number }, kv: null as null | { reads: number; writes: number; lists: number; byNS: Record<string, { reads: number; writes: number; lists: number }> } };
 	const acc = d.viewer.accounts[0];
 
@@ -95,7 +96,6 @@ async function qWorkersKV() {
 		cpuP50 = Math.max(cpuP50, r.quantiles.cpuTimeP50);
 		cpuP99 = Math.max(cpuP99, r.quantiles.cpuTimeP99);
 	}
-	const workers = { requests: req, errors: err, cpuP50ms: cpuP50 / 1000, cpuP99ms: cpuP99 / 1000 };
 
 	const kv = { reads: 0, writes: 0, lists: 0, byNS: {} as Record<string, { reads: number; writes: number; lists: number }> };
 	for (const r of acc.kvOperationsAdaptiveGroups ?? []) {
@@ -106,30 +106,38 @@ async function qWorkersKV() {
 		else if (at === 'write') { kv.writes += n; kv.byNS[ns].writes += n; }
 		else if (at === 'list')  { kv.lists  += n; kv.byNS[ns].lists  += n; }
 	}
-	return { workers, kv };
+
+	return { workers: { requests: req, errors: err, cpuP50ms: cpuP50 / 1000, cpuP99ms: cpuP99 / 1000 }, kv };
 }
 
-// ── Query 2: R2 ──────────────────────────────────────────────────────────────
+// ── Query 2: R2 storage + operations ─────────────────────────────────────────
+// Class B = GET/HEAD (reads). Class A = everything else (writes, list, delete).
 
 const CLASS_B_OPS = new Set(['GetObject', 'HeadObject', 'HeadBucket']);
 
 async function qR2() {
-	type R = { viewer: { accounts: [{ r2StorageAdaptiveGroups: Array<{ max: { payloadSize: number } }>; r2OperationsAdaptiveGroups: Array<{ dimensions: { actionType: string }; sum: { requests: number } }> }] } };
+	type R = { viewer: { accounts: [{
+		r2StorageAdaptiveGroups:    Array<{ max: { payloadSize: number; objectCount: number } }>;
+		r2OperationsAdaptiveGroups: Array<{ dimensions: { actionType: string }; sum: { requests: number } }>;
+	}] } };
+
 	const d = await gql<R>(`{
     viewer {
       accounts(filter:{accountTag:"${cfAccountId}"}) {
-        r2StorageAdaptiveGroups(limit:1,orderBy:[date_DESC],filter:{
+        r2StorageAdaptiveGroups(limit:10000,filter:{
           date_geq:"${mD}",date_leq:"${nowD}"
-        }) { max{payloadSize} }
+        }) { max{payloadSize objectCount} }
         r2OperationsAdaptiveGroups(limit:10000,filter:{
           date_geq:"${mD}",date_leq:"${nowD}"
         }) { dimensions{actionType} sum{requests} }
       }
     }
   }`);
+
 	if (!d) return null;
 	const acc = d.viewer.accounts[0];
-	const storageBytes = acc.r2StorageAdaptiveGroups?.[0]?.max?.payloadSize ?? null;
+	const storageRow = acc.r2StorageAdaptiveGroups?.reduce((best, r) => r.max.payloadSize > (best?.max.payloadSize ?? 0) ? r : best, acc.r2StorageAdaptiveGroups[0]);
+	const storageBytes = storageRow?.max?.payloadSize ?? null;
 	let classA = 0, classB = 0;
 	for (const r of acc.r2OperationsAdaptiveGroups ?? []) {
 		if (CLASS_B_OPS.has(r.dimensions.actionType)) classB += r.sum.requests;
@@ -138,15 +146,17 @@ async function qR2() {
 	return { storageBytes, classAOps: classA, classBOps: classB };
 }
 
-// ── Query 3: DO + D1 (known-good field names from CF docs) ───────────────────
+// ── Query 3: DO + D1 ─────────────────────────────────────────────────────────
+// Field names verified via GraphQL introspection against live account.
 
 async function qDOD1() {
 	type R = { viewer: { accounts: [{
 		durableObjectsInvocationsAdaptiveGroups: Array<{ sum: { requests: number } }>;
-		durableObjectsPeriodicGroups:           Array<{ sum: { cpuTime: number } }>;
-		durableObjectsStorageGroups:            Array<{ max: { storedBytes: number } }>;
-		d1AnalyticsAdaptiveGroups:              Array<{ sum: { rowsRead: number; rowsWritten: number } }>;
+		durableObjectsPeriodicGroups:            Array<{ sum: { activeTime: number; rowsRead: number; rowsWritten: number } }>;
+		durableObjectsSqlStorageGroups:          Array<{ max: { storedBytes: number } }>;
+		d1AnalyticsAdaptiveGroups:               Array<{ sum: { rowsRead: number; rowsWritten: number } }>;
 	}] } };
+
 	const d = await gql<R>(`{
     viewer {
       accounts(filter:{accountTag:"${cfAccountId}"}) {
@@ -155,8 +165,8 @@ async function qDOD1() {
         }) { sum{requests} }
         durableObjectsPeriodicGroups(limit:10000,filter:{
           date_geq:"${mD}",date_leq:"${nowD}"
-        }) { sum{cpuTime} }
-        durableObjectsStorageGroups(limit:1,orderBy:[date_DESC],filter:{
+        }) { sum{activeTime rowsRead rowsWritten} }
+        durableObjectsSqlStorageGroups(limit:10000,filter:{
           date_geq:"${mD}",date_leq:"${nowD}"
         }) { max{storedBytes} }
         d1AnalyticsAdaptiveGroups(limit:10000,filter:{
@@ -165,57 +175,61 @@ async function qDOD1() {
       }
     }
   }`);
-	if (!d) return { doReqs: null as number | null, doCpuTimeUs: null as number | null, doStorageBytes: null as number | null, d1Reads: null as number | null };
+
+	if (!d) return { doReqs: null as number | null, doActiveTimeUs: null as number | null, doRowsRead: null as number | null, doRowsWritten: null as number | null, doSqlBytes: null as number | null, d1Reads: null as number | null };
 	const acc = d.viewer.accounts[0];
 	const doReqs        = (acc.durableObjectsInvocationsAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.requests, 0);
-	const doCpuTimeUs   = (acc.durableObjectsPeriodicGroups ?? []).reduce((s, r) => s + r.sum.cpuTime, 0);
-	const doStorageBytes = acc.durableObjectsStorageGroups?.[0]?.max?.storedBytes ?? 0;
+	const doActiveTimeUs = (acc.durableObjectsPeriodicGroups ?? []).reduce((s, r) => s + r.sum.activeTime, 0);
+	const doRowsRead    = (acc.durableObjectsPeriodicGroups ?? []).reduce((s, r) => s + r.sum.rowsRead, 0);
+	const doRowsWritten = (acc.durableObjectsPeriodicGroups ?? []).reduce((s, r) => s + r.sum.rowsWritten, 0);
+	const doSqlBytes    = (acc.durableObjectsSqlStorageGroups ?? []).reduce((max, r) => Math.max(max, r.max.storedBytes), 0);
 	const d1Reads       = (acc.d1AnalyticsAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.rowsRead, 0);
-	return { doReqs, doCpuTimeUs, doStorageBytes, d1Reads };
+	return { doReqs, doActiveTimeUs, doRowsRead, doRowsWritten, doSqlBytes, d1Reads };
 }
 
-// ── Query 4: Build minutes (field name is a best guess — isolated) ────────────
+// ── Query 4: Build minutes + Vectorize + KV storage ──────────────────────────
+// Field names verified via GraphQL introspection against live account.
 
-async function qBuildMinutes() {
-	type R = { viewer: { accounts: [{ workersBuildsBuildMinutesAdaptiveGroups: Array<{ sum: { buildMinutes: number } }> }] } };
+async function qExtras() {
+	type R = { viewer: { accounts: [{
+		workersBuildsBuildMinutesAdaptiveGroups: Array<{ sum: { buildMinutes: number } }>;
+		vectorizeV2StorageAdaptiveGroups:        Array<{ max: { storedVectorDimensions: number; vectorCount: number } }>;
+		kvStorageAdaptiveGroups:                 Array<{ max: { byteCount: number } }>;
+	}] } };
+
 	const d = await gql<R>(`{
     viewer {
       accounts(filter:{accountTag:"${cfAccountId}"}) {
         workersBuildsBuildMinutesAdaptiveGroups(limit:10000,filter:{
           date_geq:"${mD}",date_leq:"${nowD}"
         }) { sum{buildMinutes} }
-      }
-    }
-  }`);
-	if (!d) return null;
-	return (d.viewer.accounts[0]?.workersBuildsBuildMinutesAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.buildMinutes, 0);
-}
-
-// ── Query 5: Vectorize (field name is a best guess — isolated) ───────────────
-
-async function qVectorize() {
-	type R = { viewer: { accounts: [{ vectorizeV2StorageAdaptiveGroups: Array<{ max: { storedDimensions: number } }> }] } };
-	const d = await gql<R>(`{
-    viewer {
-      accounts(filter:{accountTag:"${cfAccountId}"}) {
-        vectorizeV2StorageAdaptiveGroups(limit:1,orderBy:[date_DESC],filter:{
+        vectorizeV2StorageAdaptiveGroups(limit:10000,filter:{
           date_geq:"${mD}",date_leq:"${nowD}"
-        }) { max{storedDimensions} }
+        }) { max{storedVectorDimensions vectorCount} }
+        kvStorageAdaptiveGroups(limit:10000,filter:{
+          date_geq:"${mD}",date_leq:"${nowD}"
+        }) { max{byteCount} }
       }
     }
   }`);
-	if (!d) return null;
-	return d.viewer.accounts[0]?.vectorizeV2StorageAdaptiveGroups?.[0]?.max?.storedDimensions ?? 0;
+
+	if (!d) return { buildMins: null as number | null, vectorDims: null as number | null, vectorCount: null as number | null, kvBytes: null as number | null };
+	const acc = d.viewer.accounts[0];
+	const buildMins  = (acc.workersBuildsBuildMinutesAdaptiveGroups ?? []).reduce((s, r) => s + r.sum.buildMinutes, 0);
+	const vectorRow  = acc.vectorizeV2StorageAdaptiveGroups?.reduce((best, r) => r.max.storedVectorDimensions > (best?.max.storedVectorDimensions ?? 0) ? r : best, acc.vectorizeV2StorageAdaptiveGroups[0]);
+	const vectorDims = vectorRow?.max?.storedVectorDimensions ?? 0;
+	const vectorCount = vectorRow?.max?.vectorCount ?? 0;
+	const kvBytes    = (acc.kvStorageAdaptiveGroups ?? []).reduce((max, r) => Math.max(max, r.max.byteCount), 0);
+	return { buildMins, vectorDims, vectorCount, kvBytes };
 }
 
 // ── Fetch everything in parallel ─────────────────────────────────────────────
 
-const [wkvData, r2Data, dod1Data, buildMins, vectorizeDims, lessonKeys, sermonJobKeys] = await Promise.all([
+const [wkvData, r2Data, dod1Data, extrasData, lessonKeys, sermonJobKeys] = await Promise.all([
 	qWorkersKV(),
 	qR2(),
 	qDOD1(),
-	qBuildMinutes(),
-	qVectorize(),
+	qExtras(),
 	countKVKeys(getKV('LESSON_PROGRESS')),
 	countKVKeys(getKV('SERMON_JOBS')),
 ]);
@@ -223,11 +237,17 @@ const [wkvData, r2Data, dod1Data, buildMins, vectorizeDims, lessonKeys, sermonJo
 const workersStats   = wkvData.workers;
 const kvStats        = wkvData.kv;
 const r2Stats        = r2Data;
+// DO compute duration: activeTime is wall-time µs. CF bills at 128MB per DO = 0.128 GB.
+const doGBSeconds    = dod1Data.doActiveTimeUs != null ? (dod1Data.doActiveTimeUs / 1_000_000) * 0.128 : null;
 const doReqs         = dod1Data.doReqs;
-// DO compute duration: cpuTime in µs × 0.128 GB (128 MB per DO) = GB·S
-const doGBSeconds    = dod1Data.doCpuTimeUs != null ? (dod1Data.doCpuTimeUs / 1_000_000) * 0.128 : null;
-const doStorageBytes = dod1Data.doStorageBytes;
+const doRowsRead     = dod1Data.doRowsRead;
+const doRowsWritten  = dod1Data.doRowsWritten;
+const doSqlBytes     = dod1Data.doSqlBytes;
 const d1Reads        = dod1Data.d1Reads;
+const buildMins      = extrasData.buildMins;
+const vectorDims     = extrasData.vectorDims;
+const vectorCount    = extrasData.vectorCount;
+const kvBytes        = extrasData.kvBytes;
 
 // ── Display helpers ───────────────────────────────────────────────────────────
 
@@ -275,7 +295,6 @@ function fmtMs(ms: number | null | undefined): string {
 }
 
 const cfDash = 'https://dash.cloudflare.com';
-
 const month = monthStart.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const refreshed = now.toLocaleTimeString('en-ZA', {
 	timeZone: 'Africa/Johannesburg',
@@ -299,23 +318,16 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 		</div>
 
 		<div class="flex gap-3 mb-6">
-			<a href="/course-admin" class="text-xs font-semibold text-[var(--navy)] dark:text-white bg-[var(--navy)]/6 dark:bg-white/8 hover:bg-[var(--navy)]/12 dark:hover:bg-white/12 rounded-lg px-3 py-1.5 transition-colors">
-				Course Admin →
-			</a>
-			<a href="/stream-dashboard" class="text-xs font-semibold text-[var(--navy)] dark:text-white bg-[var(--navy)]/6 dark:bg-white/8 hover:bg-[var(--navy)]/12 dark:hover:bg-white/12 rounded-lg px-3 py-1.5 transition-colors">
-				Stream Dashboard →
-			</a>
-			<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--navy)] dark:text-white bg-[var(--navy)]/6 dark:bg-white/8 hover:bg-[var(--navy)]/12 dark:hover:bg-white/12 rounded-lg px-3 py-1.5 transition-colors">
-				Billing →
-			</a>
+			<a href="/course-admin" class="text-xs font-semibold text-[var(--navy)] dark:text-white bg-[var(--navy)]/6 dark:bg-white/8 hover:bg-[var(--navy)]/12 dark:hover:bg-white/12 rounded-lg px-3 py-1.5 transition-colors">Course Admin →</a>
+			<a href="/stream-dashboard" class="text-xs font-semibold text-[var(--navy)] dark:text-white bg-[var(--navy)]/6 dark:bg-white/8 hover:bg-[var(--navy)]/12 dark:hover:bg-white/12 rounded-lg px-3 py-1.5 transition-colors">Stream Dashboard →</a>
+			<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--navy)] dark:text-white bg-[var(--navy)]/6 dark:bg-white/8 hover:bg-[var(--navy)]/12 dark:hover:bg-white/12 rounded-lg px-3 py-1.5 transition-colors">Billing →</a>
 		</div>
 
 		{!hasApi && (
 			<div class="mb-6 rounded-xl bg-[var(--red)]/8 border border-[var(--red)]/20 px-4 py-3">
 				<p class="text-sm font-semibold text-[var(--red)] mb-1">CF API not connected — usage data unavailable</p>
 				<p class="text-xs text-[var(--ink)]/65 dark:text-white/55">
-					Add <code class="bg-[var(--navy)]/8 dark:bg-white/10 rounded px-1 py-0.5">CF_ACCOUNT_ID</code> and <code class="bg-[var(--navy)]/8 dark:bg-white/10 rounded px-1 py-0.5">CF_API_TOKEN</code> as Cloudflare dashboard Variables.
-					Token needs <em>Account Analytics → Read</em>.
+					Add <code class="bg-[var(--navy)]/8 dark:bg-white/10 rounded px-1 py-0.5">CF_ACCOUNT_ID</code> and <code class="bg-[var(--navy)]/8 dark:bg-white/10 rounded px-1 py-0.5">CF_API_TOKEN</code> as Cloudflare dashboard Variables (Account Analytics → Read).
 				</p>
 			</div>
 		)}
@@ -334,50 +346,39 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 					</div>
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
-
 				<div class="px-5 py-4 space-y-4">
-					{/* Requests */}
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
 							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Standard requests</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(workersStats?.requests)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10M</span>
-							</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(workersStats?.requests)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10M</span></span>
 						</div>
 						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 							<div class={`h-full rounded-full ${barColor(workersStats?.requests, 10_000_000)}`} style={`width:${pct(workersStats?.requests, 10_000_000)}%`} />
 						</div>
 					</div>
-
-					{/* Build minutes */}
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
 							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Build minutes</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(buildMins)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 6,000</span>
-							</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{buildMins != null ? buildMins.toFixed(1) : '—'} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 6,000</span></span>
 						</div>
 						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 							<div class={`h-full rounded-full ${barColor(buildMins, 6_000)}`} style={`width:${pct(buildMins, 6_000)}%`} />
 						</div>
 					</div>
-
-					{/* CPU stats */}
-					<div class="grid grid-cols-3 gap-2 text-sm">
+					<div class="grid grid-cols-3 gap-2">
 						<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2">
 							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">Errors</p>
-							<p class="font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(workersStats?.errors)}</p>
+							<p class="font-semibold tabular-nums text-[var(--navy)] dark:text-white text-sm">{fmt(workersStats?.errors)}</p>
 						</div>
 						<div class="bg-[var(--navy)]/4 dark:bg-white/5 rounded-xl px-3 py-2">
 							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">CPU p50</p>
-							<p class="font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmtMs(workersStats?.cpuP50ms)}</p>
+							<p class="font-semibold tabular-nums text-[var(--navy)] dark:text-white text-sm">{fmtMs(workersStats?.cpuP50ms)}</p>
 						</div>
 						<div class={`rounded-xl px-3 py-2 ${workersStats && workersStats.cpuP99ms > 9 ? 'bg-[var(--red)]/10' : 'bg-[var(--navy)]/4 dark:bg-white/5'}`}>
 							<p class="text-[10px] font-bold uppercase tracking-widest text-[var(--olive)] mb-0.5">CPU p99 <span class="font-normal normal-case tracking-normal opacity-60">/ 10ms</span></p>
-							<p class={`font-semibold tabular-nums ${workersStats && workersStats.cpuP99ms > 9 ? 'text-[var(--red)]' : 'text-[var(--navy)] dark:text-white'}`}>{fmtMs(workersStats?.cpuP99ms)}</p>
+							<p class={`font-semibold tabular-nums text-sm ${workersStats && workersStats.cpuP99ms > 9 ? 'text-[var(--red)]' : 'text-[var(--navy)] dark:text-white'}`}>{fmtMs(workersStats?.cpuP99ms)}</p>
 						</div>
 					</div>
-
 					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">10M req/month · 30M CPU ms/month · 6k build min/month · resets 1st UTC</p>
 				</div>
 			</div>
@@ -394,48 +395,43 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 					</div>
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
-
 				<div class="px-5 py-4 space-y-4">
-					{/* Read ops */}
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
 							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Read operations</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(kvStats?.reads)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10M</span>
-							</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(kvStats?.reads)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10M</span></span>
 						</div>
 						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 							<div class={`h-full rounded-full ${barColor(kvStats?.reads, 10_000_000)}`} style={`width:${pct(kvStats?.reads, 10_000_000)}%`} />
 						</div>
 					</div>
-
-					{/* Write ops */}
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
 							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Write operations</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(kvStats?.writes)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1M</span>
-							</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(kvStats?.writes)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1M</span></span>
 						</div>
 						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 							<div class={`h-full rounded-full ${barColor(kvStats?.writes, 1_000_000)}`} style={`width:${pct(kvStats?.writes, 1_000_000)}%`} />
 						</div>
 					</div>
-
-					{/* List ops */}
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
 							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">List operations</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(kvStats?.lists)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1M</span>
-							</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(kvStats?.lists)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1M</span></span>
 						</div>
 						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 							<div class={`h-full rounded-full ${barColor(kvStats?.lists, 1_000_000)}`} style={`width:${pct(kvStats?.lists, 1_000_000)}%`} />
 						</div>
 					</div>
-
-					{/* Per-namespace breakdown */}
+					<div>
+						<div class="flex justify-between items-baseline mb-1.5">
+							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Storage</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmtGB(kvBytes)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1 GB</span></span>
+						</div>
+						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+							<div class={`h-full rounded-full ${barColor(kvBytes, 1_073_741_824)}`} style={`width:${pct(kvBytes, 1_073_741_824)}%`} />
+						</div>
+					</div>
 					<div class="grid grid-cols-2 gap-2">
 						{Object.entries(KV_NS).map(([name, id]) => {
 							const ns = kvStats?.byNS[id];
@@ -447,14 +443,11 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 										<span><span class="font-semibold text-[var(--navy)] dark:text-white">{fmt(ns?.reads ?? (hasApi ? 0 : null))}</span> reads</span>
 										<span><span class="font-semibold text-[var(--navy)] dark:text-white">{fmt(ns?.writes ?? (hasApi ? 0 : null))}</span> writes</span>
 									</div>
-									{storedKeys !== null && (
-										<p class="text-[10px] text-[var(--ink)]/35 dark:text-white/25 mt-1">{storedKeys.toLocaleString()} keys stored</p>
-									)}
+									{storedKeys !== null && <p class="text-[10px] text-[var(--ink)]/35 dark:text-white/25 mt-1">{storedKeys.toLocaleString()} keys stored</p>}
 								</div>
 							);
 						})}
 					</div>
-
 					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">10M reads · 1M writes · 1M lists · 1 GB storage / month · resets 1st UTC</p>
 				</div>
 			</div>
@@ -471,29 +464,21 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 					</div>
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
-
 				<div class="px-5 py-4 space-y-4">
-					{/* Storage */}
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
 							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Data storage</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmtGB(r2Stats?.storageBytes)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10 GB</span>
-							</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmtGB(r2Stats?.storageBytes)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10 GB</span></span>
 						</div>
 						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 							<div class={`h-full rounded-full ${barColor(r2Stats?.storageBytes, 10_737_418_240)}`} style={`width:${pct(r2Stats?.storageBytes, 10_737_418_240)}%`} />
 						</div>
 					</div>
-
-					{/* Class A + B ops in a grid */}
 					<div class="grid grid-cols-2 gap-4">
 						<div>
 							<div class="flex justify-between items-baseline mb-1.5">
 								<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Class A <span class="font-normal text-[var(--ink)]/35">(writes)</span></span>
-								<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-									{fmt(r2Stats?.classAOps)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1M</span>
-								</span>
+								<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(r2Stats?.classAOps)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1M</span></span>
 							</div>
 							<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 								<div class={`h-full rounded-full ${barColor(r2Stats?.classAOps, 1_000_000)}`} style={`width:${pct(r2Stats?.classAOps, 1_000_000)}%`} />
@@ -502,16 +487,13 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 						<div>
 							<div class="flex justify-between items-baseline mb-1.5">
 								<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Class B <span class="font-normal text-[var(--ink)]/35">(reads)</span></span>
-								<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-									{fmt(r2Stats?.classBOps)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10M</span>
-								</span>
+								<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(r2Stats?.classBOps)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10M</span></span>
 							</div>
 							<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 								<div class={`h-full rounded-full ${barColor(r2Stats?.classBOps, 10_000_000)}`} style={`width:${pct(r2Stats?.classBOps, 10_000_000)}%`} />
 							</div>
 						</div>
 					</div>
-
 					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">10 GB free · 1M Class A ops/month · 10M Class B ops/month · no egress fees</p>
 				</div>
 			</div>
@@ -528,48 +510,55 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 					</div>
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
-
 				<div class="px-5 py-4 space-y-4">
-					{/* Compute requests */}
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
 							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Compute requests</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(doReqs)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1M</span>
-							</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(doReqs)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 1M</span></span>
 						</div>
 						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 							<div class={`h-full rounded-full ${barColor(doReqs, 1_000_000)}`} style={`width:${pct(doReqs, 1_000_000)}%`} />
 						</div>
 					</div>
-
-					{/* Compute duration GB·S */}
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
 							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Compute duration</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{doGBSeconds != null ? `${doGBSeconds.toFixed(1)} GB·S` : '—'} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 400k</span>
-							</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{doGBSeconds != null ? `${doGBSeconds.toFixed(1)} GB·S` : '—'} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 400k</span></span>
 						</div>
 						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 							<div class={`h-full rounded-full ${barColor(doGBSeconds, 400_000)}`} style={`width:${pct(doGBSeconds, 400_000)}%`} />
 						</div>
 					</div>
-
-					{/* KV storage */}
-					<div>
-						<div class="flex justify-between items-baseline mb-1.5">
-							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">KV storage</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmtGB(doStorageBytes)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 5 GB</span>
-							</span>
+					<div class="grid grid-cols-2 gap-4">
+						<div>
+							<div class="flex justify-between items-baseline mb-1.5">
+								<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Storage rows read</span>
+								<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(doRowsRead)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 25B</span></span>
+							</div>
+							<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+								<div class={`h-full rounded-full ${barColor(doRowsRead, 25_000_000_000)}`} style={`width:${pct(doRowsRead, 25_000_000_000)}%`} />
+							</div>
 						</div>
-						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
-							<div class={`h-full rounded-full ${barColor(doStorageBytes, 5_368_709_120)}`} style={`width:${pct(doStorageBytes, 5_368_709_120)}%`} />
+						<div>
+							<div class="flex justify-between items-baseline mb-1.5">
+								<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Storage rows written</span>
+								<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(doRowsWritten)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 50M</span></span>
+							</div>
+							<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+								<div class={`h-full rounded-full ${barColor(doRowsWritten, 50_000_000)}`} style={`width:${pct(doRowsWritten, 50_000_000)}%`} />
+							</div>
 						</div>
 					</div>
-
-					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">1M req/month · 400k GB·S duration · 5 GB SQL storage · resets 1st UTC</p>
+					<div>
+						<div class="flex justify-between items-baseline mb-1.5">
+							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">SQL storage</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmtGB(doSqlBytes)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 5 GB</span></span>
+						</div>
+						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
+							<div class={`h-full rounded-full ${barColor(doSqlBytes, 5_368_709_120)}`} style={`width:${pct(doSqlBytes, 5_368_709_120)}%`} />
+						</div>
+					</div>
+					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">1M req/month · 400k GB·S duration · 25B rows read · 50M rows written · 5 GB SQL storage</p>
 				</div>
 			</div>
 
@@ -585,14 +574,11 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 					</div>
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
-
 				<div class="px-5 py-4 space-y-4">
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
 							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Rows read</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(d1Reads)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 25B</span>
-							</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(d1Reads)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 25B</span></span>
 						</div>
 						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
 							<div class={`h-full rounded-full ${barColor(d1Reads, 25_000_000_000)}`} style={`width:${pct(d1Reads, 25_000_000_000)}%`} />
@@ -606,7 +592,7 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 			<div class="bg-white dark:bg-[var(--card)] rounded-2xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
 				<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--navy)]/6 dark:border-white/6">
 					<div class="flex items-center gap-2.5">
-						<span class={`w-2 h-2 rounded-full shrink-0 ${statusDot(vectorizeDims, 10_000_000)}`} />
+						<span class={`w-2 h-2 rounded-full shrink-0 ${statusDot(vectorDims, 10_000_000)}`} />
 						<div>
 							<p class="font-semibold text-[var(--navy)] dark:text-white">Vectorize</p>
 							<p class="text-xs text-[var(--ink)]/45 dark:text-white/40">Sermon embeddings · {month}</p>
@@ -614,20 +600,20 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 					</div>
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
-
 				<div class="px-5 py-4 space-y-4">
 					<div>
 						<div class="flex justify-between items-baseline mb-1.5">
 							<span class="text-xs font-semibold text-[var(--ink)]/60 dark:text-white/50">Stored dimensions</span>
-							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">
-								{fmt(vectorizeDims)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10M</span>
-							</span>
+							<span class="text-sm font-semibold tabular-nums text-[var(--navy)] dark:text-white">{fmt(vectorDims)} <span class="text-xs font-normal text-[var(--ink)]/40 dark:text-white/30">/ 10M threshold</span></span>
 						</div>
 						<div class="h-2 bg-[var(--navy)]/8 dark:bg-white/8 rounded-full overflow-hidden">
-							<div class={`h-full rounded-full ${barColor(vectorizeDims, 10_000_000)}`} style={`width:${pct(vectorizeDims, 10_000_000)}%`} />
+							<div class={`h-full rounded-full ${barColor(vectorDims, 10_000_000)}`} style={`width:${pct(vectorDims, 10_000_000)}%`} />
 						</div>
 					</div>
-					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">10M dimension-months free · resets 1st UTC</p>
+					{vectorCount != null && vectorCount > 0 && (
+						<p class="text-xs text-[var(--ink)]/50 dark:text-white/40">{vectorCount.toLocaleString()} vectors · {vectorDims != null ? Math.round(vectorDims / vectorCount).toLocaleString() : '—'} dimensions each</p>
+					)}
+					<p class="text-[10px] text-[var(--ink)]/30 dark:text-white/25">Free tier: 10M dimension-months. If stored all month, {fmt(vectorDims)} stored dimensions = {fmt(vectorDims)} dimension-months.</p>
 				</div>
 			</div>
 
@@ -644,7 +630,7 @@ const refreshed = now.toLocaleTimeString('en-ZA', {
 					<a href={cfDash} target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[var(--green)] hover:underline shrink-0">Dashboard →</a>
 				</div>
 				<div class="px-5 py-4">
-					<p class="text-xs text-[var(--ink)]/50 dark:text-white/40">Neuron usage is not exposed in the Cloudflare analytics GraphQL API — it is only visible in the Workers AI section of the dashboard.</p>
+					<p class="text-xs text-[var(--ink)]/50 dark:text-white/40">Neuron usage is not in the analytics GraphQL API schema. Check the Workers AI section of the Cloudflare dashboard directly.</p>
 				</div>
 			</div>
 
