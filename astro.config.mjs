@@ -20,23 +20,30 @@ function getVideoBlockUrl() {
 }
 const videoBlockUrl = getVideoBlockUrl();
 
-// Build a slug→date map for all sermon MDX files so serialize() can set
-// accurate lastmod values without re-reading files per URL.
-function buildSermonDateMap() {
+// Build a slug→sermon map for all sermon MDX files so serialize() can set
+// accurate lastmod values and video metadata without re-reading files per URL.
+function buildSermonMap() {
 	try {
 		const dir = new URL('./src/content/sermons/', import.meta.url);
-		const map = /** @type {Record<string,string>} */ ({});
+		const map = /** @type {Record<string,{date:string,vimeoUrl?:string,image?:string,title?:string,shortDescription?:string,durationMinutes?:number}>} */ ({});
 		for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.mdx'))) {
 			const src = fs.readFileSync(new URL(file, dir), 'utf-8');
 			const date = src.match(/^date:\s*["']?(\d{4}-\d{2}-\d{2})/m)?.[1];
-			if (date) map[file.replace(/\.mdx$/, '')] = date;
+			if (!date) continue;
+			const slug = file.replace(/\.mdx$/, '');
+			const vimeoUrl = src.match(/^vimeoUrl:\s*["']?([^\s"']+)/m)?.[1];
+			const image = src.match(/^image:\s*["']?([^\s"']+)/m)?.[1];
+			const title = src.match(/^title:\s*["'](.+?)["']\s*$/m)?.[1];
+			const shortDescription = src.match(/^shortDescription:\s*["'](.+?)["']\s*$/m)?.[1];
+			const durationMinutes = parseFloat(src.match(/^durationMinutes:\s*([\d.]+)/m)?.[1] ?? '0') || undefined;
+			map[slug] = { date, vimeoUrl, image, title, shortDescription, durationMinutes };
 		}
 		return map;
 	} catch {
 		return {};
 	}
 }
-const sermonDateMap = buildSermonDateMap();
+const sermonMap = buildSermonMap();
 
 // Host-neutral: every content page prerenders to static HTML, and the one
 // on-demand route (/tina-island, the visual-editing endpoint) is served by
@@ -123,12 +130,22 @@ export default defineConfig({
 				else if (path.match(/\/(kids-church|amplify)\/.+/))               priority = 0.6;
 				else if (path.match(/\/(guides|threeminutes|memorial)\//))        priority = 0.6;
 
-				// Sermon pages — use build date so all sermons reflect the latest content
+				// Sermon pages — lastmod + video metadata
 				const sermonSlug = path.match(/\/sermons\/([^/]+)\/?$/)?.[1];
 				if (sermonSlug) {
-					const sermonDate = sermonDateMap[sermonSlug] ?? '1970-01-01';
+					const sermon = sermonMap[sermonSlug];
+					const sermonDate = sermon?.date ?? '1970-01-01';
 					const blanketDate = '2026-10-03';
-					return { ...item, lastmod: sermonDate > blanketDate ? sermonDate : blanketDate, priority };
+					const lastmod = sermonDate > blanketDate ? sermonDate : blanketDate;
+					const siteOrigin = new URL(item.url).origin;
+					const video = sermon?.vimeoUrl ? [{
+						thumbnail_loc: sermon.image ? `${siteOrigin}${sermon.image}` : undefined,
+						title: sermon.title,
+						description: sermon.shortDescription,
+						player_loc: sermon.vimeoUrl,
+						duration: sermon.durationMinutes ? Math.round(sermon.durationMinutes * 60) : undefined,
+					}] : undefined;
+					return { ...item, lastmod, priority, ...(video ? { video } : {}) };
 				}
 
 				// Devotion pages — date is the slug itself; cap at today so future devotions don't get future lastmod
