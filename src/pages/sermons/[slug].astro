@@ -282,14 +282,14 @@ const ldJsonVideo = vimeoId ? {
 
             {fm.hook && (
               <div class="px-6 py-5">
-                <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What this is about</p>
+                <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What this is about</h2>
                 <p class="text-sm text-[var(--ink)]/75 leading-relaxed">{fm.hook}</p>
               </div>
             )}
 
             {(fm.takeaways?.length ?? 0) > 0 && (
               <div class="px-6 py-5">
-                <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What you'll take away</p>
+                <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What you'll take away</h2>
                 <ul class="space-y-2">
                   {fm.takeaways!.map(t => (
                     <li class="flex gap-2 text-sm text-[var(--ink)]/75 leading-snug">
@@ -303,7 +303,7 @@ const ldJsonVideo = vimeoId ? {
 
             {(fm.audience?.length ?? 0) > 0 && (
               <div class="px-6 py-5">
-                <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">This is for you if</p>
+                <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">This is for you if</h2>
                 <ul class="space-y-2">
                   {fm.audience!.map(a => (
                     <li class="flex gap-2 text-sm text-[var(--ink)]/75 leading-snug">
@@ -343,14 +343,14 @@ const ldJsonVideo = vimeoId ? {
 
         {fm.bigIdea && (
           <div class="big-idea px-6 py-5 bg-white esv-crossref-ignore">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">The Big Idea</p>
+            <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">The Big Idea</h2>
             <p class="text-sm font-semibold leading-relaxed">{fm.bigIdea}</p>
           </div>
         )}
 
         {(fm.keyScriptureText || fm.keyScriptureRef) && (
           <div class="key-scripture px-6 py-5 bg-[var(--ink)]/[0.03] border-b border-[var(--ink)]/8">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Key Scripture</p>
+            <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Key Scripture</h2>
             <blockquote class="border-l-4 border-[var(--green)] pl-5">
               {fm.keyScriptureText && (
                 <p class="text-[var(--ink)]/80 text-sm leading-relaxed italic mb-2">{fm.keyScriptureText}</p>
@@ -364,7 +364,7 @@ const ldJsonVideo = vimeoId ? {
 
         {(fm.mainPoints?.length ?? 0) > 0 && (
           <div class="px-6 py-5 border-b border-[var(--ink)]/8 esv-crossref-ignore">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">Main Points</p>
+            <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">{fm.scripture ? `Main points of ${fm.scripture}` : 'Main Points'}</h2>
             <ol class="space-y-4">
               {fm.mainPoints!.map((pt, i) => (
                 <li class="flex gap-4">
@@ -372,7 +372,7 @@ const ldJsonVideo = vimeoId ? {
                     {i + 1}
                   </span>
                   <div>
-                    <p class="font-semibold text-[var(--navy)] text-sm mb-1">{pt.title}</p>
+                    <h3 class="font-sans font-semibold text-[var(--navy)] text-sm mb-1">{pt.title}</h3>
                     <p class="text-sm text-[var(--ink)]/70 leading-relaxed">{pt.body}</p>
                   </div>
                 </li>
@@ -383,14 +383,14 @@ const ldJsonVideo = vimeoId ? {
 
         {fm.keyIllustration && (
           <div class="px-6 py-5 bg-[var(--ink)]/[0.03] border-b border-[var(--ink)]/8 esv-crossref-ignore">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Key Illustration</p>
+            <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Key Illustration</h2>
             <p class="text-sm text-[var(--ink)]/75 leading-relaxed">{fm.keyIllustration}</p>
           </div>
         )}
 
         {(fm.application?.length ?? 0) > 0 && (
           <div class="px-6 py-5 border-b border-[var(--ink)]/8 esv-crossref-ignore">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What This Means for Us</p>
+            <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">What This Means for Us</h2>
             <ul class="space-y-3">
               {fm.application!.map(a => (
                 <li class="flex gap-3 text-sm text-[var(--ink)]/75 leading-relaxed">
@@ -404,14 +404,14 @@ const ldJsonVideo = vimeoId ? {
 
         {fm.toRemember && (
           <div class="px-6 py-5 bg-[var(--green)]/8 border-b border-[var(--ink)]/8 esv-crossref-ignore">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">To Remember</p>
+            <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-2">To Remember</h2>
             <p class="font-display text-lg font-semibold text-[var(--navy)] leading-snug">{fm.toRemember}</p>
           </div>
         )}
 
         {fm.closingPrayer && (
           <div class="px-6 py-5 esv-crossref-ignore">
-            <p class="text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Closing Prayer</p>
+            <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-3">Closing Prayer</h2>
             <p class="text-sm text-[var(--ink)]/70 leading-relaxed italic">{fm.closingPrayer}</p>
           </div>
         )}
@@ -421,6 +421,7 @@ const ldJsonVideo = vimeoId ? {
       {/* ── TRANSCRIPT PANEL ─────────────────────────────────────────────── */}
       {(fm.wordCount ?? 0) > 0 && (
         <div data-panel="transcript" class="tab-panel hidden px-6 py-6 esv-crossref-ignore">
+          <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--olive)] mb-4">{fm.scripture ? `Sermon transcript: ${fm.scripture}` : 'Sermon transcript'}</h2>
           <div class="transcript-body">
             <Content />
           </div>
@@ -505,7 +506,7 @@ const ldJsonVideo = vimeoId ? {
     {/* ── RELATED SERMONS ────────────────────────────────────────────────── */}
     {related.length > 0 && (
       <section class="reveal mt-2 mb-8 esv-crossref-ignore">
-        <p class="text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/35 mb-3">You might also like</p>
+        <h2 class="font-sans text-xs font-bold uppercase tracking-widest text-[var(--ink)]/40 dark:text-white/35 mb-3">You might also like</h2>
         <div class="grid gap-3 sm:grid-cols-3">
           {related.map(r => (
             <a href={`/sermons/${r.slug}`} class="group block bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/10 px-5 py-4 hover:shadow-md transition-shadow">
