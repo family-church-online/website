@@ -123,10 +123,11 @@ export default defineConfig({
 				else if (path.match(/\/(kids-church|amplify)\/.+/))               priority = 0.6;
 				else if (path.match(/\/(guides|threeminutes|memorial)\//))        priority = 0.6;
 
-				// Sermon pages — date from frontmatter map
+				// Sermon pages — use build date so all sermons reflect the latest content
 				const sermonSlug = path.match(/\/sermons\/([^/]+)\/?$/)?.[1];
-				if (sermonSlug && sermonDateMap[sermonSlug]) {
-					return { ...item, lastmod: sermonDateMap[sermonSlug], priority };
+				if (sermonSlug) {
+					const today = new Date().toISOString().slice(0, 10);
+					return { ...item, lastmod: today, priority };
 				}
 
 				// Devotion pages — date is the slug itself; cap at today so future devotions don't get future lastmod
