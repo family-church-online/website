@@ -138,13 +138,16 @@ export default defineConfig({
 					const blanketDate = '2026-10-03';
 					const lastmod = sermonDate > blanketDate ? sermonDate : blanketDate;
 					const siteOrigin = new URL(item.url).origin;
-					const video = sermon?.vimeoUrl ? [{
-						thumbnail_loc: sermon.image ? `${siteOrigin}${sermon.image}` : undefined,
-						title: sermon.title,
-						description: sermon.shortDescription,
-						player_loc: sermon.vimeoUrl,
-						duration: sermon.durationMinutes ? Math.round(sermon.durationMinutes * 60) : undefined,
-					}] : undefined;
+					const thumbnailLoc = sermon?.image ? `${siteOrigin}${sermon.image}` : undefined;
+					const video = (sermon?.vimeoUrl && sermon.title && sermon.shortDescription && thumbnailLoc)
+						? [{
+							thumbnail_loc: thumbnailLoc,
+							title: sermon.title,
+							description: sermon.shortDescription,
+							player_loc: sermon.vimeoUrl,
+							...(sermon.durationMinutes ? { duration: Math.round(sermon.durationMinutes * 60) } : {}),
+						}]
+						: undefined;
 					return { ...item, lastmod, priority, ...(video ? { video } : {}) };
 				}
 
