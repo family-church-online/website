@@ -126,8 +126,7 @@ export default defineConfig({
 				// Sermon pages — use build date so all sermons reflect the latest content
 				const sermonSlug = path.match(/\/sermons\/([^/]+)\/?$/)?.[1];
 				if (sermonSlug) {
-					const today = new Date().toISOString().slice(0, 10);
-					return { ...item, lastmod: today, priority };
+					return { ...item, lastmod: '2026-10-03', priority };
 				}
 
 				// Devotion pages — date is the slug itself; cap at today so future devotions don't get future lastmod
