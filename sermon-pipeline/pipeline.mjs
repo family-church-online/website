@@ -362,10 +362,26 @@ async function transcribeAudio(audioPath) {
   }
 }
 
+function ensureFirstTimestamp(rawTranscript, cleanedTranscript) {
+  const firstTsMatch = rawTranscript.match(/\[\d{2}:\d{2}\]/);
+  if (!firstTsMatch) return cleanedTranscript;
+  const firstTs = firstTsMatch[0];
+  if (cleanedTranscript.includes(firstTs)) return cleanedTranscript;
+  // Claude dropped the first timestamp (often [00:00]) — re-inject it at the
+  // first non-heading, non-empty line of the cleaned output.
+  const lines = cleanedTranscript.split('\n');
+  const idx = lines.findIndex(l => l.trim() && !l.startsWith('#'));
+  if (idx === -1) return cleanedTranscript;
+  warn(`First timestamp ${firstTs} was dropped by clean step — re-injecting`);
+  lines[idx] = `${firstTs} ${lines[idx]}`;
+  return lines.join('\n');
+}
+
 function cleanTranscript(rawTranscript) {
   const promptFile = join(PROMPTS_DIR, 'structure.txt');
   if (!existsSync(promptFile)) { warn('structure.txt not found — skipping clean'); return rawTranscript; }
-  return runClaude(`${loadPrompt('structure.txt')}\n\n---\n\nRAW TRANSCRIPT:\n\n${rawTranscript}`, 'clean transcript', 'claude-haiku-4-5-20251001');
+  const cleaned = runClaude(`${loadPrompt('structure.txt')}\n\n---\n\nRAW TRANSCRIPT:\n\n${rawTranscript}`, 'clean transcript', 'claude-haiku-4-5-20251001');
+  return ensureFirstTimestamp(rawTranscript, cleaned);
 }
 
 // ─── Taxonomy ─────────────────────────────────────────────────────────────────
