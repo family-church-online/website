@@ -1128,8 +1128,30 @@ async function main() {
   const imageSrcPath = notes.image
     ? join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''))
     : null;
-  if (notes.image && !existsSync(imageSrcPath)) {
-    warn(`Image not found locally — will NOT be committed to GitHub: ${imageSrcPath}`);
+
+  if (!notes.image) {
+    // No image set — ask before continuing
+    const msg = 'No image set in sermon-notes/current.mdx.\nThe sermon will publish without an image.\nContinue anyway?';
+    const proceed = GUI_MODE
+      ? zenityQuestion('No Image Set', msg)
+      : (await ask('\n  ⚠ No image set. Continue without one? [y/N]: ')).trim().toLowerCase() === 'y';
+    if (!proceed) {
+      if (GUI_MODE) zenityInfo('Cancelled', 'Add the image to sermon-notes/current.mdx, then run again.');
+      else console.log('\n  Add the image to sermon-notes/current.mdx, then run again.\n');
+      process.exit(0);
+    }
+  } else if (!existsSync(imageSrcPath)) {
+    // Image path set but file not on disk — hard stop
+    const msg = `Image file not found on disk:\n  ${imageSrcPath}\n\nCheck the path in sermon-notes/current.mdx and make sure the file exists locally.\n\nContinue WITHOUT the image?`;
+    const proceed = GUI_MODE
+      ? zenityQuestion('Image File Missing', msg)
+      : (await ask(`\n  ✘ Image file not found: ${imageSrcPath}\n  Continue without it? [y/N]: `)).trim().toLowerCase() === 'y';
+    if (!proceed) {
+      if (GUI_MODE) zenityInfo('Cancelled', 'Fix the image path or add the file, then run again.');
+      else console.log('\n  Fix the image path or add the file, then run again.\n');
+      process.exit(0);
+    }
+    warn('Continuing without image — sermon will publish without one.');
   }
 
   // 2 + 3. Select Vimeo video + download + convert (skippable if MP3 is on disk)
