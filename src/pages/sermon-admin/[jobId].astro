@@ -151,12 +151,10 @@ const stepLabels: Record<string, string> = {
 									<>
 										<div class="mt-2 flex items-start gap-4">
 											<img
-												src={job.metadata.image}
+												src={job.imageData ? `data:${job.imageMimeType || 'image/webp'};base64,${job.imageData}` : job.metadata.image}
 												alt="Sermon image"
 												class="w-32 h-20 object-cover rounded-lg border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5"
-												onerror="this.style.opacity='0.3';this.nextElementSibling.textContent='⚠ Image not found in GitHub yet — will be committed on publish'"
 											/>
-											<span class="text-xs text-gray-400 self-center hidden"></span>
 											<span class="text-xs font-mono text-gray-500 self-center">{job.metadata.image}</span>
 										</div>
 										{job.imageData && (
