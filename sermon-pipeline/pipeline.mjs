@@ -1438,15 +1438,22 @@ async function main() {
   const guid = randomUUID();
   if (DRY_RUN) {
     closeProgress();
-    console.log('\n─── DRY RUN COMPLETE ────────────────────────────────────────────────');
-    console.log(`\n  Notes read:   ${notes.title}`);
-    console.log(`  Date:         ${notes.date}`);
-    console.log(`  Speaker:      ${notes.speaker || '(not set)'}`);
-    console.log(`  Image:        ${notes.image || '(none)'}`);
-    console.log(`  Vimeo URL:    ${vimeoUrl}`);
-    console.log(`  Would slug:   ${slug}`);
-    console.log('\n  All checks passed. Run without --dry-run to process for real.\n');
-    console.log('─────────────────────────────────────────────────────────────────────\n');
+    const summary = [
+      `Title:    ${notes.title}`,
+      `Date:     ${notes.date}`,
+      `Speaker:  ${notes.speaker || '(not set)'}`,
+      `Image:    ${notes.image || '(none)'}`,
+      `Vimeo:    ${vimeoUrl}`,
+      `Slug:     ${slug}`,
+    ].join('\n');
+    if (GUI_MODE) {
+      zenityInfo('Dry Run Complete', `All checks passed.\n\n${summary}\n\nRun the full pipeline to process for real.`);
+    } else {
+      console.log('\n─── DRY RUN COMPLETE ────────────────────────────────────────────────');
+      console.log('\n' + summary.split('\n').map(l => `  ${l}`).join('\n'));
+      console.log('\n  All checks passed. Run without --dry-run to process for real.\n');
+      console.log('─────────────────────────────────────────────────────────────────────\n');
+    }
     if (rl) rl.close();
     return;
   }
