@@ -447,7 +447,7 @@ function getNextMonday(afterDate) {
 }
 
 function generateDevotions(notes, transcript, slug, imageUrl) {
-  const postUrl  = `${SITE_URL}/sermons/${notes.date}-${slug}`;
+  const postUrl  = `${SITE_URL}/sermons/${slug}`;
   const transcriptMd = [
     '---',
     `title: "${notes.title.replace(/"/g, "'")}"`,
