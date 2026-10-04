@@ -26,11 +26,11 @@ export const POST: APIRoute = async ({ request }) => {
 	const doNs = getDO();
 	if (doNs) {
 		const stub = doNs.get(doNs.idFromName('global'));
-		stub.fetch('https://do/notify', {
+		await stub.fetch('https://do/notify', {
 			method: 'POST',
 			body: JSON.stringify(report),
 			headers: { 'Content-Type': 'application/json' },
-		}).catch(() => {/* non-blocking */});
+		}).catch(() => {});
 	}
 
 	return new Response(JSON.stringify({ ok: true }), {
