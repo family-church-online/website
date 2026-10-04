@@ -92,9 +92,10 @@ const GOOGLE_CREDENTIALS_FILE = existsSync(join(PIPELINE_DIR, 'oauth_credentials
 const GOOGLE_TOKEN_FILE = existsSync(join(PIPELINE_DIR, 'oauth_token.json'))
   ? join(PIPELINE_DIR, 'oauth_token.json') : join(process.env.HOME || '', '.config/sermon-pipeline/oauth_token.json');
 
-// ─── GUI mode ─────────────────────────────────────────────────────────────────
+// ─── GUI / dry-run mode ───────────────────────────────────────────────────────
 
 const GUI_MODE = process.argv.includes('--gui');
+const DRY_RUN  = process.argv.includes('--dry-run');
 let _progressProc = null;
 
 function zenityList(title, items) {
@@ -1075,6 +1076,7 @@ function deleteSession() {
 
 async function main() {
   if (!GUI_MODE) console.log('\n─── Family Church Sermon Pipeline ─────────────────────────────────\n');
+  if (DRY_RUN) log('[DRY RUN] No downloads, AI calls, uploads, or Worker POST will happen.');
 
   // 0. Pull latest from GitHub so TinaCMS changes (image uploads, sermon notes edits) are local
   {
@@ -1165,6 +1167,22 @@ async function main() {
   if (canSkip('download') && existsSync(mp3Path) && session.vimeoUrl) {
     log(`[RESUME] Skipping download — MP3 already on disk: ${basename(mp3Path)}`);
     vimeoUrl = session.vimeoUrl;
+  } else if (DRY_RUN) {
+    if (VIMEO_TOKEN) {
+      const videos = await fetchVimeoVideos();
+      if (videos.length) {
+        log(`[DRY RUN] Vimeo API OK — ${videos.length} video(s) found:`);
+        videos.slice(0, 3).forEach(v => log(`  • ${v.name}  (${new Date(v.created_time).toLocaleDateString('en-ZA')})  ${v.status}`));
+        vimeoUrl = getVimeoEmbedUrl(videos[0]);
+      } else {
+        warn('[DRY RUN] Vimeo API returned no videos');
+        vimeoUrl = 'https://vimeo.com/0';
+      }
+    } else {
+      warn('[DRY RUN] VIMEO_TOKEN not set — skipping Vimeo check');
+      vimeoUrl = 'https://vimeo.com/0';
+    }
+    log('[DRY RUN] Skipping video download');
   } else {
     if (!VIMEO_TOKEN) {
       if (GUI_MODE) zenityError('Configuration Error', 'VIMEO_TOKEN is not set.');
@@ -1217,6 +1235,10 @@ async function main() {
   if (canSkip('transcript') && session.transcript) {
     log('[RESUME] Using saved transcript');
     ({ rawTranscript, transcript, durationMins } = session);
+  } else if (DRY_RUN) {
+    rawTranscript = transcript = '[DRY RUN — no transcription performed]';
+    durationMins = 45;
+    log('[DRY RUN] Skipping Deepgram transcription');
   } else {
     startProgress('Transcribing…');
     ({ transcript: rawTranscript, durationMins } = await transcribeAudio(mp3Path));
@@ -1230,6 +1252,14 @@ async function main() {
   if (canSkip('taxonomy') && session.taxonomy) {
     log('[RESUME] Using saved taxonomy');
     taxonomy = session.taxonomy;
+  } else if (DRY_RUN) {
+    taxonomy = {
+      title: notes.title, speaker: notes.speaker || '', date: notes.date,
+      url: `${SITE_URL}/sermons/${notes.date}-dry-run`,
+      series: notes.series || null, sermon_scripture: 'Genesis 1:1',
+      category: ['Topical'], tags: ['Topic:Faith'], review: false, review_notes: '',
+    };
+    log('[DRY RUN] Skipping taxonomy generation');
   } else {
     startProgress('Generating taxonomy…');
     const pendingUrl = `${SITE_URL}/sermons/${notes.date}-pending`;
@@ -1244,6 +1274,16 @@ async function main() {
   if (canSkip('sermonBlock') && session.sermonBlock) {
     log('[RESUME] Using saved sermon block');
     sermonBlock = session.sermonBlock;
+  } else if (DRY_RUN) {
+    sermonBlock = {
+      shortDescription: '[dry-run]', tagLine: '[dry-run]', primaryTheme: 'Faith',
+      subtitle: '[dry-run]', style: 'expository', level: 'general', hook: '[dry-run]',
+      takeaways: ['[dry-run]'], audience: ['general'], additionalScriptures: [],
+      bigIdea: '[dry-run]', keyScriptureText: '[dry-run]', keyScriptureRef: 'Genesis 1:1',
+      mainPoints: [{ title: '[dry-run]', body: '[dry-run]' }],
+      keyIllustration: null, application: ['[dry-run]'], toRemember: '[dry-run]',
+    };
+    log('[DRY RUN] Skipping sermon block generation');
   } else {
     startProgress('Generating sermon block…');
     sermonBlock = generateSermonBlock(notes, transcript, taxonomy);
@@ -1256,6 +1296,10 @@ async function main() {
   if (canSkip('slug') && session.slug) {
     log('[RESUME] Using saved slug');
     ({ slug, optimisedTitle } = session);
+  } else if (DRY_RUN) {
+    slug = 'dry-run-test';
+    optimisedTitle = notes.title;
+    log('[DRY RUN] Skipping SEO slug generation');
   } else {
     startProgress('Generating SEO slug…');
     ({ title: optimisedTitle, slug } = generateSeoSlug(notes, taxonomy, sermonBlock));
@@ -1272,24 +1316,29 @@ async function main() {
   //     Canonical name: YYYY-MM-DD-{slug}.webp in /images/sermons/
   const sourceImagePath = notes.image || null; // preserve original path before normalisation
   if (notes.image && imageSrcPath && existsSync(imageSrcPath)) {
-    const canonicalRelative = `/images/sermons/${notes.date}-${slug}.webp`;
-    const canonicalPath = join(WEBSITE_DIR, 'public', 'images', 'sermons', `${notes.date}-${slug}.webp`);
-    mkdirSync(join(WEBSITE_DIR, 'public', 'images', 'sermons'), { recursive: true });
-    if (imageSrcPath !== canonicalPath) {
-      log(`Normalising image → ${canonicalRelative}`);
-      const r = spawnSync('ffmpeg', ['-y', '-i', imageSrcPath, '-quality', '85', canonicalPath], { encoding: 'utf8' });
-      if (r.status === 0) {
-        notes.image = canonicalRelative;
-        log(`  Saved: ${basename(canonicalPath)} (${(statSync(canonicalPath).size / 1024).toFixed(0)} KB)`);
-      } else {
-        warn(`Image conversion failed — using original path: ${notes.image}`);
+    if (DRY_RUN) {
+      const kb = (statSync(imageSrcPath).size / 1024).toFixed(0);
+      log(`[DRY RUN] Image found: ${notes.image} (${kb} KB) — skipping conversion`);
+    } else {
+      const canonicalRelative = `/images/sermons/${notes.date}-${slug}.webp`;
+      const canonicalPath = join(WEBSITE_DIR, 'public', 'images', 'sermons', `${notes.date}-${slug}.webp`);
+      mkdirSync(join(WEBSITE_DIR, 'public', 'images', 'sermons'), { recursive: true });
+      if (imageSrcPath !== canonicalPath) {
+        log(`Normalising image → ${canonicalRelative}`);
+        const r = spawnSync('ffmpeg', ['-y', '-i', imageSrcPath, '-quality', '85', canonicalPath], { encoding: 'utf8' });
+        if (r.status === 0) {
+          notes.image = canonicalRelative;
+          log(`  Saved: ${basename(canonicalPath)} (${(statSync(canonicalPath).size / 1024).toFixed(0)} KB)`);
+        } else {
+          warn(`Image conversion failed — using original path: ${notes.image}`);
+        }
       }
-    }
-    const finalPath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
-    if (existsSync(finalPath)) {
-      imageMimeType = 'image/webp';
-      imageData = readFileSync(finalPath).toString('base64');
-      log(`Image ready for commit: ${(imageData.length * 3 / 4 / 1024).toFixed(0)} KB`);
+      const finalPath = join(WEBSITE_DIR, 'public', notes.image.replace(/^\//, ''));
+      if (existsSync(finalPath)) {
+        imageMimeType = 'image/webp';
+        imageData = readFileSync(finalPath).toString('base64');
+        log(`Image ready for commit: ${(imageData.length * 3 / 4 / 1024).toFixed(0)} KB`);
+      }
     }
   }
   // Persist updated notes.image (may have changed to canonical path above)
@@ -1301,6 +1350,9 @@ async function main() {
   if (canSkip('devotions') && session.devotions) {
     log('[RESUME] Using saved devotions');
     devotions = session.devotions;
+  } else if (DRY_RUN) {
+    devotions = [];
+    log('[DRY RUN] Skipping devotion generation');
   } else {
     startProgress('Generating devotions…');
     const imageUrl = notes.image ? `https://familychurch.online${notes.image}` : '';
@@ -1315,6 +1367,9 @@ async function main() {
   if (canSkip('readingPlans') && 'readingPlans' in session) {
     log('[RESUME] Using saved reading plans');
     readingPlans = session.readingPlans;
+  } else if (DRY_RUN) {
+    readingPlans = null;
+    log('[DRY RUN] Skipping reading plan fetch');
   } else {
     const googleAuth = await getGoogleAuth();
     const monday = getNextMonday(notes.date);
@@ -1341,6 +1396,9 @@ async function main() {
   if (canSkip('r2') && session.tempAudioKey) {
     log('[RESUME] Using cached R2 temp key');
     tempAudioKey = session.tempAudioKey;
+  } else if (DRY_RUN) {
+    tempAudioKey = 'dry-run/audio.mp3';
+    log('[DRY RUN] Skipping R2 upload');
   } else {
     tempAudioKey = await uploadTempAudio(mp3Path, notes.date);
     session = { ...session, step: 'r2', tempAudioKey };
@@ -1350,30 +1408,49 @@ async function main() {
   // 10.5. Upload transcript/taxonomy/sermon-block to Google Drive (local OAuth —
   //       the Worker service account has no Drive storage quota on personal Drive)
   const baseName = `${notes.date}-${slug}`;
-  try {
-    const googleAuth = await getGoogleAuth();
-    await uploadSermonToDrive(googleAuth, baseName, transcript, taxonomy, sermonBlock, {
-      optimisedTitle,
-      date: notes.date,
-      speaker: notes.speaker,
-      series: notes.series,
-      vimeoUrl,
-      durationMinutes: durationMins,
-      // audioUrl not yet known (temp key only); Drive file will show a warning comment
-    });
-  } catch (err) {
-    warn(`Drive upload failed (non-fatal): ${err.message}`);
+  if (!DRY_RUN) {
+    try {
+      const googleAuth = await getGoogleAuth();
+      await uploadSermonToDrive(googleAuth, baseName, transcript, taxonomy, sermonBlock, {
+        optimisedTitle,
+        date: notes.date,
+        speaker: notes.speaker,
+        series: notes.series,
+        vimeoUrl,
+        durationMinutes: durationMins,
+        // audioUrl not yet known (temp key only); Drive file will show a warning comment
+      });
+    } catch (err) {
+      warn(`Drive upload failed (non-fatal): ${err.message}`);
+    }
   }
 
   // 10.6. Ingest into search database
-  try {
-    await ingestToSearch(notes.date, slug, notes.speaker, taxonomy, sermonBlock, transcript);
-  } catch (err) {
-    warn(`Search ingestion failed (non-fatal): ${err.message}`);
+  if (!DRY_RUN) {
+    try {
+      await ingestToSearch(notes.date, slug, notes.speaker, taxonomy, sermonBlock, transcript);
+    } catch (err) {
+      warn(`Search ingestion failed (non-fatal): ${err.message}`);
+    }
   }
 
   // 11. POST to Worker
   const guid = randomUUID();
+  if (DRY_RUN) {
+    closeProgress();
+    console.log('\n─── DRY RUN COMPLETE ────────────────────────────────────────────────');
+    console.log(`\n  Notes read:   ${notes.title}`);
+    console.log(`  Date:         ${notes.date}`);
+    console.log(`  Speaker:      ${notes.speaker || '(not set)'}`);
+    console.log(`  Image:        ${notes.image || '(none)'}`);
+    console.log(`  Vimeo URL:    ${vimeoUrl}`);
+    console.log(`  Would slug:   ${slug}`);
+    console.log('\n  All checks passed. Run without --dry-run to process for real.\n');
+    console.log('─────────────────────────────────────────────────────────────────────\n');
+    if (rl) rl.close();
+    return;
+  }
+
   const { jobId, reviewUrl } = await postJobToWorker({
     transcript,
     metadata: { title: notes.title, speaker: notes.speaker, series: notes.series, date: notes.date, image: notes.image, vimeoUrl, durationMinutes: durationMins },
