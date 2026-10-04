@@ -119,6 +119,10 @@ function zenityQuestion(title, text) {
 
 function startProgress(text = 'Starting…') {
   if (!GUI_MODE) return;
+  if (_progressProc) {
+    try { _progressProc.stdin.write(`# ${text}\n`); } catch {}
+    return;
+  }
   _progressProc = spawn('zenity', ['--progress', '--pulsate', '--auto-kill', '--title=Sermon Pipeline', `--text=${text}`, '--width=500'], { stdio: ['pipe', 'ignore', 'ignore'] });
 }
 
