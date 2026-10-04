@@ -319,7 +319,11 @@ interface GitCommit { sha: string; tree: { sha: string } }
 interface GitTree { sha: string }
 interface GitNewCommit { sha: string }
 
-async function commitFiles(token: string, files: Array<{ path: string; content: string; isBase64?: boolean }>, message: string): Promise<string> {
+type FileEntry =
+	| { path: string; content: string; isBase64?: boolean }
+	| { path: string; delete: true };
+
+async function commitFiles(token: string, files: Array<FileEntry>, message: string): Promise<string> {
 	// Get HEAD commit
 	const ref = await githubApi(token, `/git/ref/heads/${GITHUB_BRANCH}`) as GitRef;
 	const headSha = ref.object.sha;
@@ -328,14 +332,17 @@ async function commitFiles(token: string, files: Array<{ path: string; content: 
 	const headCommit = await githubApi(token, `/git/commits/${headSha}`) as GitCommit;
 	const treeSha = headCommit.tree.sha;
 
-	// Create blobs for each file
+	// Create blobs for each file (deletions skip blob creation and use sha: null)
 	const treeItems = await Promise.all(files.map(async f => {
+		if ('delete' in f) {
+			return { path: f.path, mode: '100644' as const, type: 'blob' as const, sha: null };
+		}
 		const blob = await githubApi(token, '/git/blobs', 'POST', {
 			// isBase64=true means content is already base64 (binary files like images)
 			content: f.isBase64 ? f.content : btoa(unescape(encodeURIComponent(f.content))),
 			encoding: 'base64',
 		}) as GitBlob;
-		return { path: f.path, mode: '100644', type: 'blob', sha: blob.sha };
+		return { path: f.path, mode: '100644' as const, type: 'blob' as const, sha: blob.sha };
 	}));
 
 	// Create tree
@@ -504,7 +511,7 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 				job.taxonomy!.tags ?? [],
 			);
 
-			const files: Array<{ path: string; content: string; isBase64?: boolean }> = [
+			const files: Array<FileEntry> = [
 				{ path: sermonPath, content: sermonMdx },
 				...devotionFiles,
 				{ path: 'src/data/sermon-tags.json', content: tagsContent },
@@ -518,6 +525,11 @@ export class SermonPublishWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ser
 					content: job.imageData,
 					isBase64: true,
 				});
+			}
+
+			// Delete the tmp source image if it differs from the canonical path
+			if (job.sourceImagePath && job.sourceImagePath !== job.metadata.image) {
+				files.push({ path: `public${job.sourceImagePath}`, delete: true });
 			}
 
 			const sha = await commitFiles(

@@ -1266,6 +1266,7 @@ async function main() {
 
   // 7b. Normalise image now that we have the full slug (title + scripture reference).
   //     Canonical name: YYYY-MM-DD-{slug}.webp in /images/sermons/
+  const sourceImagePath = notes.image || null; // preserve original path before normalisation
   if (notes.image && imageSrcPath && existsSync(imageSrcPath)) {
     const canonicalRelative = `/images/sermons/${notes.date}-${slug}.webp`;
     const canonicalPath = join(WEBSITE_DIR, 'public', 'images', 'sermons', `${notes.date}-${slug}.webp`);
@@ -1374,6 +1375,7 @@ async function main() {
     metadata: { title: notes.title, speaker: notes.speaker, series: notes.series, date: notes.date, image: notes.image, vimeoUrl, durationMinutes: durationMins },
     imageData,
     imageMimeType,
+    sourceImagePath: (sourceImagePath !== notes.image) ? sourceImagePath : null,
     taxonomy,
     sermonBlock,
     slug,

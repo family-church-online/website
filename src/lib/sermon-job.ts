@@ -92,6 +92,8 @@ export interface SermonJob {
 	// image file contents (base64) if the file exists locally and may not be in GitHub yet
 	imageData: string | null;
 	imageMimeType: string | null;
+	// original image path before pipeline normalisation (e.g. /images/tmp/4Oct.jpeg) — deleted from GitHub on publish
+	sourceImagePath: string | null;
 	// populated by SermonProcessWorkflow
 	taxonomy: Taxonomy | null;
 	sermonBlock: SermonBlock | null;
