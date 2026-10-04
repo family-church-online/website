@@ -110,6 +110,13 @@ export class StreamMonitor {
 			return new Response('ok');
 		}
 
+		if (url.pathname.endsWith('/debug')) {
+			const stored = await this.state.storage.get('reports').catch(() => null);
+			return new Response(JSON.stringify({ inMemory: this.reports, stored, sessions: this.state.getWebSockets().length }, null, 2), {
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
+
 		return new Response('Not found', { status: 404 });
 	}
 
