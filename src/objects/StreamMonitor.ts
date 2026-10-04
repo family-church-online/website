@@ -1,5 +1,5 @@
 export class StreamMonitor {
-	private sessions = new Set<WebSocket>();
+	// No in-memory sessions Set — use hibernation API so sessions survive DO eviction.
 	private reports: Array<{ button: string; timestamp: string; city?: string | null }> = [];
 
 	constructor(private state: DurableObjectState) {
@@ -14,10 +14,14 @@ export class StreamMonitor {
 				}
 			} catch (err) {
 				console.error('[StreamMonitor] storage.get failed on init:', err);
-				// Start with empty reports — in-memory only for this instance lifetime
 			}
 		});
 	}
+
+	// Hibernation API handlers — called when WS messages/close/error arrive after hibernation.
+	webSocketMessage(_ws: WebSocket, _message: string | ArrayBuffer): void { /* dashboard is read-only */ }
+	webSocketClose(_ws: WebSocket): void { /* cleanup is automatic with hibernation API */ }
+	webSocketError(_ws: WebSocket, _error: unknown): void { /* cleanup is automatic */ }
 
 	private pruneReports() {
 		const cutoff = Date.now() - 60 * 60 * 1000;
@@ -62,11 +66,10 @@ export class StreamMonitor {
 				return new Response('Expected WebSocket', { status: 426 });
 			}
 			const pair = new WebSocketPair();
-			const [client, server] = Object.values(pair) as WebSocket[];
-			server.accept();
-			this.sessions.add(server);
-			server.addEventListener('close', () => this.sessions.delete(server));
-			server.addEventListener('error', () => this.sessions.delete(server));
+			const { 0: client, 1: server } = pair;
+
+			// Hibernation API: sessions survive DO eviction — getWebSockets() always returns live set
+			this.state.acceptWebSocket(server);
 
 			// Send current state immediately so the dashboard doesn't need to HTTP-poll
 			this.pruneReports();
@@ -110,12 +113,10 @@ export class StreamMonitor {
 
 	private broadcast(data: unknown) {
 		const msg = JSON.stringify(data);
-		for (const ws of this.sessions) {
+		for (const ws of this.state.getWebSockets()) {
 			try {
 				ws.send(msg);
-			} catch {
-				this.sessions.delete(ws);
-			}
+			} catch { /* closed — hibernation API handles cleanup */ }
 		}
 	}
 }

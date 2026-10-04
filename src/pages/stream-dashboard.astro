@@ -294,7 +294,6 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 							applySync(msg.counts);
 						} else if (msg.button) {
 							recent[msg.button] = (recent[msg.button] ?? 0) + 1;
-							tick();
 						}
 						if (msg.button && msg.timestamp) {
 							lastTs[msg.button] = new Date(msg.timestamp).getTime();
@@ -302,6 +301,7 @@ const BUTTON_ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
 						if (msg.button && msg.city) {
 							lastCity[msg.button] = msg.city;
 						}
+						tick();
 					}
 				} catch { /* ignore */ }
 			};
