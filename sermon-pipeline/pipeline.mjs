@@ -1072,6 +1072,16 @@ function deleteSession() {
 async function main() {
   if (!GUI_MODE) console.log('\n─── Family Church Sermon Pipeline ─────────────────────────────────\n');
 
+  // 0. Pull latest from GitHub so TinaCMS changes (image uploads, sermon notes edits) are local
+  {
+    const r = spawnSync('git', ['pull', '--ff-only'], { cwd: WEBSITE_DIR, encoding: 'utf8' });
+    if (r.status === 0) {
+      log(`git pull: ${r.stdout.trim() || 'Already up to date.'}`);
+    } else {
+      warn(`git pull failed — continuing with local files:\n${(r.stderr || r.stdout || '').trim()}`);
+    }
+  }
+
   // 1. Read sermon notes
   const notes = readSermonNotes();
   if (!notes.title) {
