@@ -88,8 +88,6 @@ export class StreamMonitor {
 		if (url.pathname.endsWith('/notify') && request.method === 'POST') {
 			const data = await request.json() as { type?: string; button?: string; timestamp?: string; city?: string | null };
 
-			console.log(`[StreamMonitor] /notify received: button=${data.button} sessions=${this.state.getWebSockets().length}`);
-
 			if (data.button && data.timestamp) {
 				this.reports.push({ button: data.button, timestamp: data.timestamp, city: data.city });
 				this.pruneReports();
@@ -108,13 +106,6 @@ export class StreamMonitor {
 			}
 
 			return new Response('ok');
-		}
-
-		if (url.pathname.endsWith('/debug')) {
-			const stored = await this.state.storage.get('reports').catch(() => null);
-			return new Response(JSON.stringify({ inMemory: this.reports, stored, sessions: this.state.getWebSockets().length }, null, 2), {
-				headers: { 'Content-Type': 'application/json' },
-			});
 		}
 
 		return new Response('Not found', { status: 404 });
