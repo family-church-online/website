@@ -88,6 +88,8 @@ export class StreamMonitor {
 		if (url.pathname.endsWith('/notify') && request.method === 'POST') {
 			const data = await request.json() as { type?: string; button?: string; timestamp?: string; city?: string | null };
 
+			console.log(`[StreamMonitor] /notify received: button=${data.button} sessions=${this.state.getWebSockets().length}`);
+
 			if (data.button && data.timestamp) {
 				this.reports.push({ button: data.button, timestamp: data.timestamp, city: data.city });
 				this.pruneReports();

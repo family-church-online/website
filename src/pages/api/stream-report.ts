@@ -24,6 +24,7 @@ export const POST: APIRoute = async ({ request }) => {
 	const report    = { type: 'report' as const, button: body.button, ip, timestamp, city };
 
 	const doNs = getDO();
+	console.log(`[stream-report] button=${report.button} doNs=${!!doNs}`);
 	if (doNs) {
 		const stub = doNs.get(doNs.idFromName('global'));
 		await stub.fetch('https://do/notify', {
