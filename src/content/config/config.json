@@ -137,6 +137,11 @@
       "title": "Chat",
       "link": "https://wa.me/27689816115",
       "icon": "tabler:brand-whatsapp"
+    },
+    {
+      "title": "Follow us on Instagram",
+      "link": "https://www.instagram.com/familychurchonline",
+      "icon": "tabler:brand-instagram"
     }
   ],
   "banner": {
