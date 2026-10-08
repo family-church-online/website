@@ -3,7 +3,7 @@ import { readSession, createSession } from '../../../lib/auth';
 
 export const prerender = false;
 
-const SESSION_DAYS = 7;
+const SESSION_DAYS = 28;
 
 export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	const token = url.searchParams.get('token') ?? '';
