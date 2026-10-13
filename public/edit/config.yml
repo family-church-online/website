@@ -34,7 +34,8 @@ backend:
   branch: master
   base_url: https://sveltia-auth.familychurch.online
 site_url: https://familychurch.online
-logo_url: /images/NavyLogo.png
+logo:
+  src: /images/NavyLogo.png
 output:
   yaml:
     quote: double

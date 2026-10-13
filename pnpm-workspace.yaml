@@ -17,3 +17,5 @@ allowBuilds:
   protobufjs: true
   sharp: true
   workerd: true
+minimumReleaseAgeExclude:
+  - '@sveltia/cms@0.235.1'

@@ -77,7 +77,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@aws-sdk/client-s3": "^3.1117.0",
-    "@sveltia/cms": "^0.205.0",
+    "@sveltia/cms": "^0.235.1",
     "@tinacms/cli": "^2.6.1",
     "@types/node": "^25.9.1",
     "esbuild": "^0.28.2",
