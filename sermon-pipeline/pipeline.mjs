@@ -84,6 +84,7 @@ const SITE_URL         = process.env.SITE_URL || 'https://familychurch.online';
 const DEEPGRAM_MODEL   = 'nova-2';
 const VOYAGE_API_KEY   = process.env.VOYAGE_API_KEY   || '';
 const DATABASE_URL     = process.env.DATABASE_URL     || '';
+const ESV_AUTH_TOKEN   = process.env.ESV_AUTH_TOKEN   || '';
 const MAX_CHUNK_WORDS  = 600;
 
 const READING_PLANS_CAL_ID = '9e339a64af832e22e2845990e12e5734996425604454b26ff45a86230c00d463@group.calendar.google.com';
@@ -252,7 +253,33 @@ function findNextWhatsNext(afterDate) {
   return null;
 }
 
-function buildNextSermonNotesMdx(next) {
+async function fetchEsvText(reference) {
+  if (!ESV_AUTH_TOKEN || !reference) return '';
+  try {
+    const url = 'https://api.esv.org/v3/passage/text/?' + new URLSearchParams({
+      q: reference,
+      'include-headings': 'false',
+      'include-footnotes': 'false',
+      'include-verse-numbers': 'true',
+      'include-short-copyright': 'false',
+      'include-copyright': 'false',
+    });
+    const resp = await fetch(url, { headers: { Authorization: `Token ${ESV_AUTH_TOKEN}` } });
+    if (!resp.ok) { warn(`ESV API error: ${resp.status}`); return ''; }
+    const data = await resp.json();
+    const raw = (data.passages?.[0] || '').trim();
+    // Strip the canonical heading line ("Revelation 6:12–17") and collapse whitespace
+    return raw.replace(/^[^\n]+\n+/, '').replace(/\s+/g, ' ').trim();
+  } catch (e) {
+    warn(`ESV fetch failed: ${e.message}`);
+    return '';
+  }
+}
+
+function buildNextSermonNotesMdx(next, esvText) {
+  const body = esvText
+    ? `\n### Scripture\n\n${next.scripture} ESV ${esvText}\n`
+    : '';
   return [
     '---',
     `title: "${(next.title || '').replace(/"/g, "'")}"`,
@@ -261,7 +288,8 @@ function buildNextSermonNotesMdx(next) {
     `scripture: "${next.scripture || ''}"`,
     `series: "${next.series || ''}"`,
     'image: ""',
-    '---', '',
+    '---',
+    body,
   ].join('\n');
 }
 
@@ -1497,7 +1525,8 @@ async function main() {
   if (prepNext) {
     const next = findNextWhatsNext(notes.date);
     if (next) {
-      writeFileSync(SERMON_NOTES, buildNextSermonNotesMdx(next));
+      const esvText = await fetchEsvText(next.scripture);
+      writeFileSync(SERMON_NOTES, buildNextSermonNotesMdx(next, esvText));
 
       // Commit and push so the website picks it up immediately
       const commitMsg = `chore(sermon-notes): advance to ${next.date} — ${next.title || 'next sermon'}`;
