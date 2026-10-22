@@ -39,8 +39,10 @@ Everything else requires credentials. The table below shows what each variable u
 |--------------|---------|
 | `PUBLIC_TINA_CLIENT_ID` + `TINA_TOKEN` | `pnpm dev` with working /admin/, `pnpm build` (production) |
 | `PCO_APP_TOKEN` + `PCO_APP_SECRET` + `SESSION_SECRET` + `RESEND_API_KEY` | Magic-link auth, course access, `/course-admin`, `/cf-status` |
+| `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile bot protection on the login form (optional — skipped if absent) |
 | `VIMEO_TOKEN` | Live stream status widget, sermon pipeline video selection |
 | `VIMEO_TOKEN` + `DEEPGRAM_API_KEY` + `SERMON_PIPELINE_SECRET` + R2 vars + **Claude Code CLI (`claude`)** | Sermon pipeline CLI (`node sermon-pipeline/pipeline.mjs`) |
+| `ESV_AUTH_TOKEN` | Sermon pipeline: auto-fetches and inserts scripture text into `sermon-notes/current.mdx` (optional — skipped if absent) |
 | `GITHUB_TOKEN` + `GOOGLE_SERVICE_ACCOUNT` + `SERMON_NOTIFY_EMAIL` | Sermon publish workflow (Worker side — commits MDX, posts calendar events, Drive uploads) |
 | Cloudflare account + `wrangler login` | `wrangler deploy` |
 | `VOYAGE_API_KEY` + `DATABASE_URL` | AI search (optional — silently skipped if absent) |
@@ -53,13 +55,31 @@ The sermon pipeline requires the [Claude Code CLI](https://claude.ai/code) to be
 |----------|---------|
 | `PUBLIC_TINA_CLIENT_ID` | TinaCloud project ID — from [app.tina.io](https://app.tina.io) |
 | `TINA_TOKEN` | TinaCloud read token |
-| `SITE_URL` | Canonical URL — required on Cloudflare Workers (no platform var injected) |
+| `SITE_URL` | Canonical URL — required on Cloudflare Workers (no platform var injected at build time) |
 | `DEPLOY_ADAPTER` | Force `vercel \| cloudflare \| netlify \| node`; normally auto-detected |
 | `TINA_HOST` | LAN IP or full URL for TinaCMS mobile dev on the same network |
-| `PCO_APP_ID` | Planning Center Online app ID — for magic-link auth |
-| `PCO_SECRET` | Planning Center Online app secret |
+| `PCO_APP_TOKEN` | Planning Center Online Personal Access Token (admin-level) |
+| `PCO_APP_SECRET` | Planning Center Online Personal Access Token secret |
+| `PCO_TRACKED_LIST_IDS` | Comma-separated PCO list IDs the site checks at login (all `requiredListId` values + `adminListId`) |
+| `SESSION_SECRET` | 64-char hex string for signing session cookies and magic-link tokens (`openssl rand -hex 32`) |
 | `RESEND_API_KEY` | Resend API key — for sending magic-link emails |
-| `VIMEO_TOKEN` | Vimeo API token — for live stream status check. Must be named exactly `VIMEO_TOKEN` in the Cloudflare dashboard. |
+| `TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key — bot protection on the login form (optional) |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key (optional) |
+| `VIMEO_TOKEN` | Vimeo API token — live stream status check + pipeline video selection. Must be set in the Cloudflare dashboard as a runtime secret. |
+| `DEEPGRAM_API_KEY` | Deepgram API key — sermon audio transcription (pipeline only) |
+| `ESV_AUTH_TOKEN` | ESV Bible API key — auto-inserts scripture text into sermon notes (pipeline only, optional) |
+| `SERMON_PIPELINE_SECRET` | Shared secret between the local pipeline CLI and the Worker's `/api/sermon/jobs` endpoint |
+| `SERMON_NOTIFY_EMAIL` | Email address notified when a sermon is ready for review |
+| `ANTHROPIC_API_KEY` | Anthropic API key — used by `SermonProcessWorkflow` Claude calls (Worker side) |
+| `GITHUB_TOKEN` | GitHub Personal Access Token with `repo` scope — Worker commits MDX files on publish |
+| `GOOGLE_SERVICE_ACCOUNT` | Stringified Google service account JSON — Calendar + Drive uploads |
+| `VOYAGE_API_KEY` | Voyage AI key — search embeddings (optional, silently skipped) |
+| `DATABASE_URL` | Neon connection string — pgvector search store (optional, silently skipped) |
+| `R2_ENDPOINT` | Cloudflare R2 S3-compatible endpoint (pipeline only) |
+| `R2_ACCESS_KEY_ID` | R2 access key (pipeline only) |
+| `R2_SECRET_ACCESS_KEY` | R2 secret key (pipeline only) |
+| `R2_BUCKET` | R2 bucket name (default: `family-church-sermons`) |
+| `R2_AUDIO_PUBLIC_URL` | Public URL for R2 audio files (default: `https://audio.familychurch.online`) |
 
 ## Commands
 
@@ -133,9 +153,13 @@ node sermon-pipeline/pipeline.mjs
 
 The pipeline: reads `sermon-notes/current.mdx` → selects Vimeo video → downloads + converts to MP3 (MP4 cleaned up immediately) → Deepgram transcription (with retry) → Claude (clean transcript, taxonomy, sermon block, slug, 7 devotions) → reading plans from Google Calendar → generates a stable `guid` for the podcast feed → optional search ingestion (Voyage AI embeddings → Neon pgvector) → uploads MP3 to R2 temp → POSTs job to Cloudflare Worker → prints review URL.
 
+At the end, the pipeline offers to prepare next week's template: it finds the next entry in `src/content/whats-next/`, fetches the ESV scripture text (if `ESV_AUTH_TOKEN` is set), writes `sermon-notes/current.mdx`, then **commits and pushes to GitHub automatically** so the website updates without a manual git step.
+
 **Session resume**: if the pipeline is interrupted after an expensive step (download, transcription, AI), restarting on the same day offers to resume from the last completed checkpoint rather than starting over.
 
-**Sermon images** are extracted as JPEG (Apple Podcasts rejects WebP). Each sermon gets a stable UUID `guid` in its MDX — required by Spotify and Apple Podcasts to track episodes across feed updates.
+**Dry-run mode** (`--dry-run` flag, or the dry-run option in GUI mode): runs all AI and processing steps but skips the final Worker POST and R2 upload. Useful for testing the full pipeline without publishing.
+
+**Sermon images** are extracted as JPEG (Apple Podcasts rejects WebP). Each sermon gets a stable UUID `guid` in its MDX — required by Spotify and Apple Podcasts to track episodes across feed updates. The tmp image is automatically deleted from GitHub after publish.
 
 The reviewer visits `/sermon-admin/[jobId]`, edits content if needed, and approves. `SermonPublishWorkflow` then commits sermon MDX + 7 devotion MDX files + updated `related-sermons.json` + `sermon-tags.json` to GitHub in one atomic commit, posts devotions to Google Calendar, and uploads files to Drive.
 

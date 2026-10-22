@@ -42,9 +42,13 @@ pnpm pipeline:shortcut
 
 The pipeline: reads `sermon-notes/current.mdx` → selects Vimeo video → downloads + converts to MP3 (MP4 deleted immediately) → Deepgram transcription → Claude (clean, taxonomy, sermon block, slug, devotions) → reading plans from Google Calendar → generates stable UUID `guid` for podcast feed → optional search ingestion (Voyage AI + Neon pgvector, skipped if vars absent) → uploads audio to R2 temp → POSTs job to Cloudflare Worker → prints review URL.
 
+At the end, the pipeline offers to prepare next week's notes: finds the next `whats-next` entry, calls the ESV API (`ESV_AUTH_TOKEN`) to fetch scripture text, writes `sermon-notes/current.mdx`, then **commits and pushes to GitHub**. Skips the ESV fetch silently if the token is absent.
+
 **Session resume**: the pipeline saves a checkpoint (`sermon-pipeline/session/current.json`) after every expensive step. If interrupted and restarted on the same day, it offers to resume from the last completed step. Session is deleted on successful Worker POST.
 
-**Reliability**: Vimeo download retries up to 5× with exponential backoff (30s→300s). Deepgram transcription retries up to 5× on 429/5xx. Sermon image converted to WebP (`-quality 85`). Each sermon gets a `guid` UUID in its MDX frontmatter; Spotify and Apple Podcasts require stable non-empty guids to track episodes.
+**Dry-run mode**: pass `--dry-run` (or use the GUI option) to run all AI steps without the final Worker POST or R2 upload. For end-to-end testing without publishing.
+
+**Reliability**: Vimeo download retries up to 5× with exponential backoff (30s→300s). Deepgram transcription retries up to 5× on 429/5xx. Sermon image extracted as JPEG (Apple Podcasts rejects WebP) and auto-deleted from GitHub after publish. Each sermon gets a `guid` UUID in its MDX frontmatter; Spotify and Apple Podcasts require stable non-empty guids to track episodes.
 
 The Worker stores the job in `SERMON_JOBS` KV (status `review`, 30-day TTL) and emails `SERMON_NOTIFY_EMAIL`. Reviewer visits `/sermon-admin/[jobId]`, edits if needed, and approves. Approval triggers `SermonPublishWorkflow` which commits sermon MDX + 7 devotion MDX files + updated `related-sermons.json` + `sermon-tags.json` to GitHub in one atomic commit, posts devotions to Google Calendar, and uploads transcript/taxonomy/sermon-block to Drive.
 
@@ -75,6 +79,7 @@ Copy `.env.example` → `.env`. Key vars:
 | `DEPLOY_ADAPTER` | Force `vercel \| cloudflare \| netlify \| node`; normally auto-detected |
 | `TINA_HOST` | LAN IP or full URL for mobile dev against the same local TinaCMS |
 | `VIMEO_TOKEN` | Vimeo API token — used by `/api/stream-status` to detect live stream |
+| `ESV_AUTH_TOKEN` | ESV Bible API key — pipeline fetches scripture text for sermon notes (optional) |
 
 ## Architecture
 
