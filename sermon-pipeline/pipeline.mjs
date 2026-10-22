@@ -1498,11 +1498,21 @@ async function main() {
     const next = findNextWhatsNext(notes.date);
     if (next) {
       writeFileSync(SERMON_NOTES, buildNextSermonNotesMdx(next));
+
+      // Commit and push so the website picks it up immediately
+      const commitMsg = `chore(sermon-notes): advance to ${next.date} — ${next.title || 'next sermon'}`;
+      const gitAdd = spawnSync('git', ['add', SERMON_NOTES], { cwd: WEBSITE_DIR, encoding: 'utf8' });
+      const gitCommit = spawnSync('git', ['commit', '-m', commitMsg], { cwd: WEBSITE_DIR, encoding: 'utf8' });
+      const gitPush = spawnSync('git', ['push'], { cwd: WEBSITE_DIR, encoding: 'utf8' });
+      const pushOk = gitPush.status === 0;
+
       if (GUI_MODE) {
-        zenityInfo("Next Week Ready", `Notes updated for ${next.date}:\n${next.title || '(no title yet)'}\n\nRemember to add the sermon image before Sunday.`);
+        const pushNote = pushOk ? '' : '\n\n⚠️ Git push failed — commit is local only. Push manually.';
+        zenityInfo("Next Week Ready", `Notes updated for ${next.date}:\n${next.title || '(no title yet)'}\n\nRemember to add the sermon image before Sunday.${pushNote}`);
       } else {
         console.log(`\n  ✓  current.mdx updated for ${next.date}: ${next.title || '(no title yet)'}`);
-        console.log('     Add the sermon image before Sunday.\n');
+        if (pushOk) console.log('     Committed and pushed to GitHub.\n');
+        else console.log('     ⚠️  Git push failed — commit is local only. Push manually.\n');
       }
     } else {
       warn('No whats-next entry found after ' + notes.date + ' — create one in the CMS first');
