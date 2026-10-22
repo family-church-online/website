@@ -120,6 +120,8 @@ src/components/**/*.astro   ← Components receive typed props
 | `course` / `courseLesson` | `src/content/courses/` | MDX | `/courses/{slug}`, `/courses/{course}/{chapter}/{lesson}` |
 | `globalConfig` | `src/content/config/config.json` | JSON | global (nav, SEO, contact links, auth) |
 | `whatsNext` | `src/content/whats-next/` | MDX | one file per service (`YYYY-MM-DD.mdx`); `/whats-next` page reads via `import.meta.glob` not the TinaCMS client |
+| `liveVideo` | `src/content/live-video/` | JSON | single file — page heading, embed URL, sermon notes config for `/video`; no create/delete |
+| `statementOfFaith` | `src/content/statement-of-faith/` | JSON | single file — numbered articles for `/statement-of-faith`; no create/delete |
 
 Sermon filenames follow the pattern `{title-slug}-{scripture-slug}.mdx` — no date prefix, scripture reference appended (e.g. `choosing-joy-in-weakness-habakkuk-3-17-19.mdx`). The `slugify` function in `tina/collections/sermon.ts` enforces this format. Sermon titles are stored as `"Title : Book Chapter:Verse"` (e.g. `"Choosing Joy in Weakness : Habakkuk 3:17-19"`). Devotion filenames are simply `YYYY-MM-DD.mdx`.
 
@@ -140,7 +142,12 @@ Sermon filenames follow the pattern `{title-slug}-{scripture-slug}.mdx` — no d
 - `src/pages/groups.astro` — Small groups listing (static)
 - `src/pages/ministries.astro` — Ministries listing (static)
 - `src/pages/memorial/[slug].astro` — Memorial tribute pages
-- `src/pages/today.astro` — Static fallback; in production intercepted by `functions/today.ts`
+- `src/pages/today.astro` — On-demand SSR route; computes current SA date (UTC+2), returns `302` to `/devotion/YYYY-MM-DD` with edge cache until SA midnight
+- `src/pages/video.astro` — Live stream / video page; shows `LiveStream` block content from `live-video` collection
+- `src/pages/statement-of-faith.astro` — Static page rendered from the `statement-of-faith` JSON collection
+- `src/pages/sermon-admin/[jobId].astro` — SSR sermon review + approval UI; reads job from KV, triggers `SermonPublishWorkflow` on approval
+- `src/pages/api/sermon/jobs.ts` — POST; receives sermon job from local pipeline CLI
+- `src/pages/api/sermon/[jobId].ts` — GET/PATCH; job status + field edits from the review UI
 - `src/pages/tina-island/[name].ts` — Dynamic on-demand route powering TinaCMS visual editing
 - `src/pages/course-admin.astro` — Admin: course completion viewer (gated to `adminListId` PCO list); `noindex`
 - `src/pages/cf-status.astro` — Admin: Cloudflare free-tier usage dashboard (gated to `adminListId`); `noindex`

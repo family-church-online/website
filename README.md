@@ -80,6 +80,8 @@ The sermon pipeline requires the [Claude Code CLI](https://claude.ai/code) to be
 | `R2_SECRET_ACCESS_KEY` | R2 secret key (pipeline only) |
 | `R2_BUCKET` | R2 bucket name (default: `family-church-sermons`) |
 | `R2_AUDIO_PUBLIC_URL` | Public URL for R2 audio files (default: `https://audio.familychurch.online`) |
+| `CF_ACCOUNT_ID` | Cloudflare account ID — unlocks live analytics on `/cf-status` (optional Worker runtime var) |
+| `CF_API_TOKEN` | Cloudflare API token with Analytics read permission — same as above (optional) |
 
 ## Commands
 
@@ -90,6 +92,7 @@ pnpm build:local      # Local build without TinaCloud auth
 pnpm preview          # Preview production build
 pnpm astro check      # TypeScript type-check
 pnpm sveltia:config   # Regenerate public/edit/config.yml from TinaCMS schema
+pnpm dev:mobile       # Dev server accessible on the local network (auto-detects LAN IP for TinaCMS)
 ```
 
 ## Content management
@@ -124,6 +127,8 @@ Sveltia's config is auto-generated from the TinaCMS schema at every build by `sc
 | Kids — Junior | `src/content/kids/junior/` | Sveltia | Kids church lessons |
 | Kids — Senior | `src/content/kids/senior/` | Sveltia | Kids church lessons |
 | What's Next | `src/content/whats-next/` | Sveltia | One MDX per service (`YYYY-MM-DD.mdx`); displayed at `/whats-next` |
+| Live Video | `src/content/live-video/` | TinaCMS | Single JSON file — page heading, embed URL, sermon notes config for `/video` |
+| Statement of Faith | `src/content/statement-of-faith/` | TinaCMS | Single JSON file — numbered articles for `/statement-of-faith` |
 | Global config | `src/content/config/config.json` | TinaCMS | Nav, SEO, contact links, auth, admin list ID |
 
 ### TinaCMS schema changes
@@ -234,6 +239,9 @@ These routes run as Worker handlers — everything else is pre-rendered static H
 | `/courses/[course]/` | Course detail — reads KV for member progress |
 | `/courses/[course]/[chapter]/[lesson]` | Lesson page — reads/writes KV |
 | `/tina-island/[name]` | TinaCMS visual editing islands |
+| `/sermon-admin/[jobId]` | Sermon review + approval UI — reads job from KV, approves to trigger `SermonPublishWorkflow` |
+| `/api/sermon/jobs` | POST — receives job from the local pipeline CLI (authenticated with `SERMON_PIPELINE_SECRET`) |
+| `/api/sermon/[jobId]` | GET/PATCH — job status read + field updates from the review UI |
 
 ## Sermon notes (Sunday placeholder)
 
@@ -274,8 +282,7 @@ The Astro adapter is auto-detected from the build environment (Cloudflare, Verce
 Before the first deploy:
 1. Create a project at [app.tina.io](https://app.tina.io)
 2. Set `PUBLIC_TINA_CLIENT_ID` and `TINA_TOKEN` in Cloudflare's environment variables
-3. Set the auth variables (`PCO_APP_ID`, `PCO_SECRET`, `RESEND_API_KEY`)
+3. Set the auth variables (`PCO_APP_TOKEN`, `PCO_APP_SECRET`, `SESSION_SECRET`, `RESEND_API_KEY`)
 4. Set `SITE_URL` to the production URL — **as a build environment variable**, not a runtime variable. Cloudflare runtime vars are not visible during the Astro build, so the sitemap and canonical URLs will default to `localhost` if `SITE_URL` is only set under "Runtime variables and secrets".
-5. Set `PCO_REDIRECT_URI` to `https://{your-domain}/api/auth/callback`
 
 For Sveltia CMS to work in production, a GitHub OAuth proxy Worker must be deployed separately — see the auth setup instructions in `public/edit/config.yml`.
