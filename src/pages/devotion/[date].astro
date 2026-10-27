@@ -65,17 +65,19 @@ export function getStaticPaths() {
             }
           : null,
         isLatest: isLast,
+        allDates: all.map(e => e.date),
       },
     };
   });
 }
 
 const { date } = Astro.params;
-const { frontmatter: fm, prev, next, isLatest } = Astro.props as {
+const { frontmatter: fm, prev, next, isLatest, allDates } = Astro.props as {
   frontmatter: DevotionFrontmatter;
   prev: { date: string; title?: string } | null;
   next: { date: string; title?: string; href: string } | null;
   isLatest: boolean;
+  allDates: string[];
 };
 
 const config    = (await getConfig()).data?.config ?? null;
@@ -345,6 +347,42 @@ const articleLd = {
       </p>
     </div>
 
+    {/* ── CALENDAR ───────────────────────────────────────────────────────────── */}
+    <div data-nocopy class="reveal esv-crossref-ignore bg-white dark:bg-[var(--card)] rounded-xl shadow-sm ring-1 ring-[var(--navy)]/8 dark:ring-white/8 overflow-hidden">
+      <button
+        id="cal-toggle"
+        aria-expanded="false"
+        aria-controls="cal-panel"
+        class="w-full flex items-center justify-between px-5 py-4 hover:bg-[var(--navy)]/4 dark:hover:bg-white/4 transition-colors"
+      >
+        <span class="text-xs font-bold uppercase tracking-widest text-[var(--olive)]">Browse Devotions</span>
+        <svg id="cal-chevron" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" class="text-[var(--navy)]/40 dark:text-white/40 transition-transform duration-200 shrink-0"><path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+      </button>
+      <div id="cal-panel-wrap" class="cal-panel-wrap">
+        <div>
+          <div id="cal-panel" role="region" aria-labelledby="cal-toggle" inert>
+            <div class="px-5 pb-5 border-t border-[var(--navy)]/8 dark:border-white/8 pt-4">
+              <div class="flex items-center justify-between mb-4">
+                <button id="cal-prev" aria-label="Previous month" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--navy)]/8 dark:hover:bg-white/8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[var(--navy)] dark:text-white">
+                  <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"/></svg>
+                </button>
+                <span id="cal-month-label" class="text-sm font-semibold text-[var(--navy)] dark:text-white select-none"></span>
+                <button id="cal-next" aria-label="Next month" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--navy)]/8 dark:hover:bg-white/8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-[var(--navy)] dark:text-white">
+                  <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"/></svg>
+                </button>
+              </div>
+              <div class="grid grid-cols-7 mb-2">
+                {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                  <div class="text-center text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--ink)]/40 dark:text-white/40 py-1">{d}</div>
+                ))}
+              </div>
+              <div id="cal-grid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     {/* ── PREV / NEXT ─────────────────────────────────────────────────────────── */}
     {(prev || next || isLatest) && (
       <nav data-nocopy class="reveal flex items-stretch gap-3 mt-2 mb-8 esv-crossref-ignore">
@@ -382,6 +420,147 @@ const articleLd = {
 
   <EsvCrossref />
 </Base>
+
+<style is:global>
+  /* collapse/expand */
+  .cal-panel-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.25s ease;
+  }
+  .cal-panel-wrap.open {
+    grid-template-rows: 1fr;
+  }
+  .cal-panel-wrap > div {
+    overflow: hidden;
+  }
+  #cal-chevron.open {
+    transform: rotate(180deg);
+  }
+
+  /* calendar grid */
+  #cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    row-gap: 2px;
+  }
+  #cal-grid > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.25rem;
+  }
+  .cal-day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .cal-day-avail {
+    color: var(--navy);
+    font-weight: 500;
+  }
+  :where(.dark, .dark *) .cal-day-avail {
+    color: white;
+  }
+  .cal-day-avail:hover {
+    background-color: color-mix(in srgb, var(--green) 15%, transparent);
+    color: var(--green);
+  }
+  .cal-day-cur {
+    background-color: var(--green);
+    color: white;
+    font-weight: 600;
+  }
+  .cal-day-none {
+    color: color-mix(in srgb, var(--ink) 25%, transparent);
+  }
+  :where(.dark, .dark *) .cal-day-none {
+    color: color-mix(in srgb, white 20%, transparent);
+  }
+</style>
+
+<script define:vars={{ allDates, date }}>
+  const datesSet = new Set(allDates);
+  const MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+
+  const sorted = [...datesSet].sort();
+  const [minY, minM] = sorted[0].split('-').map(Number);
+  const [maxY, maxM] = sorted[sorted.length - 1].split('-').map(Number);
+
+  const [curY, curM] = date.split('-').map(Number);
+  let vy = curY, vm = curM - 1;
+
+  function renderCal() {
+    const label = document.getElementById('cal-month-label');
+    const prevBtn = document.getElementById('cal-prev');
+    const nextBtn = document.getElementById('cal-next');
+    const grid = document.getElementById('cal-grid');
+    if (!label || !prevBtn || !nextBtn || !grid) return;
+
+    label.textContent = MONTHS[vm] + ' ' + vy;
+
+    if (vy === minY && vm === minM - 1) prevBtn.setAttribute('disabled', '');
+    else prevBtn.removeAttribute('disabled');
+    if (vy === maxY && vm === maxM - 1) nextBtn.setAttribute('disabled', '');
+    else nextBtn.removeAttribute('disabled');
+
+    grid.innerHTML = '';
+
+    const firstDay = new Date(vy, vm, 1).getDay();
+    const daysInMonth = new Date(vy, vm + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      grid.appendChild(document.createElement('div'));
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = vy + '-' + String(vm + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      const has = datesSet.has(ds);
+      const isCur = ds === date;
+
+      const el = document.createElement(has ? 'a' : 'span');
+      el.textContent = String(d);
+      el.className = 'cal-day ' + (has ? (isCur ? 'cal-day-cur' : 'cal-day-avail') : 'cal-day-none');
+      if (has) el.setAttribute('href', '/devotion/' + ds);
+
+      const cell = document.createElement('div');
+      cell.appendChild(el);
+      grid.appendChild(cell);
+    }
+  }
+
+  document.getElementById('cal-prev')?.addEventListener('click', () => {
+    if (vm === 0) { vm = 11; vy--; } else vm--;
+    renderCal();
+  });
+  document.getElementById('cal-next')?.addEventListener('click', () => {
+    if (vm === 11) { vm = 0; vy++; } else vm++;
+    renderCal();
+  });
+
+  const toggle = document.getElementById('cal-toggle');
+  const wrap = document.getElementById('cal-panel-wrap');
+  const panel = document.getElementById('cal-panel');
+  const chevron = document.getElementById('cal-chevron');
+
+  toggle?.addEventListener('click', () => {
+    const opening = toggle.getAttribute('aria-expanded') === 'false';
+    toggle.setAttribute('aria-expanded', String(opening));
+    wrap?.classList.toggle('open', opening);
+    chevron?.classList.toggle('open', opening);
+    if (opening) panel?.removeAttribute('inert');
+    else panel?.setAttribute('inert', '');
+  });
+
+  renderCal();
+</script>
 
 <script>
   const url = window.location.href;
