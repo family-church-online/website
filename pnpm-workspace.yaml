@@ -2,6 +2,7 @@
 # settings file instead of failing with "packages field missing or empty".
 packages:
   - '.'
+  - 'sermon-pipeline'
 
 onlyBuiltDependencies:
   - better-sqlite3
@@ -15,6 +16,7 @@ allowBuilds:
   core-js: true
   esbuild: true
   protobufjs: true
+  puppeteer: true
   sharp: true
   workerd: true
 minimumReleaseAgeExclude:
