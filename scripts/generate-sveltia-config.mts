@@ -112,6 +112,7 @@ import { fileURLToPath } from 'node:url';
 // without any compile step. The `import type { Collection }` in each file
 // is a type-only import that is completely removed at runtime.
 import { SermonNotesCollection }     from '../tina/collections/sermon-notes.ts';
+import { WorshipNotesCollection }    from '../tina/collections/worship-notes.ts';
 import { WhatsNextCollection }        from '../tina/collections/whats-next.ts';
 import { GroupCollection }            from '../tina/collections/group.ts';
 import { AnnouncementCollection }   from '../tina/collections/announcement.ts';
@@ -642,6 +643,21 @@ const filesCollections: unknown[] = [
         format: 'frontmatter',
         ...collectionMedia(SermonNotesCollection.fields as TinaField[]),
         fields: translateFields(SermonNotesCollection.fields as TinaField[], 'sermonNotes'),
+      },
+    ],
+  },
+  {
+    name:  'worship-notes',
+    label: 'Sunday Worship Notes',
+    editor: editorNoPreview,
+    files: [
+      {
+        name:   'current',
+        label:  'Current Worship Notes',
+        file:   'src/content/worship-notes/current.mdx',
+        format: 'frontmatter',
+        ...collectionMedia(WorshipNotesCollection.fields as TinaField[]),
+        fields: translateFields(WorshipNotesCollection.fields as TinaField[], 'worshipNotes'),
       },
     ],
   },
