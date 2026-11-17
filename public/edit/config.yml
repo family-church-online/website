@@ -1483,3 +1483,35 @@ collections:
             label: Sermon Notes
             required: false
             widget: markdown
+  - name: worship-notes
+    label: Sunday Worship Notes
+    editor:
+      preview: false
+    files:
+      - name: current
+        label: Current Worship Notes
+        file: src/content/worship-notes/current.mdx
+        format: frontmatter
+        media_folder: /public/images/tmp
+        public_folder: /images/tmp
+        fields:
+          - name: title
+            label: Title
+            widget: string
+          - name: date
+            label: Date
+            required: false
+            widget: datetime
+            date_format: YYYY-MM-DD
+            time_format: false
+            format: YYYY-MM-DDTHH:mm:ss.SSSZ
+          - name: image
+            label: Banner Image
+            required: false
+            widget: image
+            media_folder: /public/images/tmp
+            public_folder: /images/tmp
+          - name: body
+            label: Worship Notes
+            required: false
+            widget: markdown
