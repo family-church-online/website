@@ -218,8 +218,8 @@ const eventLd = {
 
 			{/* ── GALLERY ───────────────────────────────────────────────────── */}
 			{(fm.images ?? []).filter(i => i?.image).length > 0 && (
-				<div class="reveal" data-reveal-delay="0.18">
-					<Carousel slides={(fm.images ?? []).filter(i => i?.image)} heading="Images" />
+				<div class="reveal mt-8" data-reveal-delay="0.18">
+					<Carousel slides={(fm.images ?? []).filter(i => i?.image)} />
 				</div>
 			)}
 
