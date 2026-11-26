@@ -67,6 +67,19 @@ export const EventCollection: Collection = {
 			description: 'Optional external link for sign-ups or more information.',
 		},
 		{
+			name: 'images',
+			label: 'Images',
+			type: 'object',
+			list: true,
+			ui: {
+				itemProps: (item: { description?: string }) => ({ label: item.description || 'Image' }),
+			},
+			fields: [
+				{ name: 'image', label: 'Image', type: 'image', ui: { uploadDir: () => '/images/events' } },
+				{ name: 'description', label: 'Description', type: 'string' },
+			],
+		},
+		{
 			name: 'body',
 			label: 'Full Details',
 			type: 'rich-text',

@@ -4,6 +4,7 @@ export const prerender = true;
 import Base from '../../layouts/Base.astro';
 import Breadcrumb from '../../components/Breadcrumb.astro';
 import Icon from '../../components/Icon.astro';
+import Carousel from '../../components/ministry/Carousel.astro';
 import { getConfig } from '../../lib/data';
 
 interface EventFrontmatter {
@@ -14,6 +15,7 @@ interface EventFrontmatter {
 	image?: string | null;
 	description?: string | null;
 	registrationUrl?: string | null;
+	images?: Array<{ image?: string; description?: string }>;
 }
 
 export function getStaticPaths() {
@@ -211,6 +213,13 @@ const eventLd = {
 					<div class="prose dark:prose-invert max-w-none">
 						<Content />
 					</div>
+				</div>
+			)}
+
+			{/* ── GALLERY ───────────────────────────────────────────────────── */}
+			{(fm.images ?? []).filter(i => i?.image).length > 0 && (
+				<div class="reveal" data-reveal-delay="0.18">
+					<Carousel slides={(fm.images ?? []).filter(i => i?.image)} heading="Images" />
 				</div>
 			)}
 
