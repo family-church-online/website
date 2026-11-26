@@ -79,7 +79,7 @@ const eventLd = {
 	name: fm.title,
 	...(fm.date    && { startDate: fm.date }),
 	...(fm.endDate && { endDate: fm.endDate }),
-	...(fm.description && { description: fm.description }),
+	description: fm.description || `${fm.title ?? 'An event'} at ${config?.seo?.title ?? 'Family Church'}.`,
 	...(fm.image && { image: fm.image.startsWith('http') ? fm.image : `${siteUrl}${fm.image}` }),
 	...(fm.location && { location: { '@type': 'Place', name: fm.location } }),
 	organizer: {
